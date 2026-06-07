@@ -1,0 +1,281 @@
+import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Header from './components/Header';
+import NewsFeed from './components/NewsFeed';
+import Profile from './components/Profile';
+import Settings from './components/Settings';
+import Billing from './components/Billing';
+import AdminPanel from './components/AdminPanel';
+import AiAssistant from './components/AiAssistant';
+import AuthModal from './components/AuthModal';
+import EPaper from './components/EPaper';
+import LiveTV from './components/LiveTV';
+import LegalPages from './components/LegalPages';
+import CookieConsent from './components/CookieConsent';
+
+function AppContent() {
+  const { user, settings, updateSettings, incrementTimeSpent } = useAuth();
+  
+  // Theme state synced with Context preferences
+  const [theme, setTheme] = useState(() => {
+    const cached = localStorage.getItem('er_theme');
+    if (cached) return cached;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  const [activeCategory, setActiveCategory] = useState('world');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // View states including transition loader variables
+  const [view, setViewInternal] = useState('feed'); // 'feed', 'profile', 'settings', 'billing', 'admin', 'epaper', 'livetv', 'about', 'contact', 'terms', 'privacy'
+  const [viewLoading, setViewLoading] = useState(false);
+  
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const setView = (newView) => {
+    setViewLoading(true);
+    setTimeout(() => {
+      setViewInternal(newView);
+      setViewLoading(false);
+    }, 400);
+  };
+
+  // Global view change listener for paywalls and chatbot redirects
+  useEffect(() => {
+    const handleViewChange = (e) => {
+      if (e.detail) setView(e.detail);
+    };
+    window.addEventListener('change-view', handleViewChange);
+    return () => window.removeEventListener('change-view', handleViewChange);
+  }, []);
+
+  // Query-based routing recovery on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    const sessionId = params.get('session_id');
+    if (sessionId) {
+      setViewInternal('billing');
+    } else if (viewParam) {
+      setViewInternal(viewParam);
+    }
+  }, []);
+
+  // 1. Time spent tracker (increments stats by 0.5 minutes every 30 seconds of activity)
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      incrementTimeSpent(0.5);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Sync context settings with state
+  useEffect(() => {
+    if (settings && settings.theme) {
+      setTheme(settings.theme);
+    }
+  }, [settings?.theme]);
+
+  // Sync Theme with DOM
+  useEffect(() => {
+    const root = window.document.documentElement;
+    let activeTheme = theme;
+    if (theme === 'auto') {
+      activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    
+    if (activeTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('er_theme', theme);
+  }, [theme]);
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    updateSettings({ theme: newTheme });
+  };
+
+  const handleSearchSubmit = (query) => {
+    setSearchQuery(query);
+    setActiveCategory(''); // Clear category when searching
+  };
+
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
+    setSearchQuery(''); // Clear search query when changing category
+  };
+
+  const triggerRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  return (
+    <div class="min-h-screen flex flex-col bg-paper dark:bg-paper-dark text-navy dark:text-gray-100 transition-colors duration-200 relative max-w-full overflow-x-hidden">
+      
+      {/* Masthead Header */}
+      <Header 
+        theme={theme}
+        setTheme={handleThemeChange}
+        activeCategory={activeCategory}
+        onCategoryChange={handleCategoryChange}
+        onSearchSubmit={handleSearchSubmit}
+        openAuthModal={() => setAuthModalOpen(true)}
+        setView={setView}
+      />
+
+      {/* Transition loading spinner */}
+      {viewLoading && (
+        <div class="fixed inset-0 z-50 bg-paper/80 dark:bg-paper-dark/80 backdrop-blur-sm flex flex-col items-center justify-center text-navy dark:text-gold">
+          <div class="flex flex-col items-center gap-3">
+            <div class="relative flex h-10 w-10">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-10 w-10 border-4 border-double border-gold animate-spin"></span>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-widest font-mono">COMPILING DISPATCH LEDGER...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Router */}
+      <main class="flex-grow">
+        {view === 'feed' ? (
+          <NewsFeed 
+            activeCategory={activeCategory}
+            searchQuery={searchQuery}
+            triggerRefresh={triggerRefresh}
+          />
+        ) : view === 'profile' ? (
+          <Profile 
+            setView={setView}
+            onSearchSubmit={handleSearchSubmit}
+          />
+        ) : view === 'settings' ? (
+          <Settings 
+            setView={setView}
+          />
+        ) : view === 'billing' ? (
+          <Billing 
+            setView={setView}
+          />
+        ) : view === 'admin' ? (
+          <AdminPanel 
+            setView={setView}
+          />
+        ) : view === 'epaper' ? (
+          <EPaper 
+            setView={setView}
+          />
+        ) : view === 'livetv' ? (
+          <LiveTV 
+            setView={setView}
+          />
+        ) : ['about', 'contact', 'terms', 'privacy'].includes(view) ? (
+          <LegalPages 
+            setView={setView}
+            initialSection={view}
+          />
+        ) : (
+          /* Custom 404 Page View */
+          <div class="max-w-md mx-auto px-4 py-20 text-center font-sans">
+            <h2 class="font-serif text-5xl font-black text-navy dark:text-gold mb-2">404</h2>
+            <p class="text-xs uppercase tracking-widest font-mono text-gray-400 mb-6">WIRE BRIEFING NOT FOUND</p>
+            <p class="text-xs text-gray-450 dark:text-gray-300 leading-relaxed mb-6 font-serif">
+              The satellite channel or editorial brief you are attempting to retrieve does not exist in our active indexing ledger.
+            </p>
+            <button 
+              onClick={() => setView('feed')}
+              class="px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-bold text-xs uppercase"
+            >
+              Return to News Feed
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* FOOTER */}
+      <footer class="w-full bg-navy text-white mt-12 py-8 px-4 md:px-6 border-t border-gold/40">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left text-xs text-gray-300 font-sans">
+          {/* Column 1: Editorial Info */}
+          <div class="space-y-2">
+            <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">ECONOMICAL RESEARCH</h4>
+            <p class="italic text-gray-400">&ldquo;Your World. Your News. Researched.&rdquo;</p>
+            <p class="leading-relaxed">
+              A premium intelligence wire providing structural economic, political, and technical news briefings synthesized with analytical clarity.
+            </p>
+          </div>
+
+          {/* Column 2: Sections Map */}
+          <div class="space-y-2">
+            <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">WIRE DESKS</h4>
+            <div class="grid grid-cols-2 gap-1 font-semibold text-left">
+              <button onClick={() => handleCategoryChange('world')} class="hover:text-gold text-left uppercase">World Bulletin</button>
+              <button onClick={() => handleCategoryChange('india')} class="hover:text-gold text-left uppercase">India Reports</button>
+              <button onClick={() => handleCategoryChange('politics')} class="hover:text-gold text-left uppercase">Political Desk</button>
+              <button onClick={() => handleCategoryChange('tech')} class="hover:text-gold text-left uppercase">Technology</button>
+              <button onClick={() => handleCategoryChange('business')} class="hover:text-gold text-left uppercase">Business</button>
+              <button onClick={() => handleCategoryChange('finance')} class="hover:text-gold text-left uppercase">Monetary Desk</button>
+            </div>
+          </div>
+
+          {/* Column 3: Disclaimer */}
+          <div class="space-y-2">
+            <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">REGULATORY COMPLIANCE</h4>
+            <p class="leading-relaxed text-gray-400">
+              All AI-generated summaries and implications are derived dynamically for review. Cross-check official documents for sovereign decisions.
+            </p>
+            <p class="pt-2 font-mono text-[10px]">
+              Proxy Server Status: <span class="text-green-400 font-bold">ONLINE</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] text-gray-400 gap-2 font-semibold uppercase tracking-wider font-sans">
+          <span>© {new Date().getFullYear()} ECONOMICAL RESEARCH CORP. ALL RIGHTS RESERVED.</span>
+          <div class="flex gap-4 flex-wrap justify-center">
+            <span class="hover:text-gold cursor-pointer" onClick={() => setView('settings')}>Settings</span>
+            <span>•</span>
+            <span class="hover:text-gold cursor-pointer" onClick={() => setView('billing')}>Upgrade to PRO</span>
+            <span>•</span>
+            {user && (user.email === 'admin@economicalresearch.com' || user.email?.endsWith('@economicalresearch.com')) && (
+              <>
+                <span class="hover:text-gold cursor-pointer font-bold text-gold" onClick={() => setView('admin')}>Admin Dashboard</span>
+                <span>•</span>
+              </>
+            )}
+            <span class="hover:text-gold cursor-pointer" onClick={() => setView('terms')}>Terms of Service</span>
+            <span>•</span>
+            <span class="hover:text-gold cursor-pointer" onClick={() => setView('privacy')}>Privacy Policy</span>
+            <span>•</span>
+            <span class="hover:text-gold cursor-pointer" onClick={() => setView('about')}>About Us</span>
+            <span>•</span>
+            <span class="hover:text-gold cursor-pointer" onClick={() => setView('contact')}>Contact Desk</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Floating AI Assistant Chatbot */}
+      <AiAssistant />
+
+      {/* Cookie Consent Popup */}
+      <CookieConsent />
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+      />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply transition-colors duration-300 bg-paper text-navy dark:bg-paper-dark dark:text-gray-100;
+  }
+  
+  /* Custom scrollbar to look sleek */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-paper dark:bg-paper-dark;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600;
+  }
+}
+
+/* Custom newspaper elements */
+.newspaper-grid {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+}
+
+@media (max-width: 1024px) {
+  .newspaper-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Double lines borders for classic newspaper headers */
+.border-double-navy {
+  border-style: double;
+  border-width: 4px 0;
+  border-color: theme('colors.navy.DEFAULT');
+}
+
+.dark .border-double-navy {
+  border-color: theme('colors.gold.DEFAULT');
+}
+
+.border-double-bottom-navy {
+  border-bottom-style: double;
+  border-bottom-width: 4px;
+  border-color: theme('colors.navy.DEFAULT');
+}
+
+.dark .border-double-bottom-navy {
+  border-color: theme('colors.gold.DEFAULT');
+}
+
+/* Shimmer animation for loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0e8 25%, #e6e6db 50%, #f0f0e8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, #1e1e1e 25%, #2a2a2a 50%, #1e1e1e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
