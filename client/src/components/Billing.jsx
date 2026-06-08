@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  ShieldCheck, CreditCard, Receipt, Lock, Check, X, 
+  ShieldCheck, CreditCard, Receipt, Lock, Check, 
   AlertCircle, Loader, ArrowLeft, ToggleLeft, ToggleRight, Sparkles 
 } from 'lucide-react';
 
@@ -16,8 +16,8 @@ export default function Billing({ setView }) {
   // Billing cycle state
   const [cycle, setCycle] = useState('monthly'); // 'monthly' or 'yearly'
 
-  // Stripe config status from backend
-  const [isStripeConfigured, setIsStripeConfigured] = useState(true);
+  // Razorpay config status from backend (uses isStripeConfigured legacy state)
+  const [isRazorpayConfigured, setIsRazorpayConfigured] = useState(true);
   
   // Waitlist form states
   const [showWaitlist, setShowWaitlist] = useState(false);
@@ -27,61 +27,25 @@ export default function Billing({ setView }) {
 
   const activeTier = subscription?.tier || 'Basic';
 
-  // Check URL query parameters for success checkout callbacks
+  // Load Razorpay Script Dynamically on Mount
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('session_id');
-    const plan = params.get('plan');
-    const cycleParam = params.get('cycle') || 'monthly';
-    const cancelled = params.get('cancelled');
-
-    if (cancelled) {
-      setError('Subscription checkout was cancelled. No changes have been made to your billing account.');
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setTimeout(() => setError(null), 6000);
-    }
-
-    if (sessionId && plan) {
-      setLoading(true);
-      setError(null);
-      
-      fetch(`/api/billing/session-status?session_id=${sessionId}`)
-        .then(res => {
-          if (!res.ok) throw new Error('Session retrieval failed');
-          return res.json();
-        })
-        .then(data => {
-          if (data.status === 'complete' || data.payment_status === 'paid') {
-            const verifiedPlan = data.planId || plan;
-            const verifiedCycle = data.cycle || cycleParam;
-            upgradeToPro(verifiedPlan, verifiedCycle);
-            setSuccessMessage(`Upgrade successful! Welcome to Economical Research ${verifiedPlan.toUpperCase()} (${verifiedCycle}).`);
-          } else {
-            setError('Payment verification failed or incomplete.');
-          }
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error('Stripe session status verification error:', err);
-          // Fallback to upgrade anyway for testing robust sandbox
-          upgradeToPro(plan, cycleParam);
-          setSuccessMessage(`Upgrade completed! Welcome to Economical Research ${plan.toUpperCase()} (${cycleParam}).`);
-          setLoading(false);
-        });
-
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setTimeout(() => setSuccessMessage(null), 8500);
-    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
   }, []);
 
-  // Fetch Stripe config status on mount
+  // Fetch Razorpay config status on mount
   useEffect(() => {
     fetch('/api/billing/config-status')
       .then(res => res.json())
-      .then(data => setIsStripeConfigured(data.isStripeConfigured))
+      .then(data => setIsRazorpayConfigured(data.isStripeConfigured))
       .catch(err => {
         console.error('Error fetching billing config status:', err);
-        setIsStripeConfigured(false); // Fallback to Coming Soon waitlist
+        setIsRazorpayConfigured(false); // Fallback to Coming Soon waitlist
       });
   }, []);
 
@@ -107,8 +71,8 @@ export default function Billing({ setView }) {
       return;
     }
 
-    // If Stripe is not configured, show Coming Soon Waitlist form
-    if (!isStripeConfigured && !forceSandbox) {
+    // If Razorpay is not configured, show Coming Soon Waitlist form
+    if (!isRazorpayConfigured && !forceSandbox) {
       setSelectedPlanForWaitlist(planId);
       setShowWaitlist(true);
       return;
@@ -118,7 +82,8 @@ export default function Billing({ setView }) {
     setError(null);
 
     try {
-      const response = await fetch('/api/billing/create-checkout-session', {
+      // 1. Create Razorpay Order
+      const response = await fetch('/api/billing/create-razorpay-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -129,14 +94,102 @@ export default function Billing({ setView }) {
         })
       });
 
-      if (!response.ok) throw new Error('Checkout failed');
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (!response.ok) throw new Error('Order creation failed');
+      const order = await response.json();
+
+      // 2. Razorpay Options Config
+      const options = {
+        key: order.mock ? 'rzp_test_mockkey' : 'rzp_live_Sz6R98zZyCDyWK',
+        amount: order.amount,
+        currency: order.currency || 'INR',
+        name: 'Economical Research',
+        description: `ER ${planId.toUpperCase()} Subscription (${cycle})`,
+        image: 'https://api.dicebear.com/7.x/identicon/svg?seed=economical-research',
+        order_id: order.id,
+        handler: async function (paymentRes) {
+          // Success callback
+          setLoading(true);
+          try {
+            const verifyRes = await fetch('/api/billing/verify-razorpay-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: paymentRes.razorpay_order_id,
+                razorpay_payment_id: paymentRes.razorpay_payment_id,
+                razorpay_signature: paymentRes.razorpay_signature,
+                planId: planId,
+                cycle: cycle
+              })
+            });
+
+            if (!verifyRes.ok) throw new Error('Signature verification call failed');
+            const verification = await verifyRes.json();
+
+            if (verification.verified) {
+              upgradeToPro(planId, cycle);
+              setSuccessMessage(`Upgrade successful! Welcome to Economical Research ${planId.toUpperCase()} (${cycle}).`);
+              setTimeout(() => setSuccessMessage(null), 8000);
+            } else {
+              setError('Payment verification failed.');
+            }
+          } catch (verifyErr) {
+            console.error('Verification error:', verifyErr);
+            // Fallback for sandboxes
+            if (order.mock) {
+              upgradeToPro(planId, cycle);
+              setSuccessMessage(`Sandbox upgrade completed successfully! Welcome to ER ${planId.toUpperCase()} (${cycle}).`);
+              setTimeout(() => setSuccessMessage(null), 8000);
+            } else {
+              setError('Verification error. Payment was completed but signature check failed.');
+            }
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: user.displayName || '',
+          email: user.email || ''
+        },
+        notes: {
+          userId: user.uid,
+          planId: planId,
+          cycle: cycle
+        },
+        theme: {
+          color: '#0A1628' // Navy blue
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+            setError('Payment cancelled. Checkout window closed.');
+            setTimeout(() => setError(null), 5000);
+          }
+        }
+      };
+
+      // 3. Open checkout modal
+      if (order.mock && forceSandbox) {
+        // Sandbox checkout bypasses iframe loading
+        const mockVerifyResponse = {
+          razorpay_order_id: order.id,
+          razorpay_payment_id: `pay_mock_${Date.now()}`,
+          razorpay_signature: 'mock_signature'
+        };
+        setTimeout(() => {
+          options.handler(mockVerifyResponse);
+        }, 1500);
+      } else {
+        if (window.Razorpay) {
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+        } else {
+          throw new Error('Razorpay SDK failed to load. Please verify your internet connection.');
+        }
       }
+
     } catch (err) {
       console.error(err);
-      setError('Stripe service currently unavailable. Please attempt later.');
+      setError(err.message || 'Razorpay order currently unavailable. Please attempt later.');
       setLoading(false);
     }
   };
@@ -160,7 +213,7 @@ export default function Billing({ setView }) {
   };
 
   const handleCancel = async () => {
-    if (window.confirm('Are you sure you want to cancel your premium subscription plan? You will immediately lose access to premium intelligence briefs.')) {
+    if (window.confirm('Are you sure you want to cancel your premium subscription plan? You will immediately lose access to premium INR intelligence briefs.')) {
       setLoading(true);
       try {
         await cancelSubscription();
@@ -195,8 +248,8 @@ export default function Billing({ setView }) {
       id: 'PRO',
       name: 'ER Pro',
       subText: 'For active news followers',
-      monthlyPrice: 4.99,
-      yearlyPrice: 49.90,
+      monthlyPrice: 399,
+      yearlyPrice: 3990,
       features: [
         'Unlimited news article access',
         '100% Ad-Free reading experience',
@@ -212,8 +265,8 @@ export default function Billing({ setView }) {
       id: 'SCHOLAR',
       name: 'ER Scholar',
       subText: 'For deep analytical research',
-      monthlyPrice: 9.99,
-      yearlyPrice: 99.90,
+      monthlyPrice: 799,
+      yearlyPrice: 7990,
       features: [
         'Everything included in ER PRO',
         'Detailed Deep Research Reports',
@@ -230,8 +283,8 @@ export default function Billing({ setView }) {
       id: 'ENTERPRISE',
       name: 'ER Enterprise',
       subText: 'For corporate teams & APIs',
-      monthlyPrice: 24.99,
-      yearlyPrice: 249.90,
+      monthlyPrice: 1999,
+      yearlyPrice: 19990,
       features: [
         'Everything in ER SCHOLAR',
         'Multi-user team desk seat (5 users)',
@@ -269,7 +322,7 @@ export default function Billing({ setView }) {
 
       {/* Error banner */}
       {error && (
-        <div class="mb-6 bg-red-500/10 border border-red-500/40 text-red-650 dark:text-red-400 text-xs font-bold px-4 py-3.5 rounded-lg flex items-center gap-2">
+        <div class="mb-6 bg-red-500/10 border border-red-500/40 text-red-655 dark:text-red-400 text-xs font-bold px-4 py-3.5 rounded-lg flex items-center gap-2">
           <AlertCircle size={16} class="shrink-0 text-red-500" />
           <span>{error}</span>
         </div>
@@ -280,14 +333,14 @@ export default function Billing({ setView }) {
         <span class="text-[9px] font-black uppercase tracking-widest text-gold font-mono block mb-1">economical research press ledger</span>
         <h1 class="font-serif text-3xl md:text-4xl font-black uppercase tracking-tight text-navy dark:text-gold">Subscribers Access Console</h1>
         <p class="mt-2.5 text-[11px] leading-relaxed text-gray-400 font-serif max-w-lg mx-auto">
-          Lift article paywalls, unlock our Claude-style economic chatbot, and generate detailed PDF intelligence reports directly from global desks.
+          Lift article paywalls, unlock our Claude-style economic chatbot, and generate detailed PDF intelligence reports directly from global desks. Supporting Indian Rupee payment checkouts.
         </p>
       </div>
 
       {/* 3. CURRENT PLAN PANEL */}
       <div class="bg-white dark:bg-[#0A1628]/40 border border-paper-border dark:border-paper-borderDark rounded-lg p-5 shadow-sm mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span class="text-[8.5px] uppercase font-bold text-gray-450 block font-mono">Current Active Desk Profile</span>
+          <span class="text-[8.5px] uppercase font-bold text-gray-455 block font-mono">Current Active Desk Profile</span>
           <div class="flex items-center gap-2 mt-0.5">
             <span class="font-serif text-lg font-black text-navy dark:text-gold uppercase tracking-wide">
               {activeTier === 'Basic' ? 'ER Basic (Free Tier)' : `ER ${activeTier} Press Tier`}
@@ -299,14 +352,14 @@ export default function Billing({ setView }) {
           <p class="text-[10px] text-gray-400 mt-1 max-w-md">
             {activeTier === 'Basic' 
               ? 'You are on the standard ad-supported reading profile. Upgrade to remove limits.' 
-              : `Renews via Stripe on ${subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'Next Month'}. Billing cycle: ${subscription.plan || 'monthly'}.`}
+              : `Renews via Razorpay on ${subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'Next Month'}. Billing cycle: ${subscription.plan || 'monthly'}.`}
           </p>
         </div>
         {activeTier !== 'Basic' && (
           <button
             onClick={handleCancel}
             disabled={loading}
-            class="px-4 py-2 bg-red-650/10 hover:bg-red-650 text-red-600 hover:text-white border border-red-600/35 rounded text-[10px] font-black uppercase tracking-widest transition-all"
+            class="px-4 py-2 bg-red-655/10 hover:bg-red-650 text-red-600 hover:text-white border border-red-600/35 rounded text-[10px] font-black uppercase tracking-widest transition-all"
           >
             {loading ? 'Processing...' : 'Cancel subscription'}
           </button>
@@ -359,8 +412,8 @@ export default function Billing({ setView }) {
                   {plan.name}
                   {plan.id === 'SCHOLAR' && <Sparkles size={13} class="text-gold animate-pulse" />}
                 </h3>
-                <div class="flex items-baseline gap-1 mb-5">
-                  <span class="text-3xl font-black font-mono tracking-tight text-navy dark:text-white">${displayPrice.toFixed(2)}</span>
+                <div class="flex items-baseline gap-0.5 mb-5">
+                  <span class="text-3xl font-black font-mono tracking-tight text-navy dark:text-white">₹{displayPrice.toLocaleString('en-IN')}</span>
                   <span class="text-[10px] text-gray-400 font-semibold uppercase">/{cycle === 'monthly' ? 'mo' : 'yr'}</span>
                 </div>
 
@@ -393,7 +446,7 @@ export default function Billing({ setView }) {
                         : 'bg-navy hover:bg-navy-light text-gold border border-gold/15 hover:scale-[1.02]'
                   }`}
                 >
-                  {loading ? 'Redirecting...' : isCurrentPlan ? 'Current Plan' : plan.buttonText}
+                  {loading ? 'Initiating...' : isCurrentPlan ? 'Current Plan' : plan.buttonText}
                 </button>
               )}
             </div>
@@ -499,8 +552,8 @@ export default function Billing({ setView }) {
       {/* 7. TRUST AND SECURITY BADGES */}
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14 text-center select-none font-sans">
         <div class="p-4 bg-white dark:bg-[#0A1628]/35 border border-paper-border dark:border-paper-borderDark rounded-lg">
-          <div class="text-gold text-lg mb-1">💳 SSL Secure Payments</div>
-          <p class="text-[10px] text-gray-400">Transactions are encrypted with AES-256 via Stripe Gateway. Supporting Card and **UPI payment** options.</p>
+          <div class="text-gold text-lg mb-1">💳 Razorpay Secure Checkout</div>
+          <p class="text-[10px] text-gray-400">Transactions processed securely in India. Supports **UPI (GPay, PhonePe, Paytm)**, Credit/Debit cards, Net Banking, and Wallets.</p>
         </div>
         <div class="p-4 bg-white dark:bg-[#0A1628]/35 border border-paper-border dark:border-paper-borderDark rounded-lg">
           <div class="text-gold text-lg mb-1">🤝 30-Day Guarantee</div>
@@ -520,7 +573,7 @@ export default function Billing({ setView }) {
           <div class="relative bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-6 rounded-lg shadow-2xl max-w-sm w-full text-center space-y-4 z-10 animate-[fadeIn_0.25s_ease-out]">
             <Lock size={26} class="mx-auto text-gold animate-bounce" />
             <h3 class="font-serif text-sm font-black text-navy dark:text-gold uppercase tracking-wider">
-              Stripe Regulatory Setup
+              Razorpay Regulatory Setup
             </h3>
             <p class="text-[10px] text-gray-450 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">
               Live upgrades to the **ER {selectedPlanForWaitlist}** tier are in regional payment checkups. Join the queue to activate premium access immediately when ready.
@@ -555,7 +608,7 @@ export default function Billing({ setView }) {
                 onClick={() => { setShowWaitlist(false); handleCheckout(selectedPlanForWaitlist, true); }}
                 class="text-gold hover:underline font-black uppercase tracking-wider text-[8.5px]"
               >
-                Simulate Stripe Checkout Session →
+                Simulate Razorpay Sandbox Purchase →
               </button>
             </div>
           </div>
@@ -577,12 +630,12 @@ export default function Billing({ setView }) {
             <span>Retrieving Invoice Ledger...</span>
           </div>
         ) : invoices.length === 0 ? (
-          <p class="text-[10px] text-gray-450 italic text-center py-4 select-none">No invoice filing records found on register.</p>
+          <p class="text-[10px] text-gray-455 italic text-center py-4 select-none">No invoice filing records found on register.</p>
         ) : (
           <div class="overflow-x-auto">
             <table class="w-full text-left text-[10px] font-sans text-navy dark:text-gray-300">
               <thead>
-                <tr class="border-b border-paper-border dark:border-paper-borderDark text-[8px] uppercase tracking-widest text-gray-450 font-bold select-none">
+                <tr class="border-b border-paper-border dark:border-paper-borderDark text-[8px] uppercase tracking-widest text-gray-455 font-bold select-none">
                   <th class="py-2">Invoice ID</th>
                   <th class="py-2">Date</th>
                   <th class="py-2">Briefing Plan</th>
