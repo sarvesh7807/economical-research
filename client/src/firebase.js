@@ -11,31 +11,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
 };
 
-// Validate if config has valid entries (not empty and not placeholder)
-const isFirebaseConfigured = 
-  firebaseConfig.apiKey && 
-  firebaseConfig.apiKey.trim() !== '' &&
-  !firebaseConfig.apiKey.includes('YAHAN') &&
-  !firebaseConfig.apiKey.includes('CONFIG');
+const isFirebaseConfigured = true;
 
-let app = null;
-let auth = null;
-let googleProvider = null;
-let db = null;
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+const db = getFirestore(app);
 
-if (isFirebaseConfigured) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-    db = getFirestore(app);
-    console.log('Firebase and Firestore successfully initialized.');
-  } catch (error) {
-    console.error('Error initializing Firebase:', error.message);
-  }
-} else {
-  console.warn('Firebase credentials not set or placeholder. Utilizing local simulated auth state.');
-}
+console.log('Firebase and Firestore successfully initialized.');
 
 export { auth, googleProvider, db, isFirebaseConfigured };
 export default app;

@@ -85,11 +85,7 @@ export const AuthProvider = ({ children }) => {
     let unsubscribeNotifications = () => {};
 
     if (user) {
-      const isMockUser = user.uid.startsWith('mock-');
-
-      if (isFirebaseConfigured && db && !isMockUser) {
-        // --- 1. FIREBASE REALTIME SYNC ---
-        
+      if (db) {
         // Sync Settings, Stats & Subscriptions
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeSettings = onSnapshot(userDocRef, (docSnap) => {
@@ -129,50 +125,6 @@ export const AuthProvider = ({ children }) => {
           snap.forEach((doc) => loaded.push({ id: doc.id, ...doc.data() }));
           setNotifications(loaded);
         }, (err) => console.error('Error fetching notifications:', err));
-
-      } else {
-        // --- 2. LOCALSTORAGE FALLBACK FOR MOCK USERS ---
-        const uid = user.uid;
-
-        // Load Settings
-        const savedSettings = localStorage.getItem(`er_settings_${uid}`);
-        if (savedSettings) setSettings(JSON.parse(savedSettings));
-        else setSettings({
-          theme: 'light',
-          fontSize: 'medium',
-          language: 'English',
-          notifications: true,
-          privacy: 'private',
-          emailAlerts: true,
-          pushAlerts: true,
-          favTopicAlerts: true,
-          subReminderAlerts: true,
-          activityAlerts: true,
-          quietHours: { enabled: false, start: "22:00", end: "07:00" },
-          alertFrequency: "Instant"
-        });
-
-        // Load Stats
-        const savedStats = localStorage.getItem(`er_stats_${uid}`);
-        if (savedStats) setReadingStats(JSON.parse(savedStats));
-        else setReadingStats({ articlesRead: 0, timeSpentMinutes: 0 });
-
-        // Load Subscriptions
-        const savedSub = localStorage.getItem(`er_sub_${uid}`);
-        if (savedSub) setSubscription(JSON.parse(savedSub));
-        else setSubscription({ tier: 'Basic', plan: null, expiresAt: null, status: 'Active' });
-
-        // Load Bookmarks
-        const savedBookmarks = localStorage.getItem(`er_bookmarks_${uid}`);
-        setBookmarks(savedBookmarks ? JSON.parse(savedBookmarks) : []);
-
-        // Load History
-        const savedHistory = localStorage.getItem(`er_history_${uid}`);
-        setReadingHistory(savedHistory ? JSON.parse(savedHistory) : []);
-
-        // Load Notifications
-        const savedNotifs = localStorage.getItem(`er_notifications_${uid}`);
-        setNotifications(savedNotifs ? JSON.parse(savedNotifs) : []);
       }
 
       // Load Search Ledger
@@ -214,15 +166,13 @@ export const AuthProvider = ({ children }) => {
 
   // Auth Observer
   useEffect(() => {
-    if (isFirebaseConfigured && auth) {
+    if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
         setLoading(false);
       });
       return unsubscribe;
     } else {
-      const cached = localStorage.getItem('er_mock_user');
-      if (cached) setUser(JSON.parse(cached));
       setLoading(false);
     }
   }, []);
@@ -246,7 +196,7 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({ email, type: 'welcome' })
     }).catch(err => console.error('Welcome Email Dispatch Error:', err));
 
-    if (isFirebaseConfigured && auth) {
+    if (auth) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       if (displayName) {
         await updateProfile(userCredential.user, { displayName });
@@ -261,26 +211,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       return userCredential.user;
-    } else {
-      const mockUsers = JSON.parse(localStorage.getItem('er_mock_users') || '[]');
-      if (mockUsers.some(u => u.email === email)) {
-        throw new Error('An account with this email already exists.');
-      }
-      const newUser = {
-        uid: `mock-user-${Date.now()}`,
-        email,
-        displayName: displayName || email.split('@')[0],
-        photoURL: null
-      };
-      mockUsers.push({ ...newUser, password });
-      localStorage.setItem('er_mock_users', JSON.stringify(mockUsers));
-      localStorage.setItem('er_mock_user', JSON.stringify(newUser));
-      
-      // Save welcome notification locally
-      localStorage.setItem(`er_notifications_${newUser.uid}`, JSON.stringify([welcomeNotif]));
-
-      setUser(newUser);
-      return newUser;
     }
   };
 
@@ -296,7 +226,7 @@ export const AuthProvider = ({ children }) => {
       url: null
     };
 
-    if (isFirebaseConfigured && auth) {
+    if (auth) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       // Save activity notification to firestore
@@ -308,27 +238,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       return userCredential.user;
-    } else {
-      const mockUsers = JSON.parse(localStorage.getItem('er_mock_users') || '[]');
-      const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-      if (!foundUser) {
-        throw new Error('Invalid email or password combination.');
-      }
-      const loggedUser = {
-        uid: foundUser.uid,
-        email: foundUser.email,
-        displayName: foundUser.displayName,
-        photoURL: foundUser.photoURL
-      };
-      localStorage.setItem('er_mock_user', JSON.stringify(loggedUser));
-
-      // Append activity notification locally
-      const key = `er_notifications_${loggedUser.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      localStorage.setItem(key, JSON.stringify([activityNotif, ...saved].slice(0, 30)));
-
-      setUser(loggedUser);
-      return loggedUser;
     }
   };
 
@@ -343,7 +252,7 @@ export const AuthProvider = ({ children }) => {
       url: null
     };
 
-    if (isFirebaseConfigured && auth && googleProvider) {
+    if (auth && googleProvider) {
       const userCredential = await signInWithPopup(auth, googleProvider);
       try {
         const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);
@@ -352,72 +261,45 @@ export const AuthProvider = ({ children }) => {
         console.error('Error saving activity notification in Firestore:', err);
       }
       return userCredential.user;
-    } else {
-      const mockGoogleUser = {
-        uid: 'mock-google-user-123',
-        email: 'researcher.er@gmail.com',
-        displayName: 'Dr. Jane Devlin',
-        photoURL: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Jane'
-      };
-      localStorage.setItem('er_mock_user', JSON.stringify(mockGoogleUser));
-
-      const key = `er_notifications_${mockGoogleUser.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      localStorage.setItem(key, JSON.stringify([activityNotif, ...saved].slice(0, 30)));
-
-      setUser(mockGoogleUser);
-      return mockGoogleUser;
     }
   };
 
   const logout = async () => {
-    if (isFirebaseConfigured && auth) {
+    if (auth) {
       await fbSignOut(auth);
-    } else {
-      localStorage.removeItem('er_mock_user');
-      setUser(null);
     }
   };
 
   // --- STATS LOGGING ---
   const incrementArticlesRead = async () => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     const updatedStats = { ...readingStats, articlesRead: readingStats.articlesRead + 1 };
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await setDoc(doc(db, 'users', user.uid), { stats: updatedStats }, { merge: true });
       } catch (e) {
         console.error('Error saving stats to Firestore:', e);
       }
-    } else {
-      localStorage.setItem(`er_stats_${user.uid}`, JSON.stringify(updatedStats));
-      setReadingStats(updatedStats);
     }
   };
 
   const incrementTimeSpent = async (minutes) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     const updatedStats = { ...readingStats, timeSpentMinutes: Math.round((readingStats.timeSpentMinutes + minutes) * 10) / 10 };
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await setDoc(doc(db, 'users', user.uid), { stats: updatedStats }, { merge: true });
       } catch (e) {
         console.error('Error saving time stats to Firestore:', e);
       }
-    } else {
-      localStorage.setItem(`er_stats_${user.uid}`, JSON.stringify(updatedStats));
-      setReadingStats(updatedStats);
     }
   };
 
   // --- SUBSCRIPTIONS CONTROLS ---
   const upgradeToPro = async (tierName, planType = 'monthly') => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     
     const formattedTier = String(tierName || 'PRO').toUpperCase();
     const formattedCycle = String(planType || 'monthly').toLowerCase();
@@ -452,15 +334,12 @@ export const AuthProvider = ({ children }) => {
       })
     }).catch(err => console.error('Receipt Email Dispatch Error:', err));
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await setDoc(doc(db, 'users', user.uid), { subscription: sub }, { merge: true });
       } catch (e) {
         console.error('Error saving subscription to Firestore:', e);
       }
-    } else {
-      localStorage.setItem(`er_sub_${user.uid}`, JSON.stringify(sub));
-      setSubscription(sub);
     }
 
     // Add in-app notification
@@ -469,7 +348,6 @@ export const AuthProvider = ({ children }) => {
 
   const cancelSubscription = async () => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     const sub = {
       tier: 'Basic',
       plan: null,
@@ -477,15 +355,12 @@ export const AuthProvider = ({ children }) => {
       status: 'Cancelled'
     };
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await setDoc(doc(db, 'users', user.uid), { subscription: sub }, { merge: true });
       } catch (e) {
         console.error('Error saving subscription cancel to Firestore:', e);
       }
-    } else {
-      localStorage.setItem(`er_sub_${user.uid}`, JSON.stringify(sub));
-      setSubscription(sub);
     }
 
     addNotification('subscription', 'Subscription Cancelled 💳', 'Your PRO subscription has been cancelled. Account will revert to Basic tier.');
@@ -494,44 +369,26 @@ export const AuthProvider = ({ children }) => {
   // --- ACCOUNT DELETION ---
   const deleteUserAccount = async () => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await deleteDoc(doc(db, 'users', user.uid));
-        if (auth.currentUser) {
+        if (auth && auth.currentUser) {
           await fbDeleteUser(auth.currentUser);
         }
         setUser(null);
       } catch (e) {
         console.error('Error executing Firestore user delete:', e);
       }
-    } else {
-      const uid = user.uid;
-      localStorage.removeItem(`er_settings_${uid}`);
-      localStorage.removeItem(`er_bookmarks_${uid}`);
-      localStorage.removeItem(`er_history_${uid}`);
-      localStorage.removeItem(`er_stats_${uid}`);
-      localStorage.removeItem(`er_sub_${uid}`);
-      localStorage.removeItem(`search_history_${uid}`);
-      localStorage.removeItem(`er_notifications_${uid}`);
-
-      const mockUsers = JSON.parse(localStorage.getItem('er_mock_users') || '[]');
-      const filtered = mockUsers.filter(u => u.uid !== uid);
-      localStorage.setItem('er_mock_users', JSON.stringify(filtered));
-
-      localStorage.removeItem('er_mock_user');
-      setUser(null);
     }
   };
 
   // --- BOOKMARKS CONTROLS ---
   const saveBookmark = async (article) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     const docId = getDocId(article.url);
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await setDoc(doc(db, 'users', user.uid, 'bookmarks', docId), {
           ...article,
@@ -540,34 +397,19 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {
         console.error('Error saving bookmark:', e);
       }
-    } else {
-      const key = `er_bookmarks_${user.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      if (!saved.some(art => art.url === article.url)) {
-        const updated = [...saved, { ...article, bookmarkedAt: new Date().toISOString() }];
-        localStorage.setItem(key, JSON.stringify(updated));
-        setBookmarks(updated);
-      }
     }
   };
 
   const deleteBookmark = async (articleUrl) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     const docId = getDocId(articleUrl);
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await deleteDoc(doc(db, 'users', user.uid, 'bookmarks', docId));
       } catch (e) {
         console.error('Error deleting bookmark:', e);
       }
-    } else {
-      const key = `er_bookmarks_${user.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      const updated = saved.filter(art => art.url !== articleUrl);
-      localStorage.setItem(key, JSON.stringify(updated));
-      setBookmarks(updated);
     }
   };
 
@@ -576,7 +418,6 @@ export const AuthProvider = ({ children }) => {
   // --- READING HISTORY ---
   const logReadingEvent = async (article) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     
     // Auto increment articles read count stat
     await incrementArticlesRead();
@@ -591,7 +432,7 @@ export const AuthProvider = ({ children }) => {
       addNotification('topic', 'Favorite Topic Bulletin 📰', `New dispatch aligns with your "${settings.favorites[0]}" reading profile: ${article.title.substring(0, 50)}...`, article.url);
     }
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await addDoc(collection(db, 'users', user.uid, 'history'), {
           title: article.title,
@@ -605,21 +446,13 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {
         console.error('Error logging history:', e);
       }
-    } else {
-      const key = `er_history_${user.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      const filtered = saved.filter(art => art.url !== article.url);
-      const updated = [{ ...article, readAt: new Date().toISOString() }, ...filtered].slice(0, 100);
-      localStorage.setItem(key, JSON.stringify(updated));
-      setReadingHistory(updated);
     }
   };
 
   const clearReadingHistory = async () => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         setReadingHistory([]);
         const ref = collection(db, 'users', user.uid, 'history');
@@ -630,50 +463,33 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {
         console.error('Error clearing history:', e);
       }
-    } else {
-      localStorage.removeItem(`er_history_${user.uid}`);
-      setReadingHistory([]);
     }
   };
 
   // --- SETTINGS CONTROLS ---
   const updateSettings = async (newSettings) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
     const updated = { ...settings, ...newSettings };
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         await setDoc(doc(db, 'users', user.uid), { settings: updated }, { merge: true });
         setSettings(updated);
       } catch (e) {
         console.error('Error saving settings:', e);
       }
-    } else {
-      localStorage.setItem(`er_settings_${user.uid}`, JSON.stringify(updated));
-      setSettings(updated);
     }
   };
 
   const updateUserProfile = async (displayName, photoURL) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
-    if (isFirebaseConfigured && auth && auth.currentUser && !isMockUser) {
+    if (auth && auth.currentUser) {
       await updateProfile(auth.currentUser, { displayName, photoURL });
       setUser({
         ...user,
         displayName,
         photoURL
       });
-    } else {
-      const updatedUser = { ...user, displayName, photoURL };
-      localStorage.setItem('er_mock_user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-
-      // Also update in mock users list
-      const mockUsers = JSON.parse(localStorage.getItem('er_mock_users') || '[]');
-      const updatedList = mockUsers.map(u => u.uid === user.uid ? { ...u, displayName, photoURL } : u);
-      localStorage.setItem('er_mock_users', JSON.stringify(updatedList));
     }
   };
 
@@ -732,8 +548,6 @@ export const AuthProvider = ({ children }) => {
       url
     };
 
-    const isMockUser = !user || user.uid.startsWith('mock-');
-
     // Trigger Browser Push if allowed and not in quiet hours
     if (settings.pushAlerts && Notification.permission === 'granted' && !isQuietHours()) {
       try {
@@ -757,19 +571,13 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (user) {
-      if (isFirebaseConfigured && db && !isMockUser) {
+      if (db) {
         try {
           const docRef = doc(db, 'users', user.uid, 'notifications', newNotif.id);
           await setDoc(docRef, newNotif);
         } catch (e) {
           console.error('Error writing notification to Firestore:', e);
         }
-      } else {
-        const key = `er_notifications_${user.uid}`;
-        const saved = JSON.parse(localStorage.getItem(key) || '[]');
-        const updated = [newNotif, ...saved].slice(0, 30);
-        localStorage.setItem(key, JSON.stringify(updated));
-        setNotifications(updated);
       }
     } else {
       // Guest fallback alert
@@ -779,29 +587,21 @@ export const AuthProvider = ({ children }) => {
 
   const markAsRead = async (id) => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         const docRef = doc(db, 'users', user.uid, 'notifications', id);
         await setDoc(docRef, { read: true }, { merge: true });
       } catch (e) {
         console.error('Error marking notification read in Firestore:', e);
       }
-    } else {
-      const key = `er_notifications_${user.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      const updated = saved.map(n => n.id === id ? { ...n, read: true } : n);
-      localStorage.setItem(key, JSON.stringify(updated));
-      setNotifications(updated);
     }
   };
 
   const markAllRead = async () => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         const ref = collection(db, 'users', user.uid, 'notifications');
         const snap = await getDocs(ref);
@@ -815,20 +615,13 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {
         console.error('Error marking all read in Firestore:', e);
       }
-    } else {
-      const key = `er_notifications_${user.uid}`;
-      const saved = JSON.parse(localStorage.getItem(key) || '[]');
-      const updated = saved.map(n => ({ ...n, read: true }));
-      localStorage.setItem(key, JSON.stringify(updated));
-      setNotifications(updated);
     }
   };
 
   const clearAllNotifications = async () => {
     if (!user) return;
-    const isMockUser = user.uid.startsWith('mock-');
 
-    if (isFirebaseConfigured && db && !isMockUser) {
+    if (db) {
       try {
         setNotifications([]);
         const ref = collection(db, 'users', user.uid, 'notifications');
@@ -839,9 +632,6 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {
         console.error('Error clearing notifications in Firestore:', e);
       }
-    } else {
-      localStorage.removeItem(`er_notifications_${user.uid}`);
-      setNotifications([]);
     }
   };
 
@@ -916,12 +706,6 @@ export const AuthProvider = ({ children }) => {
 
               if (changed) {
                 const limited = updated.slice(0, 30);
-                const isMockUser = user.uid.startsWith('mock-');
-                if (!isMockUser && isFirebaseConfigured && db) {
-                  // Firestore will sync automatically
-                } else {
-                  localStorage.setItem(`er_notifications_${user.uid}`, JSON.stringify(limited));
-                }
                 return limited;
               }
               return prev;
