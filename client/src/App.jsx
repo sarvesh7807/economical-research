@@ -12,6 +12,7 @@ import EPaper from './components/EPaper';
 import LiveTV from './components/LiveTV';
 import LegalPages from './components/LegalPages';
 import CookieConsent from './components/CookieConsent';
+import ErAssistantFull from './components/ErAssistantFull';
 
 function AppContent() {
   const { user, settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -38,6 +39,15 @@ function AppContent() {
     setTimeout(() => {
       setViewInternal(newView);
       setViewLoading(false);
+      
+      // Update history state URL path to provide pricing route and clean parameters
+      if (newView === 'billing') {
+        window.history.pushState({}, '', '/pricing');
+      } else if (newView === 'feed') {
+        window.history.pushState({}, '', '/');
+      } else {
+        window.history.pushState({}, '', `?view=${newView}`);
+      }
     }, 400);
   };
 
@@ -50,15 +60,20 @@ function AppContent() {
     return () => window.removeEventListener('change-view', handleViewChange);
   }, []);
 
-  // Query-based routing recovery on mount
+  // Query and Path-based routing recovery on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view');
     const sessionId = params.get('session_id');
+    const path = window.location.pathname;
+
     if (sessionId) {
       setViewInternal('billing');
+      window.history.replaceState({}, '', '/pricing');
     } else if (viewParam) {
       setViewInternal(viewParam);
+    } else if (path === '/pricing' || path === '/billing') {
+      setViewInternal('billing');
     }
   }, []);
 
@@ -125,6 +140,7 @@ function AppContent() {
         onSearchSubmit={handleSearchSubmit}
         openAuthModal={() => setAuthModalOpen(true)}
         setView={setView}
+        view={view}
       />
 
       {/* Transition loading spinner */}
@@ -148,6 +164,8 @@ function AppContent() {
             searchQuery={searchQuery}
             triggerRefresh={triggerRefresh}
           />
+        ) : view === 'assistant' ? (
+          <ErAssistantFull />
         ) : view === 'profile' ? (
           <Profile 
             setView={setView}
@@ -197,68 +215,70 @@ function AppContent() {
       </main>
 
       {/* FOOTER */}
-      <footer class="w-full bg-navy text-white mt-12 py-8 px-4 md:px-6 border-t border-gold/40">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left text-xs text-gray-300 font-sans">
-          {/* Column 1: Editorial Info */}
-          <div class="space-y-2">
-            <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">ECONOMICAL RESEARCH</h4>
-            <p class="italic text-gray-400">&ldquo;Your World. Your News. Researched.&rdquo;</p>
-            <p class="leading-relaxed">
-              A premium intelligence wire providing structural economic, political, and technical news briefings synthesized with analytical clarity.
-            </p>
-          </div>
+      {view !== 'assistant' && (
+        <footer class="w-full bg-navy text-white mt-12 py-8 px-4 md:px-6 border-t border-gold/40">
+          <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left text-xs text-gray-300 font-sans">
+            {/* Column 1: Editorial Info */}
+            <div class="space-y-2">
+              <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">ECONOMICAL RESEARCH</h4>
+              <p class="italic text-gray-400">&ldquo;Your World. Your News. Researched.&rdquo;</p>
+              <p class="leading-relaxed">
+                A premium intelligence wire providing structural economic, political, and technical news briefings synthesized with analytical clarity.
+              </p>
+            </div>
 
-          {/* Column 2: Sections Map */}
-          <div class="space-y-2">
-            <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">WIRE DESKS</h4>
-            <div class="grid grid-cols-2 gap-1 font-semibold text-left">
-              <button onClick={() => handleCategoryChange('world')} class="hover:text-gold text-left uppercase">World Bulletin</button>
-              <button onClick={() => handleCategoryChange('india')} class="hover:text-gold text-left uppercase">India Reports</button>
-              <button onClick={() => handleCategoryChange('politics')} class="hover:text-gold text-left uppercase">Political Desk</button>
-              <button onClick={() => handleCategoryChange('tech')} class="hover:text-gold text-left uppercase">Technology</button>
-              <button onClick={() => handleCategoryChange('business')} class="hover:text-gold text-left uppercase">Business</button>
-              <button onClick={() => handleCategoryChange('finance')} class="hover:text-gold text-left uppercase">Monetary Desk</button>
+            {/* Column 2: Sections Map */}
+            <div class="space-y-2">
+              <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">WIRE DESKS</h4>
+              <div class="grid grid-cols-2 gap-1 font-semibold text-left">
+                <button onClick={() => handleCategoryChange('world')} class="hover:text-gold text-left uppercase">World Bulletin</button>
+                <button onClick={() => handleCategoryChange('india')} class="hover:text-gold text-left uppercase">India Reports</button>
+                <button onClick={() => handleCategoryChange('politics')} class="hover:text-gold text-left uppercase">Political Desk</button>
+                <button onClick={() => handleCategoryChange('tech')} class="hover:text-gold text-left uppercase">Technology</button>
+                <button onClick={() => handleCategoryChange('business')} class="hover:text-gold text-left uppercase">Business</button>
+                <button onClick={() => handleCategoryChange('finance')} class="hover:text-gold text-left uppercase">Monetary Desk</button>
+              </div>
+            </div>
+
+            {/* Column 3: Disclaimer */}
+            <div class="space-y-2">
+              <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">REGULATORY COMPLIANCE</h4>
+              <p class="leading-relaxed text-gray-400">
+                All AI-generated summaries and implications are derived dynamically for review. Cross-check official documents for sovereign decisions.
+              </p>
+              <p class="pt-2 font-mono text-[10px]">
+                Proxy Server Status: <span class="text-green-400 font-bold">ONLINE</span>
+              </p>
             </div>
           </div>
 
-          {/* Column 3: Disclaimer */}
-          <div class="space-y-2">
-            <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">REGULATORY COMPLIANCE</h4>
-            <p class="leading-relaxed text-gray-400">
-              All AI-generated summaries and implications are derived dynamically for review. Cross-check official documents for sovereign decisions.
-            </p>
-            <p class="pt-2 font-mono text-[10px]">
-              Proxy Server Status: <span class="text-green-400 font-bold">ONLINE</span>
-            </p>
+          <div class="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] text-gray-400 gap-2 font-semibold uppercase tracking-wider font-sans">
+            <span>© {new Date().getFullYear()} ECONOMICAL RESEARCH CORP. ALL RIGHTS RESERVED.</span>
+            <div class="flex gap-4 flex-wrap justify-center">
+              <span class="hover:text-gold cursor-pointer" onClick={() => setView('settings')}>Settings</span>
+              <span>•</span>
+              <span class="hover:text-gold cursor-pointer" onClick={() => setView('billing')}>Upgrade to PRO</span>
+              <span>•</span>
+              {user && (user.email === 'admin@economicalresearch.com' || user.email?.endsWith('@economicalresearch.com')) && (
+                <>
+                  <span class="hover:text-gold cursor-pointer font-bold text-gold" onClick={() => setView('admin')}>Admin Dashboard</span>
+                  <span>•</span>
+                </>
+              )}
+              <span class="hover:text-gold cursor-pointer" onClick={() => setView('terms')}>Terms of Service</span>
+              <span>•</span>
+              <span class="hover:text-gold cursor-pointer" onClick={() => setView('privacy')}>Privacy Policy</span>
+              <span>•</span>
+              <span class="hover:text-gold cursor-pointer" onClick={() => setView('about')}>About Us</span>
+              <span>•</span>
+              <span class="hover:text-gold cursor-pointer" onClick={() => setView('contact')}>Contact Desk</span>
+            </div>
           </div>
-        </div>
-
-        <div class="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] text-gray-400 gap-2 font-semibold uppercase tracking-wider font-sans">
-          <span>© {new Date().getFullYear()} ECONOMICAL RESEARCH CORP. ALL RIGHTS RESERVED.</span>
-          <div class="flex gap-4 flex-wrap justify-center">
-            <span class="hover:text-gold cursor-pointer" onClick={() => setView('settings')}>Settings</span>
-            <span>•</span>
-            <span class="hover:text-gold cursor-pointer" onClick={() => setView('billing')}>Upgrade to PRO</span>
-            <span>•</span>
-            {user && (user.email === 'admin@economicalresearch.com' || user.email?.endsWith('@economicalresearch.com')) && (
-              <>
-                <span class="hover:text-gold cursor-pointer font-bold text-gold" onClick={() => setView('admin')}>Admin Dashboard</span>
-                <span>•</span>
-              </>
-            )}
-            <span class="hover:text-gold cursor-pointer" onClick={() => setView('terms')}>Terms of Service</span>
-            <span>•</span>
-            <span class="hover:text-gold cursor-pointer" onClick={() => setView('privacy')}>Privacy Policy</span>
-            <span>•</span>
-            <span class="hover:text-gold cursor-pointer" onClick={() => setView('about')}>About Us</span>
-            <span>•</span>
-            <span class="hover:text-gold cursor-pointer" onClick={() => setView('contact')}>Contact Desk</span>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Floating AI Assistant Chatbot */}
-      <AiAssistant />
+      {view !== 'assistant' && <AiAssistant />}
 
       {/* Cookie Consent Popup */}
       <CookieConsent />

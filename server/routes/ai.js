@@ -191,6 +191,15 @@ router.post('/chat', async (req, res) => {
     return `I am the ER Assistant. Regarding your question on "${queryText}", historical wire indexes indicate that markets are adjusting to these factors. We recommend checking the World or Finance desks for real-time bulletins. Let me know if you would like a Deep Research compiling on this topic!`;
   };
 
+  // Dynamically initialize genAI if not already initialized
+  if (!genAI && process.env.GEMINI_API_KEY) {
+    try {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    } catch (error) {
+      console.error('Error dynamically initializing Gemini:', error.message);
+    }
+  }
+
   if (!genAI) {
     const replyText = await runNewsFallback(message);
     return res.json({ reply: replyText });
@@ -204,13 +213,42 @@ router.post('/chat', async (req, res) => {
       `${chat.sender === 'user' ? 'User' : 'Assistant'}: ${chat.text}`
     ).join('\n');
 
-    const prompt = `You are "ER Assistant", an AI research chatbot for "Economical Research" newspaper. Answer user questions about news, economics, and world affairs objectively, professionally, and clearly. Keep your answers under 4 sentences.
-    
-    Previous Chat logs:
-    ${historyPrompts}
-    
-    Current User Question: ${message}
-    AI Response:`;
+    const prompt = `You are "ER Assistant", an expert AI research assistant for the "Economical Research" newspaper, designed exactly like Claude AI. You are analytical, detailed, and objective. 
+
+Provide thorough, structured, and informative responses. You are not limited to 4 sentences anymore—explain concepts in detail when asked. Use bold text, italicized emphasis, and bulleted lists where appropriate to make the explanation easy to read.
+
+DATA VISUALIZATIONS & REPORT GENERATION:
+If the user asks for charts, graphs, tabular data, spreadsheets, or detailed reports, you MUST generate an "Artifact". Artifacts are rendered in a side-by-side preview panel on their screen.
+
+1. For dynamic charts (economic trends, comparisons, etc.), wrap the JSON data in a <erArtifact type="chart"> tag:
+<erArtifact type="chart" title="Descriptive Chart Title">
+{
+  "chartType": "line", // can be "line", "bar", or "pie"
+  "labels": ["2020", "2021", "2022", "2023", "2024", "2025"],
+  "datasets": [
+    {
+      "label": "GDP Growth (%)",
+      "data": [-3.4, 5.7, 2.1, 2.5, 2.7, 2.3]
+    }
+  ]
+}
+</erArtifact>
+
+2. For spreadsheet data (tables, CSV, raw report data), wrap it in a <erArtifact type="file"> tag:
+<erArtifact type="file" title="Report Title" filename="inflation_data.csv">
+Country,2022,2023,2024,2025
+United States,8.0,4.1,2.8,2.1
+Eurozone,8.4,5.4,2.3,1.9
+India,6.7,5.7,4.5,4.2
+</erArtifact>
+
+Note: Always write clear explanation text outside of the <erArtifact> block. Inform the user that you've generated a chart or file report that they can view and download in the right-hand preview panel.
+
+Previous Chat Logs for Context:
+${historyPrompts}
+
+Current User Question: ${message}
+AI Response:`;
 
     const result = await model.generateContent(prompt);
     res.json({ reply: result.response.text().trim() });

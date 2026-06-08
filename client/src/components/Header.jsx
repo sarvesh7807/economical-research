@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing } from 'lucide-react';
+import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles } from 'lucide-react';
 
-export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChange, activeCategory, openAuthModal, setView }) {
+export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChange, activeCategory, openAuthModal, setView, view }) {
   const { 
     user, 
     logout, 
@@ -486,7 +486,11 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           {/* E-Paper navbar action */}
           <button
             onClick={() => setView('epaper')}
-            class="px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold font-sans font-black uppercase tracking-wider text-xs shrink-0"
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'epaper'
+                ? 'border-navy dark:border-gold text-navy dark:text-gold'
+                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
+            }`}
           >
             <Newspaper size={13} class="text-gold" />
             <span>E-Paper</span>
@@ -495,10 +499,27 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           {/* Live TV navbar action */}
           <button
             onClick={() => setView('livetv')}
-            class="px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 border-transparent text-red-655 hover:text-red-750 font-sans font-black uppercase tracking-wider text-xs shrink-0"
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'livetv'
+                ? 'border-navy dark:border-gold text-red-655'
+                : 'border-transparent text-red-655 hover:text-red-750'
+            }`}
           >
             <Tv size={13} class="animate-pulse" />
             <span>Live satellite TV</span>
+          </button>
+
+          {/* ER Assistant navbar action */}
+          <button
+            onClick={() => setView('assistant')}
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'assistant'
+                ? 'border-navy dark:border-gold text-navy dark:text-gold'
+                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
+            }`}
+          >
+            <Sparkles size={13} class="text-gold" />
+            <span>ER Assistant</span>
           </button>
 
           <span class="text-gray-300 dark:text-gray-700 shrink-0 font-light mx-1">|</span>
@@ -727,6 +748,13 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
               >
                 <Tv size={15} class="text-red-500 animate-pulse" />
                 <span>Live Satellite TV</span>
+              </button>
+              <button
+                onClick={() => { setView('assistant'); setIsMenuOpen(false); }}
+                class="w-full flex items-center gap-2.5 p-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-navy-light/10 text-left border border-transparent hover:border-paper-border dark:hover:border-paper-borderDark text-gold-dark dark:text-gold"
+              >
+                <Sparkles size={15} class="text-gold" />
+                <span>ER Claude Assistant</span>
               </button>
             </div>
 

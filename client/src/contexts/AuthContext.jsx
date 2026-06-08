@@ -415,13 +415,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   // --- SUBSCRIPTIONS CONTROLS ---
-  const upgradeToPro = async (planType) => {
+  const upgradeToPro = async (tierName, planType = 'monthly') => {
     if (!user) return;
     const isMockUser = user.uid.startsWith('mock-');
+    
+    const formattedTier = String(tierName || 'PRO').toUpperCase();
+    const formattedCycle = String(planType || 'monthly').toLowerCase();
+
     const sub = {
-      tier: 'PRO',
-      plan: planType,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      tier: formattedTier,
+      plan: formattedCycle,
+      expiresAt: new Date(Date.now() + (formattedCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
       status: 'Active'
     };
 
@@ -432,7 +436,7 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({
         email: user.email,
         type: 'subscription',
-        data: { plan: planType }
+        data: { plan: `${formattedTier} (${formattedCycle})` }
       })
     }).catch(err => console.error('Subscription Email Dispatch Error:', err));
 
@@ -460,7 +464,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Add in-app notification
-    addNotification('subscription', 'Subscription Active! 💳', `You have been upgraded to the ER PRO ${planType} plan. paywalls lifted.`);
+    addNotification('subscription', 'Subscription Active! 💳', `You have been upgraded to the ER ${formattedTier} (${formattedCycle}) plan. Paywalls lifted.`);
   };
 
   const cancelSubscription = async () => {
