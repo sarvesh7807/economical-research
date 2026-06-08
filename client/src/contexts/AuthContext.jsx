@@ -202,12 +202,23 @@ export const AuthProvider = ({ children }) => {
         await updateProfile(userCredential.user, { displayName });
       }
       
-      // Save welcome notification to firestore
-      try {
-        const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', welcomeNotif.id);
-        await setDoc(docRef, welcomeNotif);
-      } catch (err) {
-        console.error('Error saving welcome notification in Firestore:', err);
+      // Save user profile to firestore
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          await setDoc(userDocRef, {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            displayName: displayName || userCredential.user.displayName || '',
+            photoURL: userCredential.user.photoURL || '',
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+
+          const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', welcomeNotif.id);
+          await setDoc(docRef, welcomeNotif);
+        } catch (err) {
+          console.error('Error saving user data and welcome notification in Firestore:', err);
+        }
       }
 
       return userCredential.user;
@@ -229,12 +240,23 @@ export const AuthProvider = ({ children }) => {
     if (auth) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Save activity notification to firestore
-      try {
-        const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);
-        await setDoc(docRef, activityNotif);
-      } catch (err) {
-        console.error('Error saving activity notification in Firestore:', err);
+      // Save/merge user profile in firestore
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          await setDoc(userDocRef, {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            displayName: userCredential.user.displayName || '',
+            photoURL: userCredential.user.photoURL || '',
+            lastLoginAt: new Date().toISOString()
+          }, { merge: true });
+
+          const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);
+          await setDoc(docRef, activityNotif);
+        } catch (err) {
+          console.error('Error saving activity notification and user profile in Firestore:', err);
+        }
       }
 
       return userCredential.user;
@@ -254,11 +276,24 @@ export const AuthProvider = ({ children }) => {
 
     if (auth && googleProvider) {
       const userCredential = await signInWithPopup(auth, googleProvider);
-      try {
-        const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);
-        await setDoc(docRef, activityNotif);
-      } catch (err) {
-        console.error('Error saving activity notification in Firestore:', err);
+      
+      // Save/merge user profile in firestore
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          await setDoc(userDocRef, {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            displayName: userCredential.user.displayName || '',
+            photoURL: userCredential.user.photoURL || '',
+            lastLoginAt: new Date().toISOString()
+          }, { merge: true });
+
+          const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);
+          await setDoc(docRef, activityNotif);
+        } catch (err) {
+          console.error('Error saving activity notification and user profile in Firestore:', err);
+        }
       }
       return userCredential.user;
     }

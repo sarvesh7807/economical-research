@@ -27,16 +27,20 @@ export default function Billing({ setView }) {
 
   const activeTier = subscription?.tier || 'Basic';
 
-  // Load Razorpay Script Dynamically on Mount
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+  // Helper to load Razorpay script only on demand
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   // Fetch Razorpay config status on mount
   useEffect(() => {
@@ -80,6 +84,14 @@ export default function Billing({ setView }) {
     
     setLoading(true);
     setError(null);
+
+    // Lazy load Razorpay script on demand
+    const scriptLoaded = await loadRazorpay();
+    if (!scriptLoaded && !forceSandbox) {
+      setError('Razorpay SDK failed to load. Please verify your internet connection.');
+      setLoading(false);
+      return;
+    }
 
     try {
       // 1. Create Razorpay Order

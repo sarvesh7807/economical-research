@@ -27,6 +27,13 @@ export default function Profile({ setView, onSearchSubmit }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || '');
+      setPhotoURL(user.photoURL || '');
+    }
+  }, [user]);
+
   const isPro = subscription?.tier === 'PRO';
 
   const avatarPresets = [
@@ -185,7 +192,14 @@ export default function Profile({ setView, onSearchSubmit }) {
 
             {/* Sign Out Button */}
             <button
-              onClick={logout}
+              onClick={async () => {
+                try {
+                  await logout();
+                  setView('feed');
+                } catch (err) {
+                  console.error('Logout error:', err);
+                }
+              }}
               class="w-full mt-6 py-2 bg-red-600/10 hover:bg-red-650 text-red-600 hover:text-white border border-red-600/20 rounded font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
             >
               <LogOut size={13} />
