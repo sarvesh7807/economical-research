@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, Heart, CornerDownRight, Send, Trash2 } from 'lucide-react';
-import { db } from '../firebase';
+import { db } from '../lib/firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export default function CommentsSection({ articleUrl }) {

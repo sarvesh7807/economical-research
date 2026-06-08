@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { auth } from './firebase';
+import { auth } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Header from './components/Header';
 import NewsFeed from './components/NewsFeed';
@@ -17,22 +17,22 @@ import CookieConsent from './components/CookieConsent';
 import ErAssistantFull from './components/ErAssistantFull';
 
 function AppContent() {
-  const { user, settings, updateSettings, incrementTimeSpent } = useAuth();
-  const [currentUser, setCurrentUser] = useState(null);
+  const { settings, updateSettings, incrementTimeSpent } = useAuth();
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCurrentUser({
+        setUser({
           name: user.displayName,
           email: user.email,
           photo: user.photoURL,
           uid: user.uid
-        });
+        })
       } else {
-        setCurrentUser(null);
+        setUser(null)
       }
-    });
+    })
     return unsubscribe;
   }, []);
 

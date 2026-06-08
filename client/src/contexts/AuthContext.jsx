@@ -5,7 +5,7 @@ import {
   appleProvider,
   db,
   isFirebaseConfigured 
-} from '../firebase';
+} from '../lib/firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
