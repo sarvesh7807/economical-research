@@ -103,8 +103,8 @@ export default function Billing({ setView }) {
         amount: order.amount,
         currency: order.currency || 'INR',
         name: 'Economical Research',
-        description: `ER ${planId.toUpperCase()} Subscription (${cycle})`,
-        image: 'https://api.dicebear.com/7.x/identicon/svg?seed=economical-research',
+        description: `ER ${planId.toUpperCase()} Subscription`,
+        image: '/logo.png',
         order_id: order.id,
         handler: async function (paymentRes) {
           // Success callback
