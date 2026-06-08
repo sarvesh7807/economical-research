@@ -102,7 +102,7 @@ export default function Billing({ setView }) {
         key: order.mock ? 'rzp_test_mockkey' : 'rzp_live_Sz6R98zZyCDyWK',
         amount: order.amount,
         currency: order.currency || 'INR',
-        name: 'Economical Research',
+        name: 'SARVESH HEMANT DUSANE',
         description: `ER ${planId.toUpperCase()} Subscription`,
         image: '/logo.png',
         order_id: order.id,
