@@ -11,14 +11,26 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
 };
 
-const isFirebaseConfigured = true;
+let isFirebaseConfigured = false;
+let app = null;
+let auth = null;
+let googleProvider = null;
+let db = null;
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
-const db = getFirestore(app);
-
-console.log('Firebase and Firestore successfully initialized.');
+try {
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey.trim() !== '') {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+    db = getFirestore(app);
+    isFirebaseConfigured = true;
+    console.log('Firebase and Firestore successfully initialized.');
+  } else {
+    console.warn('Firebase configuration API key is missing or empty.');
+  }
+} catch (error) {
+  console.error('Error initializing Firebase:', error.message);
+}
 
 export { auth, googleProvider, db, isFirebaseConfigured };
 export default app;
