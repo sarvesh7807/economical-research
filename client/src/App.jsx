@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import Header from './components/Header';
 import NewsFeed from './components/NewsFeed';
 import Profile from './components/Profile';
@@ -16,6 +18,30 @@ import ErAssistantFull from './components/ErAssistantFull';
 
 function AppContent() {
   const { user, settings, updateSettings, incrementTimeSpent } = useAuth();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser({
+          name: user.displayName,
+          email: user.email,
+          photo: user.photoURL,
+          uid: user.uid
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Open Auth Modal if trying to access profile while logged out
+  useEffect(() => {
+    if (view === 'profile' && !user) {
+      setAuthModalOpen(true);
+    }
+  }, [view, user]);
   
   // Theme state synced with Context preferences
   const [theme, setTheme] = useState(() => {
@@ -167,10 +193,25 @@ function AppContent() {
         ) : view === 'assistant' ? (
           <ErAssistantFull />
         ) : view === 'profile' ? (
-          <Profile 
-            setView={setView}
-            onSearchSubmit={handleSearchSubmit}
-          />
+          user ? (
+            <Profile 
+              setView={setView}
+              onSearchSubmit={handleSearchSubmit}
+            />
+          ) : (
+            <div class="max-w-md mx-auto px-4 py-20 text-center font-sans">
+              <h2 class="font-serif text-2xl font-black text-navy dark:text-gold mb-2 uppercase">Access Restricted</h2>
+              <p class="text-xs text-gray-450 dark:text-gray-300 leading-relaxed mb-6 font-serif">
+                You must be logged in to view your research credentials.
+              </p>
+              <button 
+                onClick={() => setAuthModalOpen(true)}
+                class="px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-bold text-xs uppercase"
+              >
+                Log In
+              </button>
+            </div>
+          )
         ) : view === 'settings' ? (
           <Settings 
             setView={setView}

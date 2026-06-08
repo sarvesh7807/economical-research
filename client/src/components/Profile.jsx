@@ -17,8 +17,7 @@ export default function Profile({ setView, onSearchSubmit }) {
     settings,
     updateSettings,
     updateUserProfile,
-    deleteUserAccount,
-    isFirebaseConfigured 
+    deleteUserAccount
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('bookmarks'); // 'bookmarks', 'history', 'search', 'settings'

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, Heart, CornerDownRight, Send, Trash2 } from 'lucide-react';
-import { db, isFirebaseConfigured } from '../firebase';
+import { db } from '../firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export default function CommentsSection({ articleUrl }) {
@@ -11,13 +11,10 @@ export default function CommentsSection({ articleUrl }) {
   const [replyTo, setReplyTo] = useState(null);
   const [replyText, setReplyText] = useState('');
 
-  // Normalize url to form a storage key
-  const storageKey = `comments_${btoa(unescape(encodeURIComponent(articleUrl))).replace(/=/g, '')}`;
-
   useEffect(() => {
     let unsubscribe = () => {};
 
-    if (isFirebaseConfigured && db) {
+    if (db) {
       const q = query(
         collection(db, 'comments'),
         where('articleUrl', '==', articleUrl),
@@ -30,19 +27,10 @@ export default function CommentsSection({ articleUrl }) {
       }, (err) => {
         console.error('Error fetching comments from firestore:', err);
       });
-    } else {
-      // LocalStorage fallback
-      const saved = localStorage.getItem(storageKey);
-      setComments(saved ? JSON.parse(saved) : []);
     }
 
     return () => unsubscribe();
   }, [articleUrl]);
-
-  const saveCommentsLocal = (newComments) => {
-    localStorage.setItem(storageKey, JSON.stringify(newComments));
-    setComments(newComments);
-  };
 
   const handleAddComment = async (e) => {
     e.preventDefault();
@@ -60,17 +48,13 @@ export default function CommentsSection({ articleUrl }) {
       parentId: null
     };
 
-    if (isFirebaseConfigured && db) {
+    if (db) {
       try {
         await addDoc(collection(db, 'comments'), commentData);
         setText('');
       } catch (err) {
         console.error('Error adding comment:', err);
       }
-    } else {
-      const updated = [...comments, { id: `local-comm-${Date.now()}`, ...commentData }];
-      saveCommentsLocal(updated);
-      setText('');
     }
   };
 
@@ -90,7 +74,7 @@ export default function CommentsSection({ articleUrl }) {
       parentId: parentId
     };
 
-    if (isFirebaseConfigured && db) {
+    if (db) {
       try {
         await addDoc(collection(db, 'comments'), replyData);
         setReplyText('');
@@ -98,11 +82,6 @@ export default function CommentsSection({ articleUrl }) {
       } catch (err) {
         console.error('Error adding reply:', err);
       }
-    } else {
-      const updated = [...comments, { id: `local-comm-${Date.now()}`, ...replyData }];
-      saveCommentsLocal(updated);
-      setReplyText('');
-      setReplyTo(null);
     }
   };
 
@@ -124,7 +103,7 @@ export default function CommentsSection({ articleUrl }) {
       newLikes += 1;
     }
 
-    if (isFirebaseConfigured && db && !commentId.startsWith('local-')) {
+    if (db) {
       try {
         await updateDoc(doc(db, 'comments', commentId), {
           likes: newLikes,
@@ -133,22 +112,16 @@ export default function CommentsSection({ articleUrl }) {
       } catch (err) {
         console.error('Error updating comment likes:', err);
       }
-    } else {
-      const updated = comments.map(c => c.id === commentId ? { ...c, likes: newLikes, likedBy: newLikedBy } : c);
-      saveCommentsLocal(updated);
     }
   };
 
   const handleDelete = async (commentId) => {
-    if (isFirebaseConfigured && db && !commentId.startsWith('local-')) {
+    if (db) {
       try {
         await deleteDoc(doc(db, 'comments', commentId));
       } catch (err) {
         console.error('Error deleting comment:', err);
       }
-    } else {
-      const updated = comments.filter(c => c.id !== commentId && c.parentId !== commentId);
-      saveCommentsLocal(updated);
     }
   };
 

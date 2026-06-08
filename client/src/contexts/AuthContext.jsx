@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   auth, 
   googleProvider, 
+  appleProvider,
   db,
   isFirebaseConfigured 
 } from '../firebase';
@@ -276,6 +277,42 @@ export const AuthProvider = ({ children }) => {
 
     if (auth && googleProvider) {
       const userCredential = await signInWithPopup(auth, googleProvider);
+      
+      // Save/merge user profile in firestore
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', userCredential.user.uid);
+          await setDoc(userDocRef, {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            displayName: userCredential.user.displayName || '',
+            photoURL: userCredential.user.photoURL || '',
+            lastLoginAt: new Date().toISOString()
+          }, { merge: true });
+
+          const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);
+          await setDoc(docRef, activityNotif);
+        } catch (err) {
+          console.error('Error saving activity notification and user profile in Firestore:', err);
+        }
+      }
+      return userCredential.user;
+    }
+  };
+
+  const loginWithApple = async () => {
+    const activityNotif = {
+      id: `notif-activity-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      type: 'activity',
+      title: 'Security Alert: Apple Sign-in 🔐',
+      text: 'New sign-in successfully authorized via Apple account sync.',
+      timestamp: new Date().toISOString(),
+      read: false,
+      url: null
+    };
+
+    if (auth && appleProvider) {
+      const userCredential = await signInWithPopup(auth, appleProvider);
       
       // Save/merge user profile in firestore
       if (db) {
@@ -761,6 +798,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     loginWithGoogle,
+    loginWithApple,
     logout,
     searchHistory,
     saveSearchQuery,
