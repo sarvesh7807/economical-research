@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { X, Mail, Lock, User, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
-
+import { useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, 
-  signInWithPopup } from 'firebase/auth'
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile
+} from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: "AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk",
@@ -18,236 +21,178 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? 
   initializeApp(firebaseConfig) : getApps()[0]
 const auth = getAuth(app)
-const provider = new GoogleAuthProvider()
+const googleProvider = new GoogleAuthProvider()
 
-export const signInGoogle = () => 
-  signInWithPopup(auth, provider)
-export const getFirebaseAuth = () => auth
+export default function AuthModal({ onClose, mode = 'login' }) {
+  const [isLogin, setIsLogin] = useState(mode === 'login')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-export default function AuthModal({ isOpen, onClose }) {
-  const { login, signup, loginWithGoogle, isFirebaseConfigured } = useAuth();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    if (isSignUp) {
-      if (password !== confirmPassword) {
-        setError("Passwords do not match.");
-        setLoading(false);
-        return;
-      }
-      if (password.length < 6) {
-        setError("Password should be at least 6 characters.");
-        setLoading(false);
-        return;
-      }
-    }
-
+  const handleGoogle = async () => {
+    setLoading(true)
+    setError('')
     try {
-      if (isSignUp) {
-        await signup(email, password, displayName);
+      const result = await signInWithPopup(auth, googleProvider)
+      console.log('Google login success:', result.user)
+      onClose && onClose(result.user)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEmail = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      let result
+      if (isLogin) {
+        result = await signInWithEmailAndPassword(
+          auth, email, password)
       } else {
-        await login(email, password);
+        result = await createUserWithEmailAndPassword(
+          auth, email, password)
+        await updateProfile(result.user, { 
+          displayName: name 
+        })
       }
-      onClose();
+      console.log('Email auth success:', result.user)
+      onClose && onClose(result.user)
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Authentication failed. Please try again.');
+      setError(err.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      await signInGoogle();
-      onClose();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Google Sign-In failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
 
   return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm transition-all duration-300">
-      <div class="bg-paper dark:bg-paper-cardDark border border-gold/40 max-w-md w-full rounded shadow-2xl relative overflow-hidden transition-all duration-200">
-        {/* Double Gold Line Accents */}
-        <div class="h-1 bg-gradient-to-r from-navy via-gold to-navy"></div>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, 
+      right: 0, bottom: 0, 
+      background: 'rgba(0,0,0,0.7)',
+      display: 'flex', alignItems: 'center',
+      justifyContent: 'center', zIndex: 9999
+    }}>
+      <div style={{
+        background: '#fff', padding: '40px',
+        borderRadius: '8px', width: '420px',
+        maxWidth: '90vw'
+      }}>
+        <button onClick={() => onClose && onClose()}
+          style={{float: 'right', background: 'none',
+            border: 'none', fontSize: '20px', 
+            cursor: 'pointer'}}>×</button>
+        
+        <h2 style={{textAlign: 'center', 
+          color: '#0A1628', marginBottom: '8px'}}>
+          {isLogin ? 'Log In' : 'Create Account'}
+        </h2>
+        <p style={{textAlign: 'center', 
+          color: '#666', marginBottom: '24px',
+          fontSize: '14px'}}>
+          Economical Research
+        </p>
 
-        {/* Close button */}
-        <button 
-          onClick={onClose} 
-          class="absolute top-4 right-4 text-gray-400 hover:text-navy dark:hover:text-gold transition-colors"
-          title="Close Modal"
-        >
-          <X size={18} />
+        <div style={{
+          background: '#e8f5e9', padding: '8px 12px',
+          borderRadius: '4px', marginBottom: '20px',
+          fontSize: '12px', color: '#2e7d32'
+        }}>
+          🟢 Firebase Live — Real Authentication
+        </div>
+
+        {error && (
+          <div style={{
+            background: '#ffebee', color: '#c62828',
+            padding: '8px 12px', borderRadius: '4px',
+            marginBottom: '16px', fontSize: '13px'
+          }}>{error}</div>
+        )}
+
+        <form onSubmit={handleEmail}>
+          {!isLogin && (
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              style={{width: '100%', padding: '12px',
+                border: '1px solid #ddd', borderRadius: '4px',
+                marginBottom: '12px', boxSizing: 'border-box',
+                fontSize: '14px'}}
+            />
+          )}
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            style={{width: '100%', padding: '12px',
+              border: '1px solid #ddd', borderRadius: '4px',
+              marginBottom: '12px', boxSizing: 'border-box',
+              fontSize: '14px'}}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            style={{width: '100%', padding: '12px',
+              border: '1px solid #ddd', borderRadius: '4px',
+              marginBottom: '16px', boxSizing: 'border-box',
+              fontSize: '14px'}}
+          />
+          <button type="submit" disabled={loading}
+            style={{width: '100%', padding: '14px',
+              background: '#0A1628', color: '#F4A726',
+              border: 'none', borderRadius: '4px',
+              fontSize: '15px', fontWeight: '600',
+              cursor: 'pointer', marginBottom: '16px'}}>
+            {loading ? 'Please wait...' : 
+              isLogin ? 'Log In →' : 'Create Account →'}
+          </button>
+        </form>
+
+        <div style={{textAlign: 'center', 
+          color: '#999', marginBottom: '16px',
+          fontSize: '13px'}}>OR</div>
+
+        <button onClick={handleGoogle} disabled={loading}
+          style={{width: '100%', padding: '14px',
+            background: '#fff', color: '#333',
+            border: '1px solid #ddd', borderRadius: '4px',
+            fontSize: '15px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: '10px'}}>
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          Sign in with Google
         </button>
 
-        <div class="p-6 md:p-8">
-          {/* Header */}
-          <div class="text-center mb-6">
-            <h2 class="font-serif text-2xl font-black text-navy dark:text-gold uppercase tracking-tight">
-              {isSignUp ? 'Apply for Press Pass' : 'Editorial Log In'}
-            </h2>
-            <p class="text-[11px] font-sans text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
-              {isSignUp ? 'Create your research account' : 'Access saved reports & search wire'}
-            </p>
-          </div>
-
-          {/* Database Mode Warning Banner */}
-          <div class="mb-4 py-1.5 px-3 bg-navy/5 dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark text-[10px] text-gray-500 dark:text-gray-400 flex items-center justify-between rounded font-medium">
-            <span class="flex items-center gap-1">
-              <ShieldCheck size={11} class="text-gold" />
-              <span>Auth Core:</span>
-            </span>
-            <span class="font-semibold text-navy dark:text-gold">
-              {isFirebaseConfigured ? 'Firebase Service Active' : 'Firebase Live'}
-            </span>
-          </div>
-
-          {/* Error Alert */}
-          {error && (
-            <div class="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-semibold rounded flex items-start gap-1.5">
-              <AlertCircle size={14} class="shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Main Form */}
-          <form onSubmit={handleSubmit} class="space-y-4">
-            {isSignUp && (
-              <div>
-                <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
-                  Full Name
-                </label>
-                <div class="relative flex items-center">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter your name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    class="w-full pl-8 pr-3 py-2 text-xs rounded bg-white dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-gold"
-                  />
-                  <User size={13} class="absolute left-2.5 text-gray-400" />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
-                Email Address
-              </label>
-              <div class="relative flex items-center">
-                <input
-                  type="email"
-                  required
-                  placeholder="name@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  class="w-full pl-8 pr-3 py-2 text-xs rounded bg-white dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-gold"
-                />
-                <Mail size={13} class="absolute left-2.5 text-gray-400" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
-                Password
-              </label>
-              <div class="relative flex items-center">
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  class="w-full pl-8 pr-3 py-2 text-xs rounded bg-white dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-gold"
-                />
-                <Lock size={13} class="absolute left-2.5 text-gray-400" />
-              </div>
-            </div>
-
-            {isSignUp && (
-              <div>
-                <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
-                  Confirm Password
-                </label>
-                <div class="relative flex items-center">
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    class="w-full pl-8 pr-3 py-2 text-xs rounded bg-white dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-gold"
-                  />
-                  <Lock size={13} class="absolute left-2.5 text-gray-400" />
-                </div>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              class="w-full py-2.5 bg-navy hover:bg-navy-light text-gold font-bold text-xs uppercase tracking-wider rounded transition-colors flex items-center justify-center gap-1.5"
-            >
-              <span>{isSignUp ? 'Create Press Account' : 'Authenticate Credentials'}</span>
-              <ArrowRight size={13} />
-            </button>
-          </form>
-
-          {/* Or Divider */}
-          <div class="my-4 flex items-center justify-between text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-            <span class="w-[40%] h-[1px] bg-paper-border dark:bg-paper-borderDark"></span>
-            <span>Or</span>
-            <span class="w-[40%] h-[1px] bg-paper-border dark:bg-paper-borderDark"></span>
-          </div>
-
-          {/* Google Login button */}
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            type="button"
-            class="w-full py-2 px-3 border border-paper-border dark:border-paper-borderDark bg-white dark:bg-paper-dark hover:bg-gray-50 dark:hover:bg-navy-light/20 text-navy dark:text-white text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors"
-          >
-            {/* Simple Inline Google Logo */}
-            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.51 0-6.38-2.87-6.38-6.38s2.87-6.38 6.38-6.38c1.54 0 2.946.548 4.043 1.464l3.14-3.14C19.123 2.146 15.932 1 12.24 1 5.866 1 .7 6.166.7 12.54s5.166 11.54 11.54 11.54c6.332 0 11.587-5.12 11.587-11.54 0-.742-.08-1.48-.24-2.255H12.24z"
-              />
-            </svg>
-            <span>Google Account Sign-In</span>
-          </button>
-
-          {/* Toggle Login/SignUp link */}
-          <div class="mt-6 text-center text-xs text-gray-500 dark:text-gray-400 font-medium">
-            {isSignUp ? 'Already have an active account?' : 'Need a new credential set?'}
-            <button
-              onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
-              class="ml-1 text-navy dark:text-gold hover:underline font-bold"
-            >
-              {isSignUp ? 'Log in here' : 'Sign up here'}
-            </button>
-          </div>
-        </div>
+        <p style={{textAlign: 'center', marginTop: '20px',
+          fontSize: '13px', color: '#666'}}>
+          {isLogin ? 
+            "Don't have an account? " : 
+            "Already have an account? "}
+          <span onClick={() => setIsLogin(!isLogin)}
+            style={{color: '#0A1628', cursor: 'pointer',
+              fontWeight: '600'}}>
+            {isLogin ? 'Sign up' : 'Log in'}
+          </span>
+        </p>
       </div>
     </div>
-  );
+  )
 }
