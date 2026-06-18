@@ -177,69 +177,77 @@ router.get('/', async (req, res) => {
   const pageNum = parseInt(page, 10) || 1;
   const pageSizeNum = parseInt(pageSize, 10) || 20;
 
-  if (!apiKey || apiKey.includes('YAHAN')) {
-    const mockFeed = getMockArticles(category, q);
-    const start = (pageNum - 1) * pageSizeNum;
-    const paginated = mockFeed.slice(start, start + pageSizeNum);
-    return res.json({ status: 'ok', articles: paginated, totalResults: mockFeed.length });
-  }
-
   const cacheKey = q ? `search_${q.toLowerCase()}` : `cat_${category.toLowerCase()}`;
   let aggregatedArticles = getCachedFeed(cacheKey);
 
   if (!aggregatedArticles) {
     let newsApiArticles = [];
-    try {
-      if (q) {
-        const response = await axios.get(`${NEWS_API_BASE}/everything`, {
-          params: {
-            apiKey,
-            q,
-            language: 'en',
-            sortBy: 'relevance',
-            pageSize: 80
-          }
-        });
-        newsApiArticles = response.data.articles || [];
-      } else {
-        if (category.toLowerCase() === 'world') {
-          // Parallel headlines across multiple countries
-          const [usRes, gbRes, auRes] = await Promise.all([
-            axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'us', pageSize: 30 } }).catch(() => ({ data: { articles: [] } })),
-            axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'gb', pageSize: 20 } }).catch(() => ({ data: { articles: [] } })),
-            axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'au', pageSize: 20 } }).catch(() => ({ data: { articles: [] } }))
-          ]);
-          newsApiArticles = [
-            ...(usRes.data.articles || []),
-            ...(gbRes.data.articles || []),
-            ...(auRes.data.articles || [])
-          ];
-        } else {
-          const mapping = mapCategoryToQuery(category);
-          const response = await axios.get(`${NEWS_API_BASE}/${mapping.endpoint}`, {
+    if (apiKey && !apiKey.includes('YAHAN')) {
+      try {
+        if (q) {
+          const response = await axios.get(`${NEWS_API_BASE}/everything`, {
             params: {
               apiKey,
-              ...mapping.params,
-              pageSize: 60
+              q,
+              language: 'en',
+              sortBy: 'relevance',
+              pageSize: 80
             }
           });
           newsApiArticles = response.data.articles || [];
+        } else {
+          if (category.toLowerCase() === 'world') {
+            const [usRes, gbRes, auRes] = await Promise.all([
+              axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'us', pageSize: 30 } }).catch(() => ({ data: { articles: [] } })),
+              axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'gb', pageSize: 20 } }).catch(() => ({ data: { articles: [] } })),
+              axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'au', pageSize: 20 } }).catch(() => ({ data: { articles: [] } }))
+            ]);
+            newsApiArticles = [
+              ...(usRes.data.articles || []),
+              ...(gbRes.data.articles || []),
+              ...(auRes.data.articles || [])
+            ];
+          } else {
+            const mapping = mapCategoryToQuery(category);
+            const response = await axios.get(`${NEWS_API_BASE}/${mapping.endpoint}`, {
+              params: {
+                apiKey,
+                ...mapping.params,
+                pageSize: 60
+              }
+            });
+            newsApiArticles = response.data.articles || [];
+          }
         }
+      } catch (apiErr) {
+        console.error('NewsAPI fetch error in route:', apiErr.message);
       }
-    } catch (apiErr) {
-      console.error('NewsAPI fetch error in route:', apiErr.message);
     }
 
     // Parse RSS
     let rssArticles = [];
-    if (!q) {
+    if (q) {
+      const searchRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+      try {
+        const searchResults = await parseRSSFeed(`Google News: ${q}`, searchRssUrl);
+        rssArticles = searchResults || [];
+      } catch (err) {
+        console.error('RSS Search Fetch Error:', err.message);
+      }
+    } else {
       const feeds = getRSSFeedsForCategory(category);
       const parsePromises = feeds.map(feed => parseRSSFeed(feed.name, feed.url));
       const parsedResults = await Promise.all(parsePromises);
       rssArticles = parsedResults.flat();
     }
 
-    const rawMerged = [...newsApiArticles, ...rssArticles];
+    let rawMerged = [...newsApiArticles, ...rssArticles];
+    
+    // Fallback to mock data ONLY if everything else fails
+    if (rawMerged.length === 0) {
+      rawMerged = getMockArticles(category, q);
+    }
+
     const seenUrls = new Set();
     const cleaned = rawMerged.filter(article => {
       if (!article.title || article.title === '[Removed]') return false;

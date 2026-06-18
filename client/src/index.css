@@ -4,63 +4,54 @@
 
 @layer base {
   body {
-    @apply transition-colors duration-300 bg-paper text-navy dark:bg-paper-dark dark:text-gray-100;
+    @apply transition-all duration-500 bg-background-light text-navy dark:bg-background-dark dark:text-gray-100 font-sans tracking-wide selection:bg-accent-neon selection:text-black;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
   }
   
   /* Custom scrollbar to look sleek */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-paper dark:bg-paper-dark;
+    @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-700 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600;
+    @apply bg-gray-300/50 dark:bg-gray-700/50 rounded-full hover:bg-accent-neon/80 transition-colors duration-300;
   }
 }
 
-/* Custom newspaper elements */
+/* Glassmorphism Utilities */
+.glass {
+  @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10;
+}
+.glass-card {
+  @apply bg-white/60 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-3d-light dark:shadow-3d-dark transition-all duration-500 hover:-translate-y-2 hover:shadow-float-light dark:hover:shadow-float-dark;
+}
+
+/* Custom newspaper elements (repurposed for GenZ masonry) */
 .newspaper-grid {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
 }
 
-@media (max-width: 1024px) {
-  .newspaper-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Double lines borders for classic newspaper headers */
+/* Remove old double borders completely or stub them out so nothing breaks if still used */
 .border-double-navy {
-  border-style: double;
-  border-width: 4px 0;
-  border-color: theme('colors.navy.DEFAULT');
-}
-
-.dark .border-double-navy {
-  border-color: theme('colors.gold.DEFAULT');
+  @apply border-t-2 border-b-2 border-navy dark:border-accent-neon;
 }
 
 .border-double-bottom-navy {
-  border-bottom-style: double;
-  border-bottom-width: 4px;
-  border-color: theme('colors.navy.DEFAULT');
-}
-
-.dark .border-double-bottom-navy {
-  border-color: theme('colors.gold.DEFAULT');
+  @apply border-b-2 border-navy dark:border-accent-neon;
 }
 
 /* Shimmer animation for loading states */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .animate-shimmer {

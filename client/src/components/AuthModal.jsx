@@ -1,198 +1,155 @@
-import { useState } from 'react'
-import { initializeApp, getApps } from 'firebase/app'
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile
-} from 'firebase/auth'
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { X, Mail, Lock, User, Chrome } from 'lucide-react';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk",
-  authDomain: "propane-avatar-476809-q2.firebaseapp.com",
-  projectId: "propane-avatar-476809-q2",
-  storageBucket: "propane-avatar-476809-q2.firebasestorage.app",
-  messagingSenderId: "199913414397",
-  appId: "1:199913414397:web:83cef26b2fd2db59832894"
-}
+export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
+  const { login, signup, loginWithGoogle } = useAuth();
+  const [isLogin, setIsLogin] = useState(mode === 'login');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-const app = getApps().length === 0 ? 
-  initializeApp(firebaseConfig) : getApps()[0]
-const auth = getAuth(app)
-const googleProvider = new GoogleAuthProvider()
-
-export default function AuthModal({ onClose, mode = 'login' }) {
-  const [isLogin, setIsLogin] = useState(mode === 'login')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  if (!isOpen) return null;
 
   const handleGoogle = async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError('');
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      console.log('Google login success:', result.user)
-      onClose && onClose(result.user)
+      const user = await loginWithGoogle();
+      onClose && onClose(user);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleEmail = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      let result
+      let user;
       if (isLogin) {
-        result = await signInWithEmailAndPassword(
-          auth, email, password)
+        user = await login(email, password);
       } else {
-        result = await createUserWithEmailAndPassword(
-          auth, email, password)
-        await updateProfile(result.user, { 
-          displayName: name 
-        })
+        user = await signup(email, password, name);
       }
-      console.log('Email auth success:', result.user)
-      onClose && onClose(result.user)
+      onClose && onClose(user);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, 
-      right: 0, bottom: 0, 
-      background: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'center',
-      justifyContent: 'center', zIndex: 9999
-    }}>
-      <div style={{
-        background: '#fff', padding: '40px',
-        borderRadius: '8px', width: '420px',
-        maxWidth: '90vw'
-      }}>
-        <button onClick={() => onClose && onClose()}
-          style={{float: 'right', background: 'none',
-            border: 'none', fontSize: '20px', 
-            cursor: 'pointer'}}>×</button>
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-fade-in">
+      <div class="glass-card w-full max-w-md rounded-[2rem] p-8 relative shadow-2xl border border-white/20">
+        <button 
+          onClick={() => onClose && onClose()}
+          class="absolute top-5 right-5 text-gray-500 hover:text-white bg-gray-100 dark:bg-white/10 rounded-full p-2 transition-all hover:bg-red-500"
+        >
+          <X size={20} />
+        </button>
         
-        <h2 style={{textAlign: 'center', 
-          color: '#0A1628', marginBottom: '8px'}}>
-          {isLogin ? 'Log In' : 'Create Account'}
-        </h2>
-        <p style={{textAlign: 'center', 
-          color: '#666', marginBottom: '24px',
-          fontSize: '14px'}}>
-          Economical Research
-        </p>
-
-        <div style={{
-          background: '#e8f5e9', padding: '8px 12px',
-          borderRadius: '4px', marginBottom: '20px',
-          fontSize: '12px', color: '#2e7d32'
-        }}>
-          🟢 Firebase Live — Real Authentication
+        <div class="text-center mb-8">
+          <h2 class="font-display text-3xl font-black text-navy dark:text-white mb-2">
+            {isLogin ? 'Welcome Back' : 'Join the Vanguard'}
+          </h2>
+          <p class="text-sm font-sans text-gray-500 dark:text-gray-400">
+            Economical Research PRO
+          </p>
         </div>
 
         {error && (
-          <div style={{
-            background: '#ffebee', color: '#c62828',
-            padding: '8px 12px', borderRadius: '4px',
-            marginBottom: '16px', fontSize: '13px'
-          }}>{error}</div>
+          <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl mb-6 text-sm">
+            {error}
+          </div>
         )}
 
-        <form onSubmit={handleEmail}>
+        <form onSubmit={handleEmail} class="space-y-4">
           {!isLogin && (
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-              style={{width: '100%', padding: '12px',
-                border: '1px solid #ddd', borderRadius: '4px',
-                marginBottom: '12px', boxSizing: 'border-box',
-                fontSize: '14px'}}
-            />
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User size={18} class="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                required
+                class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
+              />
+            </div>
           )}
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            style={{width: '100%', padding: '12px',
-              border: '1px solid #ddd', borderRadius: '4px',
-              marginBottom: '12px', boxSizing: 'border-box',
-              fontSize: '14px'}}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            style={{width: '100%', padding: '12px',
-              border: '1px solid #ddd', borderRadius: '4px',
-              marginBottom: '16px', boxSizing: 'border-box',
-              fontSize: '14px'}}
-          />
-          <button type="submit" disabled={loading}
-            style={{width: '100%', padding: '14px',
-              background: '#0A1628', color: '#F4A726',
-              border: 'none', borderRadius: '4px',
-              fontSize: '15px', fontWeight: '600',
-              cursor: 'pointer', marginBottom: '16px'}}>
-            {loading ? 'Please wait...' : 
-              isLogin ? 'Log In →' : 'Create Account →'}
+          
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Mail size={18} class="text-gray-400" />
+            </div>
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
+            />
+          </div>
+
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Lock size={18} class="text-gray-400" />
+            </div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            class="w-full py-4 mt-4 bg-gradient-to-r from-navy to-primary dark:from-primary dark:to-accent-purple text-white font-bold rounded-xl shadow-lg hover:shadow-purple-glow hover:scale-[1.02] transition-all text-sm uppercase tracking-wider"
+          >
+            {loading ? 'Processing...' : isLogin ? 'Sign In →' : 'Create Account →'}
           </button>
         </form>
 
-        <div style={{textAlign: 'center', 
-          color: '#999', marginBottom: '16px',
-          fontSize: '13px'}}>OR</div>
+        <div class="my-6 flex items-center">
+          <div class="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+          <span class="px-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Or</span>
+          <div class="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+        </div>
 
-        <button onClick={handleGoogle} disabled={loading}
-          style={{width: '100%', padding: '14px',
-            background: '#fff', color: '#333',
-            border: '1px solid #ddd', borderRadius: '4px',
-            fontSize: '15px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: '10px'}}>
-          <svg width="18" height="18" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Sign in with Google
+        <button 
+          onClick={handleGoogle} 
+          disabled={loading}
+          class="w-full py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-navy dark:text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-white/10 transition-all group"
+        >
+          <Chrome size={20} class="text-blue-500 group-hover:scale-110 transition-transform" />
+          <span class="text-sm">Continue with Google</span>
         </button>
 
-        <p style={{textAlign: 'center', marginTop: '20px',
-          fontSize: '13px', color: '#666'}}>
-          {isLogin ? 
-            "Don't have an account? " : 
-            "Already have an account? "}
-          <span onClick={() => setIsLogin(!isLogin)}
-            style={{color: '#0A1628', cursor: 'pointer',
-              fontWeight: '600'}}>
+        <p class="text-center mt-8 text-sm text-gray-500">
+          {isLogin ? "New to the platform? " : "Already registered? "}
+          <button 
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            class="text-primary dark:text-accent-neon font-bold hover:underline cursor-pointer"
+          >
             {isLogin ? 'Sign up' : 'Log in'}
-          </span>
+          </button>
         </p>
       </div>
     </div>
-  )
+  );
 }

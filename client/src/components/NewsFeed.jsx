@@ -15,13 +15,61 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const [hasMore, setHasMore] = useState(true);
   const [timeLeft, setTimeLeft] = useState(60);
 
-  const [activeStream, setActiveStream] = useState('21X5lGlDOfg'); // Default Al Jazeera
-  const streams = [
-    { name: 'Al Jazeera', id: '21X5lGlDOfg' },
-    { name: 'DW News', id: 'mGC74ktp0Zg' },
-    { name: 'NDTV 24x7', id: 'FPSzDkQkHdU' },
-    { name: 'Sky News', id: '9Auq9mYxFEE' }
+  const INITIAL_CHANNELS = [
+    { name: 'Al Jazeera', channelId: 'UCcA31iA8h4b11fNn1X8G_xw', id: 'gCNeDWCI0vo' },
+    { name: 'BBC News', channelId: 'UC16niRr50-MSBwiO3YDb3RA', id: 'pZz4lG8K4H8' },
+    { name: 'Sky News', channelId: 'UCoMdktPbSTixAyNGWB-PUiA', id: '9Auq9mYxFEE' },
+    { name: 'DW News', channelId: 'UCknLrEdhRCp1aegoMqRaCZg', id: 'mGC74ktp0Zg' },
+    { name: 'NDTV 24x7', channelId: 'UCZFMm1mMw0F81Z37aaEzTUA', id: 'FPSzDkQkHdU' },
+    { name: 'Republic World', channelId: 'UCwvdjc8Q82DkP3_YvJm_Pug', id: 'jS1684B2l08' }
   ];
+
+  const [liveChannels, setLiveChannels] = useState(INITIAL_CHANNELS);
+  const [activeStream, setActiveStream] = useState(INITIAL_CHANNELS[0].id);
+
+  // Fetch Live YouTube Video IDs
+  useEffect(() => {
+    const fetchLiveStreams = async () => {
+      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+      if (!apiKey) return;
+
+      try {
+        const cached = localStorage.getItem('er_youtube_live_streams');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp < 3600 * 1000 * 6) { // 6 hours TTL
+            setLiveChannels(parsed.channels);
+            setActiveStream(parsed.channels[0].id);
+            return;
+          }
+        }
+
+        const updatedChannels = await Promise.all(INITIAL_CHANNELS.map(async (ch) => {
+          try {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.channelId}&eventType=live&type=video&key=${apiKey}`);
+            const data = await res.json();
+            if (data.items && data.items.length > 0) {
+              return { ...ch, id: data.items[0].id.videoId };
+            }
+          } catch (err) {
+            console.error('Failed to fetch live stream for', ch.name, err);
+          }
+          return ch; // fallback
+        }));
+
+        setLiveChannels(updatedChannels);
+        setActiveStream(updatedChannels[0].id);
+        
+        localStorage.setItem('er_youtube_live_streams', JSON.stringify({
+          timestamp: Date.now(),
+          channels: updatedChannels
+        }));
+      } catch (e) {
+        console.error('YouTube API Error:', e);
+      }
+    };
+    fetchLiveStreams();
+  }, []);
 
   // Research Desk states
   const [researchInput, setResearchInput] = useState('');
@@ -152,15 +200,15 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const renderLiveTV = () => {
     return (
-      <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded p-4 shadow-sm">
-        <div class="flex items-center justify-between border-b border-paper-border dark:border-paper-borderDark pb-2 mb-3">
+      <div class="glass-card p-5 rounded-3xl">
+        <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
           <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-650 animate-ping"></span>
-            <h3 class="font-serif text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
+            <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.7)]"></span>
+            <h3 class="font-display text-sm font-black text-navy dark:text-primary-glow uppercase tracking-wider">
               ER Sat Broadcasts
             </h3>
           </div>
-          <span class="text-[9px] font-mono font-bold text-gray-400">SAT FEED</span>
+          <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">SAT FEED</span>
         </div>
         
         <div class="relative w-full aspect-video rounded overflow-hidden bg-black border border-gray-200 dark:border-gray-800">
@@ -173,18 +221,18 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           ></iframe>
         </div>
         
-        <div class="grid grid-cols-4 gap-1.5 mt-3">
-          {streams.map((stream) => (
+        <div class="grid grid-cols-3 gap-2 mt-4">
+          {liveChannels.map((stream) => (
             <button
-              key={stream.id}
+              key={stream.channelId}
               onClick={() => setActiveStream(stream.id)}
-              class={`py-1.5 px-0.5 rounded text-[9px] font-bold uppercase tracking-wider text-center transition-all ${
+              class={`py-2 px-1 rounded-xl text-[9px] font-bold uppercase tracking-wider text-center transition-all ${
                 activeStream === stream.id
-                  ? 'bg-navy text-gold dark:bg-gold dark:text-navy'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                  ? 'bg-primary text-white shadow-purple-glow'
+                  : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'
               }`}
             >
-              {stream.name.split(' ')[0]}
+              {stream.name.replace(' English', '')}
             </button>
           ))}
         </div>
@@ -204,15 +252,15 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     const isPro = subscription?.tier === 'PRO';
     
     return (
-      <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded p-4 shadow-sm">
-        <div class="flex items-center justify-between border-b border-paper-border dark:border-paper-borderDark pb-2 mb-3">
+      <div class="glass-card p-5 rounded-3xl">
+        <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
           <div class="flex items-center gap-2">
-            <Sparkles size={13} class="text-gold" />
-            <h3 class="font-serif text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
+            <Sparkles size={14} class="text-accent-pink" />
+            <h3 class="font-display text-sm font-black text-navy dark:text-accent-pink uppercase tracking-wider">
               Deep Research Desk
             </h3>
           </div>
-          <span class="text-[9px] font-mono font-bold text-gray-400">PRO MODE</span>
+          <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">PRO MODE</span>
         </div>
         
         {isPro ? (
@@ -226,12 +274,12 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 placeholder="Enter topic (e.g. GDP, Supply Chains)..."
                 value={researchInput}
                 onChange={(e) => setResearchInput(e.target.value)}
-                class="flex-grow bg-gray-50 dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                class="flex-grow bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white"
               />
               <button
                 type="submit"
                 disabled={!researchInput.trim()}
-                class="bg-navy hover:bg-navy-light text-gold px-2.5 py-1 rounded text-[10px] uppercase font-bold shrink-0 transition-all"
+                class="bg-navy hover:bg-navy-light text-accent-neon px-4 py-2 rounded-xl text-[10px] uppercase font-bold shrink-0 transition-all hover:shadow-neon"
               >
                 Compile
               </button>
@@ -250,7 +298,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
               }}
-              class="w-full bg-gold hover:bg-gold-light text-navy font-bold text-[9px] uppercase py-1.5 rounded tracking-wider transition-all"
+              class="w-full bg-gradient-to-r from-primary to-accent-purple hover:from-primary-glow hover:to-accent-pink text-white font-bold text-[10px] uppercase py-2.5 rounded-xl tracking-wider transition-all shadow-purple-glow hover:scale-105"
             >
               Upgrade to PRO
             </button>
@@ -262,11 +310,12 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const renderSidePanel = () => {
     return (
-      <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded p-4 shadow-sm text-center">
-        <div class="bg-gray-50 dark:bg-navy-light/10 py-6 px-4 border border-dashed border-gray-300 dark:border-gray-800 rounded">
-          <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-2">- SPONSORED BRIEFING -</span>
-          <h4 class="font-serif text-xs font-black text-navy dark:text-gold uppercase tracking-wide mb-1">Global Capital Yields</h4>
-          <p class="text-[10px] text-gray-450 dark:text-gray-400 leading-normal">
+      <div class="glass-card p-5 rounded-3xl text-center relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-glow/20 to-accent-pink/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div class="bg-gray-50 dark:bg-white/5 py-8 px-5 border border-gray-200 dark:border-white/10 rounded-2xl relative z-10 backdrop-blur-sm">
+          <span class="text-[9px] font-bold text-accent-pink uppercase tracking-widest block mb-3 animate-pulse">- SPONSORED BRIEFING -</span>
+          <h4 class="font-display text-sm font-black text-navy dark:text-white uppercase tracking-wide mb-2">Global Capital Yields</h4>
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-sans">
             Discover audited alternative asset reports synthesized for macro analysts.
           </p>
         </div>
@@ -327,20 +376,20 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   }
 
   return (
-    <div class="max-w-7xl mx-auto px-4 md:px-6 py-6">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
       {/* Feed Title and Header */}
-      <div class="border-double-bottom-navy pb-2.5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h2 class="font-serif text-2xl md:text-3xl font-black tracking-tight text-navy dark:text-gold uppercase">
+      <div class="border-b border-gray-200 dark:border-white/10 pb-4 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 class="font-display text-3xl md:text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-navy to-primary dark:from-white dark:to-gray-400 uppercase drop-shadow-md">
           {getFeedTitle()}
         </h2>
         <div class="flex items-center gap-3">
           {/* 60s Countdown indicator */}
-          <span class="flex items-center gap-1.5 text-[10px] text-navy/70 dark:text-gold/80 font-bold uppercase tracking-wider bg-navy/5 dark:bg-gold/10 px-2.5 py-1 rounded">
-            <RefreshCw size={10} class="animate-spin text-gold shrink-0" />
-            <span>Wire Sync: {timeLeft}s</span>
+          <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full shadow-neon">
+            <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
+            <span>Sync: {timeLeft}s</span>
           </span>
-          <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest shrink-0">
-            {articles.length} Wire Bulletins Loaded
+          <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
+            {articles.length} Bulletins
           </span>
         </div>
       </div>
@@ -406,7 +455,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                     fetchArticles(nextPage, false);
                     setPage(nextPage);
                   }}
-                  class="px-5 py-2.5 bg-navy text-gold hover:bg-navy-light text-xs font-bold uppercase tracking-wider rounded border border-transparent transition-all"
+                  class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
                 >
                   Load More Reports
                 </button>

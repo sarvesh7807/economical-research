@@ -71,7 +71,7 @@ export default function Billing({ setView }) {
 
   const handleCheckout = async (planId, forceSandbox = false) => {
     if (!user) {
-      setError('You must log in or register an account before subscribing to a plan.');
+      window.dispatchEvent(new CustomEvent('open-auth-modal'));
       return;
     }
 
@@ -318,9 +318,9 @@ export default function Billing({ setView }) {
       {/* 1. BACK CONTROLLER */}
       <button 
         onClick={() => setView('feed')}
-        class="inline-flex items-center gap-1.5 text-[10px] font-black text-navy hover:text-gold dark:text-gray-300 dark:hover:text-gold uppercase tracking-widest mb-6 transition-colors font-mono"
+        class="inline-flex items-center gap-2 text-xs font-bold text-navy hover:text-primary dark:text-gray-300 dark:hover:text-primary uppercase tracking-widest mb-8 transition-colors font-display bg-white/50 dark:bg-white/5 px-4 py-2 rounded-full hover:shadow-neon"
       >
-        <ArrowLeft size={12} />
+        <ArrowLeft size={14} />
         <span>Return to Wire Feed</span>
       </button>
 
@@ -341,27 +341,31 @@ export default function Billing({ setView }) {
       )}
 
       {/* 2. HEADER INTRO */}
-      <div class="text-center max-w-2xl mx-auto mb-10">
-        <span class="text-[9px] font-black uppercase tracking-widest text-gold font-mono block mb-1">economical research press ledger</span>
-        <h1 class="font-serif text-3xl md:text-4xl font-black uppercase tracking-tight text-navy dark:text-gold">Subscribers Access Console</h1>
-        <p class="mt-2.5 text-[11px] leading-relaxed text-gray-400 font-serif max-w-lg mx-auto">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <span class="text-xs font-black uppercase tracking-widest text-primary font-mono block mb-3 animate-pulse">economical research press ledger</span>
+        <h1 class="font-display text-4xl md:text-6xl font-black uppercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-navy to-primary dark:from-white dark:to-gray-400 drop-shadow-md">
+          Subscribers Access Console
+        </h1>
+        <p class="mt-4 text-sm md:text-base leading-relaxed text-gray-500 font-sans max-w-2xl mx-auto">
           Lift article paywalls, unlock our Claude-style economic chatbot, and generate detailed PDF intelligence reports directly from global desks. Supporting Indian Rupee payment checkouts.
         </p>
       </div>
 
       {/* 3. CURRENT PLAN PANEL */}
-      <div class="bg-white dark:bg-[#0A1628]/40 border border-paper-border dark:border-paper-borderDark rounded-lg p-5 shadow-sm mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="glass-card p-6 md:p-8 rounded-3xl mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-3d-light dark:shadow-3d-dark border border-white/20">
         <div>
-          <span class="text-[8.5px] uppercase font-bold text-gray-455 block font-mono">Current Active Desk Profile</span>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="font-serif text-lg font-black text-navy dark:text-gold uppercase tracking-wide">
+          <span class="text-xs uppercase font-bold text-gray-500 block font-mono mb-2">Current Active Desk Profile</span>
+          <div class="flex items-center gap-3 mt-1">
+            <span class="font-display text-2xl font-black text-navy dark:text-white uppercase tracking-tight">
               {activeTier === 'Basic' ? 'ER Basic (Free Tier)' : `ER ${activeTier} Press Tier`}
             </span>
             {activeTier !== 'Basic' && (
-              <span class="bg-gold/15 text-gold-dark dark:text-gold text-[8.5px] font-black px-2 py-0.5 rounded uppercase tracking-wider font-mono border border-gold/10">PRO USER</span>
+              <span class="bg-primary/20 text-primary dark:text-accent-neon text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider font-mono border border-primary/30 shadow-neon">
+                PRO USER
+              </span>
             )}
           </div>
-          <p class="text-[10px] text-gray-400 mt-1 max-w-md">
+          <p class="text-sm text-gray-500 mt-2 max-w-md font-sans">
             {activeTier === 'Basic' 
               ? 'You are on the standard ad-supported reading profile. Upgrade to remove limits.' 
               : `Renews via Razorpay on ${subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'Next Month'}. Billing cycle: ${subscription.plan || 'monthly'}.`}
@@ -371,7 +375,7 @@ export default function Billing({ setView }) {
           <button
             onClick={handleCancel}
             disabled={loading}
-            class="px-4 py-2 bg-red-655/10 hover:bg-red-650 text-red-600 hover:text-white border border-red-600/35 rounded text-[10px] font-black uppercase tracking-widest transition-all"
+            class="px-6 py-3 bg-red-50 hover:bg-red-500 dark:bg-red-500/10 dark:hover:bg-red-500 text-red-600 hover:text-white border border-red-200 dark:border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm hover:shadow-lg"
           >
             {loading ? 'Processing...' : 'Cancel subscription'}
           </button>
@@ -406,34 +410,36 @@ export default function Billing({ setView }) {
           return (
             <div 
               key={plan.id}
-              class={`bg-white dark:bg-paper-cardDark border rounded-lg p-5 flex flex-col justify-between relative transition-all duration-300 hover:-translate-y-1 ${
+              class={`glass-card p-6 md:p-8 flex flex-col justify-between relative transition-all duration-300 hover:-translate-y-2 ${
                 plan.isPopular 
-                  ? 'border-2 border-gold shadow-lg ring-1 ring-gold/25' 
-                  : 'border-paper-border dark:border-paper-borderDark shadow-sm'
+                  ? 'rounded-3xl border-2 border-primary shadow-purple-glow ring-2 ring-primary/20 scale-105 z-10' 
+                  : 'rounded-3xl border border-gray-200 dark:border-white/10 shadow-lg'
               }`}
             >
               {plan.isPopular && (
-                <div class="absolute top-0 right-5 transform -translate-y-1/2 bg-gold text-navy font-black uppercase text-[8.5px] tracking-widest px-2.5 py-0.5 rounded-full shadow-sm font-mono">
+                <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-primary to-accent-purple text-white font-black uppercase text-[10px] tracking-widest px-4 py-1 rounded-full shadow-neon font-mono whitespace-nowrap">
                   Most Popular
                 </div>
               )}
 
               <div>
-                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest font-mono block mb-1">{plan.subText}</span>
-                <h3 class="font-serif text-base font-black text-navy dark:text-white uppercase mb-2 flex items-center gap-1.5">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-widest font-mono block mb-2">{plan.subText}</span>
+                <h3 class="font-display text-xl font-black text-navy dark:text-white uppercase mb-4 flex items-center gap-2">
                   {plan.name}
-                  {plan.id === 'SCHOLAR' && <Sparkles size={13} class="text-gold animate-pulse" />}
+                  {plan.id === 'SCHOLAR' && <Sparkles size={16} class="text-accent-pink animate-pulse" />}
                 </h3>
-                <div class="flex items-baseline gap-0.5 mb-5">
-                  <span class="text-3xl font-black font-mono tracking-tight text-navy dark:text-white">₹{displayPrice.toLocaleString('en-IN')}</span>
-                  <span class="text-[10px] text-gray-400 font-semibold uppercase">/{cycle === 'monthly' ? 'mo' : 'yr'}</span>
+                <div class="flex items-baseline gap-1 mb-6">
+                  <span class="text-4xl font-black font-display tracking-tight text-navy dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-navy to-primary dark:from-white dark:to-gray-300">
+                    ₹{displayPrice.toLocaleString('en-IN')}
+                  </span>
+                  <span class="text-xs text-gray-400 font-bold uppercase">/{cycle === 'monthly' ? 'mo' : 'yr'}</span>
                 </div>
 
-                <ul class="space-y-2.5 text-[11px] text-gray-650 dark:text-gray-300 border-t border-paper-border dark:border-paper-borderDark pt-4 mb-6 leading-snug">
+                <ul class="space-y-4 text-sm text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-white/10 pt-6 mb-8 font-sans">
                   {plan.features.map((feat, idx) => (
-                    <li key={idx} class="flex items-start gap-1.5">
-                      <Check size={13} class={`shrink-0 mt-0.5 ${plan.isPopular ? 'text-gold' : 'text-green-500'}`} />
-                      <span>{feat}</span>
+                    <li key={idx} class="flex items-start gap-3">
+                      <Check size={18} class={`shrink-0 mt-0.5 ${plan.isPopular ? 'text-primary' : 'text-green-500'}`} />
+                      <span class="leading-relaxed">{feat}</span>
                     </li>
                   ))}
                 </ul>
@@ -442,7 +448,7 @@ export default function Billing({ setView }) {
               {plan.id === 'BASIC' ? (
                 <button
                   disabled
-                  class="w-full bg-gray-100 dark:bg-gray-800 text-gray-450 dark:text-gray-500 font-bold text-[10px] uppercase py-2.5 rounded-lg cursor-not-allowed font-mono tracking-widest"
+                  class="w-full bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 font-bold text-xs uppercase py-4 rounded-xl cursor-not-allowed font-mono tracking-widest"
                 >
                   {isCurrentPlan ? 'Current Plan' : 'Free tier'}
                 </button>
@@ -450,12 +456,12 @@ export default function Billing({ setView }) {
                 <button
                   onClick={() => isCurrentPlan ? null : handleCheckout(plan.id)}
                   disabled={loading || isCurrentPlan}
-                  class={`w-full text-[10px] font-black uppercase py-2.5 rounded-lg tracking-widest transition-all shadow-sm font-mono ${
+                  class={`w-full text-xs font-black uppercase py-4 rounded-xl tracking-widest transition-all font-mono ${
                     isCurrentPlan
-                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed border border-transparent'
+                      ? 'bg-gray-100 dark:bg-white/5 text-gray-500 cursor-not-allowed border border-transparent'
                       : plan.isPopular
-                        ? 'bg-gold hover:bg-gold-light text-navy border border-gold/25 hover:scale-[1.02]'
-                        : 'bg-navy hover:bg-navy-light text-gold border border-gold/15 hover:scale-[1.02]'
+                        ? 'bg-gradient-to-r from-primary to-accent-purple hover:from-primary-glow hover:to-accent-pink text-white shadow-purple-glow hover:scale-[1.02]'
+                        : 'bg-navy dark:bg-white/10 hover:bg-primary dark:hover:bg-white/20 text-white dark:text-white border border-transparent hover:scale-[1.02] shadow-lg'
                   }`}
                 >
                   {loading ? 'Initiating...' : isCurrentPlan ? 'Current Plan' : plan.buttonText}

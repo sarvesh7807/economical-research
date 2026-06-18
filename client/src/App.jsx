@@ -36,6 +36,11 @@ function AppContent() {
     return unsubscribe;
   }, []);
 
+  const [view, setViewInternal] = useState('feed'); // 'feed', 'profile', 'settings', 'billing', 'admin', 'epaper', 'livetv', 'about', 'contact', 'terms', 'privacy'
+  const [viewLoading, setViewLoading] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // Open Auth Modal if trying to access profile while logged out
   useEffect(() => {
     if (view === 'profile' && !user) {
@@ -52,13 +57,6 @@ function AppContent() {
 
   const [activeCategory, setActiveCategory] = useState('world');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // View states including transition loader variables
-  const [view, setViewInternal] = useState('feed'); // 'feed', 'profile', 'settings', 'billing', 'admin', 'epaper', 'livetv', 'about', 'contact', 'terms', 'privacy'
-  const [viewLoading, setViewLoading] = useState(false);
-  
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const setView = (newView) => {
     setViewLoading(true);
@@ -82,8 +80,15 @@ function AppContent() {
     const handleViewChange = (e) => {
       if (e.detail) setView(e.detail);
     };
+    const handleOpenAuth = () => {
+      setAuthModalOpen(true);
+    };
     window.addEventListener('change-view', handleViewChange);
-    return () => window.removeEventListener('change-view', handleViewChange);
+    window.addEventListener('open-auth-modal', handleOpenAuth);
+    return () => {
+      window.removeEventListener('change-view', handleViewChange);
+      window.removeEventListener('open-auth-modal', handleOpenAuth);
+    };
   }, []);
 
   // Query and Path-based routing recovery on mount

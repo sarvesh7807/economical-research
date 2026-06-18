@@ -26,6 +26,7 @@ import {
   limit,
   addDoc,
   getDocs,
+  getDoc,
   writeBatch
 } from 'firebase/firestore';
 
@@ -282,12 +283,32 @@ export const AuthProvider = ({ children }) => {
       if (db) {
         try {
           const userDocRef = doc(db, 'users', userCredential.user.uid);
+          
+          // Check existing subscription to upgrade to PRO automatically
+          const docSnap = await getDoc(userDocRef);
+          let currentSub = { tier: 'Basic', status: 'Inactive' };
+          if (docSnap.exists() && docSnap.data().subscription) {
+            currentSub = docSnap.data().subscription;
+          }
+
+          // If no active PRO/SCHOLAR subscription, upgrade automatically!
+          let newSub = currentSub;
+          if (currentSub.tier === 'Basic' || currentSub.status !== 'Active') {
+             newSub = {
+               tier: 'PRO',
+               plan: 'monthly',
+               expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+               status: 'Active'
+             };
+          }
+
           await setDoc(userDocRef, {
             uid: userCredential.user.uid,
             email: userCredential.user.email,
             displayName: userCredential.user.displayName || '',
             photoURL: userCredential.user.photoURL || '',
-            lastLoginAt: new Date().toISOString()
+            lastLoginAt: new Date().toISOString(),
+            subscription: newSub
           }, { merge: true });
 
           const docRef = doc(db, 'users', userCredential.user.uid, 'notifications', activityNotif.id);

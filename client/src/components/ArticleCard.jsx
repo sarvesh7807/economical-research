@@ -309,37 +309,57 @@ export default function ArticleCard({ article }) {
     <article 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setReadProgress(0); }}
-      class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-5 flex flex-col justify-between hover:shadow-md transition-shadow duration-300 relative group min-h-[350px] overflow-hidden"
+      class="glass-card p-5 flex flex-col justify-between relative group min-h-[350px] overflow-hidden rounded-3xl"
     >
-      {/* Decorative Corner Lines for Newspaper Feel */}
-      <div class="absolute top-2 left-2 w-2 h-2 border-t border-l border-navy/20 dark:border-gold/30"></div>
-      <div class="absolute top-2 right-2 w-2 h-2 border-t border-r border-navy/20 dark:border-gold/30"></div>
-      
       {/* Simulated Reading Progressive Bar */}
       <div 
-        class="absolute bottom-0 left-0 h-1 bg-gold transition-all duration-150" 
+        class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-primary-glow to-accent-neon transition-all duration-150" 
         style={{ width: `${readProgress}%` }}
       ></div>
 
       <div>
-        {/* Source and Date Row with Bookmark & Translate Dropdown */}
-        <div class="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 font-sans border-b border-gray-150 dark:border-gray-800 pb-1.5 flex-wrap gap-2">
-          <span class="text-gold dark:text-gold-light font-black">{source.name}</span>
+        {/* Featured Image - Bleeds to top edge */}
+        {urlToImage ? (
+          <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+            <img 
+              src={urlToImage} 
+              alt={title} 
+              class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            {/* Overlay Category/Source */}
+            <div class="absolute bottom-3 left-4 z-20">
+               <span class="px-2.5 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-bold text-white uppercase tracking-widest font-sans border border-white/20">
+                 {source.name}
+               </span>
+            </div>
+          </div>
+        ) : (
+          <div class="flex items-center justify-between mb-4">
+            <span class="px-2.5 py-1 bg-gray-200 dark:bg-white/10 rounded-full text-[10px] font-bold text-navy dark:text-white uppercase tracking-widest font-sans">
+              {source.name}
+            </span>
+          </div>
+        )}
+
+        {/* Top Info Row */}
+        <div class="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 font-sans flex-wrap gap-2">
           <div class="flex items-center gap-2.5">
-            <span class="flex items-center gap-1 font-mono">
-              <Calendar size={10} />
+            <span class="flex items-center gap-1 font-mono bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
+              <Calendar size={10} class="text-primary-glow" />
               {formatDate(publishedAt)}
             </span>
-            <span class="flex items-center gap-1 font-mono text-[9px]">
-              <Clock size={10} />
+            <span class="flex items-center gap-1 font-mono text-[9px] bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
+              <Clock size={10} class="text-accent-neon" />
               {getEstimatedReadingTime()} min read
             </span>
 
             {/* Translation Widget */}
-            <div class="flex items-center gap-1 border border-paper-border dark:border-paper-borderDark rounded px-1.5 py-0.5 bg-gray-50/50 dark:bg-navy-light/10">
-              <Languages size={9} class="text-gold shrink-0" />
+            <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
+              <Languages size={9} class="text-accent-pink shrink-0" />
               {translating ? (
-                <span class="text-[8px] animate-pulse">Translating...</span>
+                <span class="text-[8px] animate-pulse">Wait...</span>
               ) : (
                 <select
                   value={activeLang}
@@ -347,7 +367,7 @@ export default function ArticleCard({ article }) {
                   class="bg-transparent text-gray-500 dark:text-gray-400 font-bold focus:outline-none cursor-pointer border-none text-[8px] p-0"
                 >
                   <option value="Original" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">EN</option>
-                  <option value="Hindi" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">HI (हिंदी)</option>
+                  <option value="Hindi" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">HI</option>
                   <option value="Spanish" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">ES</option>
                   <option value="French" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">FR</option>
                   <option value="German" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">DE</option>
@@ -358,67 +378,53 @@ export default function ArticleCard({ article }) {
 
             <button 
               onClick={handleBookmarkToggle}
-              class="text-gray-400 hover:text-gold transition-colors p-0.5 focus:outline-none shrink-0"
+              class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors focus:outline-none shrink-0"
               title={bookmarked ? "Remove Bookmark" : "Save Bookmark"}
             >
-              <Bookmark size={12} class={bookmarked ? "fill-gold text-gold" : "text-gray-400 dark:text-gray-500"} />
+              <Bookmark size={14} class={bookmarked ? "fill-accent-neon text-accent-neon drop-shadow-[0_0_8px_rgba(204,255,0,0.8)]" : "text-gray-400 dark:text-gray-500"} />
             </button>
           </div>
         </div>
 
         {/* Sentiment and Factual Integrity Rating */}
         {analysis && (
-          <div class="flex items-center gap-2 mb-2.5 flex-wrap">
-            <span class={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-              analysis.sentiment === 'Positive' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-              analysis.sentiment === 'Negative' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-              'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+          <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <span class={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+              analysis.sentiment === 'Positive' ? 'bg-green-100/50 text-green-700 dark:bg-green-500/20 dark:text-green-300 border border-green-200 dark:border-green-500/30' :
+              analysis.sentiment === 'Negative' ? 'bg-red-100/50 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-200 dark:border-red-500/30' :
+              'bg-gray-100/50 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 border border-gray-200 dark:border-gray-500/30'
             }`}>
               {analysis.sentiment}
             </span>
-            <span class="text-[9px] font-bold text-navy/60 dark:text-gold/80 bg-navy/5 dark:bg-gold/10 px-1.5 py-0.5 rounded font-mono">
-              ★ Factual Integrity: {analysis.fakeNewsScore}%
+            <span class="text-[9px] font-bold text-navy/80 dark:text-primary-glow bg-navy/5 dark:bg-primary/10 border border-navy/10 dark:border-primary/20 px-2 py-1 rounded-full font-mono flex items-center gap-1">
+              <Sparkles size={9} /> Trust Score: {analysis.fakeNewsScore}%
             </span>
             {hovered && readProgress >= 100 && (
-              <span class="text-[8px] text-green-600 dark:text-green-400 font-bold uppercase tracking-wider animate-pulse font-mono">
-                ✓ BULLETIN READ
+              <span class="text-[9px] text-accent-neon font-bold uppercase tracking-wider animate-pulse font-mono bg-accent-neon/10 px-2 py-1 rounded-full border border-accent-neon/30">
+                ✓ COMPLETED
               </span>
             )}
           </div>
         )}
 
         {/* Article Title */}
-        <h3 class="font-serif text-base md:text-lg font-bold leading-snug text-navy dark:text-gray-100 hover:text-gold dark:hover:text-gold transition-colors mb-2.5">
-          <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick} class="hover:underline">
+        <h3 class="font-display text-xl md:text-2xl font-bold leading-tight text-navy dark:text-white hover:text-primary-glow dark:hover:text-primary-glow transition-colors mb-3">
+          <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
             {translatedTitle || title}
           </a>
         </h3>
 
-        {/* Featured Image */}
-        {urlToImage ? (
-          <div class="relative w-full h-36 overflow-hidden mb-3.5 bg-gray-50 dark:bg-gray-850 rounded-sm">
-            <img 
-              src={urlToImage} 
-              alt={title} 
-              class="w-full h-full object-cover filter saturate-[0.8] hover:saturate-100 hover:scale-103 transition-all duration-500"
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-          </div>
-        ) : (
-          <div class="w-full h-2 bg-paper-border/20 dark:bg-paper-borderDark/20 mb-3 border-y border-dashed border-gray-250 dark:border-gray-800"></div>
-        )}
-
         {/* Author */}
         {author && (
-          <p class="text-[10px] italic text-navy/60 dark:text-gray-400 mb-2 font-serif">
-            By <span class="font-semibold uppercase tracking-wider">{author}</span>
+          <p class="text-[11px] text-navy/60 dark:text-gray-400 mb-3 font-mono bg-gray-50 dark:bg-white/5 inline-block px-2 py-1 rounded-md">
+            By <span class="font-bold uppercase tracking-wider text-primary">{author}</span>
           </p>
         )}
 
         {/* Article Description */}
-        <p class={`text-navy/80 dark:text-gray-300 leading-relaxed font-sans mb-4 ${
-          settings?.fontSize === 'small' ? 'text-xs' : 
-          settings?.fontSize === 'large' ? 'text-base' : 'text-xs'
+        <p class={`text-navy/80 dark:text-gray-300 leading-relaxed font-sans mb-5 ${
+          settings?.fontSize === 'small' ? 'text-sm' : 
+          settings?.fontSize === 'large' ? 'text-lg' : 'text-base'
         }`}>
           {translatedDesc || description || 'Full report details are available in the linked release archive.'}
         </p>
@@ -427,62 +433,62 @@ export default function ArticleCard({ article }) {
       {/* AI Controls, Drawer & Comments */}
       <div>
         {/* Action Buttons */}
-        <div class="flex items-center gap-2 border-t border-paper-border dark:border-paper-borderDark pt-3 mt-1">
+        <div class="flex items-center gap-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
           {/* AI Summary Button */}
           <button
             onClick={handleFetchSummary}
             disabled={loadingSummary}
-            class={`flex-1 flex items-center justify-center gap-1 py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-wider rounded transition-all ${
+            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showSummary
-                ? 'bg-navy text-gold dark:bg-gold dark:text-navy border border-transparent'
-                : 'bg-transparent border border-navy/20 dark:border-gold/30 hover:border-navy dark:hover:border-gold text-navy dark:text-gray-200 hover:bg-navy/5 dark:hover:bg-gold/5'
+                ? 'bg-primary text-white shadow-purple-glow border border-transparent'
+                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-primary/50 text-navy dark:text-gray-200'
             }`}
           >
-            <Sparkles size={11} class={showSummary ? 'text-gold dark:text-navy' : 'text-gold'} />
+            <Sparkles size={12} class={showSummary ? 'text-white' : 'text-primary-glow'} />
             <span>AI Summary</span>
-            {showSummary ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {showSummary ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
           {/* Key Points Button */}
           <button
             onClick={handleFetchKeyPoints}
             disabled={loadingKeyPoints}
-            class={`flex-1 flex items-center justify-center gap-1 py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-wider rounded transition-all ${
+            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showKeyPoints
-                ? 'bg-navy text-gold dark:bg-gold dark:text-navy border border-transparent'
-                : 'bg-transparent border border-navy/20 dark:border-gold/30 hover:border-navy dark:hover:border-gold text-navy dark:text-gray-200 hover:bg-navy/5 dark:hover:bg-gold/5'
+                ? 'bg-primary text-white shadow-purple-glow border border-transparent'
+                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-primary/50 text-navy dark:text-gray-200'
             }`}
           >
-            <List size={11} class={showKeyPoints ? 'text-gold dark:text-navy' : 'text-gold'} />
+            <List size={12} class={showKeyPoints ? 'text-white' : 'text-primary-glow'} />
             <span>Key Points</span>
-            {showKeyPoints ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {showKeyPoints ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
           {/* Comments Toggle */}
           <button
             onClick={() => setShowComments(!showComments)}
-            class={`flex-1 flex items-center justify-center gap-1 py-1.5 px-1.5 text-[9px] font-bold uppercase tracking-wider rounded border transition-all ${
+            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showComments
-                ? 'bg-navy text-gold dark:bg-gold dark:text-navy border-transparent'
-                : 'bg-transparent border-navy/20 dark:border-gold/30 hover:border-navy dark:hover:border-gold text-navy dark:text-gray-200'
+                ? 'bg-navy text-accent-neon dark:bg-white/10 dark:text-accent-neon border-transparent'
+                : 'bg-gray-100 dark:bg-white/5 border-transparent hover:border-navy dark:hover:border-white/20 text-navy dark:text-gray-200'
             }`}
           >
-            <MessageSquare size={11} />
+            <MessageSquare size={12} />
             <span>Debate</span>
-            {showComments ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            {showComments ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
 
         {/* AI DRAWER (SUMMARY OR KEY POINTS) */}
         {(showSummary || showKeyPoints) && (
-          <div class="mt-3.5 p-3.5 border border-gold/45 dark:border-gold/30 bg-gold/5 dark:bg-navy-light/10 rounded-sm relative overflow-hidden transition-all duration-300">
-            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gold"></div>
+          <div class="mt-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 relative overflow-hidden transition-all duration-300 shadow-inner">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-glow to-accent-neon"></div>
 
             {/* AI Summary Content */}
             {showSummary && (
               <div>
-                <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-gold uppercase tracking-widest mb-1.5 font-serif">
-                  <ShieldCheck size={11} class="text-gold" />
+                <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest mb-1.5 font-mono">
+                  <ShieldCheck size={11} class="text-primary-glow" />
                   <span>AI Editorial Summary</span>
                 </div>
                 
@@ -498,8 +504,8 @@ export default function ArticleCard({ article }) {
                     <span>{errorSummary}</span>
                   </div>
                 ) : (
-                  <p class="text-xs text-navy/95 dark:text-gray-200 font-serif leading-relaxed italic">
-                    &ldquo;{summary}&rdquo;
+                  <p class="text-xs text-navy/95 dark:text-gray-200 font-sans leading-relaxed">
+                    {summary}
                   </p>
                 )}
               </div>
@@ -508,8 +514,8 @@ export default function ArticleCard({ article }) {
             {/* Key Points Content */}
             {showKeyPoints && (
               <div>
-                <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-gold uppercase tracking-widest mb-2 font-serif">
-                  <ShieldCheck size={11} class="text-gold" />
+                <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest mb-2 font-mono">
+                  <ShieldCheck size={11} class="text-primary-glow" />
                   <span>AI Structural Implications</span>
                 </div>
                 
@@ -538,13 +544,13 @@ export default function ArticleCard({ article }) {
             
             {/* Read Full Article Link */}
             {!loadingSummary && !loadingKeyPoints && !errorSummary && !errorKeyPoints && (
-              <div class="mt-3.5 pt-2 border-t border-gold/20 flex justify-end">
+              <div class="mt-4 pt-3 border-t border-gray-200 dark:border-white/10 flex justify-end">
                 <a 
                   href={url} 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   onClick={handleLinkClick}
-                  class="text-[9px] font-bold text-navy hover:text-gold dark:text-gray-300 dark:hover:text-gold uppercase tracking-widest flex items-center gap-0.5 transition-colors"
+                  class="text-[9px] font-bold text-navy hover:text-primary-glow dark:text-gray-300 dark:hover:text-primary-glow uppercase tracking-widest flex items-center gap-0.5 transition-colors bg-white/50 dark:bg-black/50 px-3 py-1.5 rounded-full"
                 >
                   Read Wire Release ↗
                 </a>
