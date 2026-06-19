@@ -115,6 +115,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       updateWeatherState(data);
     } catch (err) {
       console.error('Error fetching weather by coordinates:', err);
+      setWeather({ error: true });
     }
   };
 
@@ -129,6 +130,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       localStorage.setItem('er_weather_city_pref', data.name);
     } catch (err) {
       console.error('Error fetching weather by city:', err);
+      setWeather({ error: true });
     }
   };
 
@@ -345,28 +347,43 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           <span class="text-navy dark:text-gold font-bold">LIVE:</span>
           <span>{formatDate(time)}</span>
           {weather ? (
-            <>
-              <span class="text-gray-300 dark:text-gray-700">|</span>
-              <span class="flex items-center gap-2 flex-wrap font-semibold">
+            weather.error ? (
+              <>
+                <span class="text-gray-300 dark:text-gray-700">|</span>
                 <span 
-                  class="cursor-pointer hover:underline flex items-center gap-1 text-navy dark:text-gold" 
-                  title="Click to change city preference"
+                  class="cursor-pointer text-red-500 hover:underline flex items-center gap-1 font-semibold" 
                   onClick={handleCityChangePrompt}
+                  title="Click to enter preferred city or check API key"
                 >
-                  {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C ✏️
+                  ⚠️ Weather Service Offline (click to edit)
                 </span>
                 <span class="text-gray-300 dark:text-gray-700">|</span>
-                <span>💧 Humidity {weather.humidity}%</span>
-                {weather.monsoonActive && (
-                  <>
-                    <span class="text-gray-300 dark:text-gray-700">|</span>
-                    <span class="text-blue-500 font-bold animate-pulse flex items-center gap-1">🌧️ Monsoon Active</span>
-                  </>
-                )}
-                <span class="text-gray-300 dark:text-gray-700">|</span>
                 <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
-              </span>
-            </>
+              </>
+            ) : (
+              <>
+                <span class="text-gray-300 dark:text-gray-700">|</span>
+                <span class="flex items-center gap-2 flex-wrap font-semibold">
+                  <span 
+                    class="cursor-pointer hover:underline flex items-center gap-1 text-navy dark:text-gold" 
+                    title="Click to change city preference"
+                    onClick={handleCityChangePrompt}
+                  >
+                    {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C ✏️
+                  </span>
+                  <span class="text-gray-300 dark:text-gray-700">|</span>
+                  <span>💧 Humidity {weather.humidity}%</span>
+                  {weather.monsoonActive && (
+                    <>
+                      <span class="text-gray-300 dark:text-gray-700">|</span>
+                      <span class="text-blue-500 font-bold animate-pulse flex items-center gap-1">🌧️ Monsoon Active</span>
+                    </>
+                  )}
+                  <span class="text-gray-300 dark:text-gray-700">|</span>
+                  <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
+                </span>
+              </>
+            )
           ) : (
             <>
               <span class="text-gray-300 dark:text-gray-700">|</span>
