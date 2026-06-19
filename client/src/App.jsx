@@ -41,6 +41,35 @@ function AppContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Auto-detect or load language preference on mount
+  useEffect(() => {
+    let savedLang = localStorage.getItem('userLanguage');
+    if (!savedLang) {
+      const browserLang = navigator.language.slice(0, 2);
+      const supportedLangs = ['en', 'hi', 'mr', 'gu', 'bn', 'ta', 'te', 'ar', 'fr', 'de', 'es', 'zh', 'ja', 'ru', 'pt', 'ur'];
+      if (supportedLangs.includes(browserLang)) {
+        savedLang = browserLang;
+      } else {
+        savedLang = 'en';
+      }
+      localStorage.setItem('userLanguage', savedLang);
+    }
+    
+    // Set cookie googtrans
+    const host = window.location.hostname;
+    document.cookie = `googtrans=/en/${savedLang}; path=/`;
+    document.cookie = `googtrans=/en/${savedLang}; path=/; domain=${host}`;
+    document.cookie = `googtrans=/en/${savedLang}; path=/; domain=.${host}`;
+    
+    if (host.includes('.')) {
+      const parts = host.split('.');
+      if (parts.length > 2) {
+        const domain = parts.slice(-2).join('.');
+        document.cookie = `googtrans=/en/${savedLang}; path=/; domain=.${domain}`;
+      }
+    }
+  }, []);
+
   // Open Auth Modal if trying to access profile while logged out
   useEffect(() => {
     if (view === 'profile' && !user) {

@@ -172,14 +172,15 @@ const setCachedFeed = (key, data) => {
 };
 
 router.get('/', async (req, res) => {
-  const { category = 'world', q = '', page = 1, pageSize = 20, country } = req.query;
+  const { category = 'world', q = '', page = 1, pageSize = 20, country, language } = req.query;
   const apiKey = getNewsApiKey();
   const pageNum = parseInt(page, 10) || 1;
   const pageSizeNum = parseInt(pageSize, 10) || 20;
 
+  const langCode = language ? language.toLowerCase() : 'en';
   const cacheKey = country
-    ? `country_${country.toLowerCase()}`
-    : (q ? `search_${q.toLowerCase()}` : `cat_${category.toLowerCase()}`);
+    ? `country_${country.toLowerCase()}_lang_${langCode}`
+    : (q ? `search_${q.toLowerCase()}_lang_${langCode}` : `cat_${category.toLowerCase()}_lang_${langCode}`);
   let aggregatedArticles = getCachedFeed(cacheKey);
 
   if (!aggregatedArticles) {
@@ -200,14 +201,24 @@ router.get('/', async (req, res) => {
             params: {
               apiKey,
               q,
-              language: 'en',
+              language: langCode,
               sortBy: 'relevance',
               pageSize: 80
             }
           });
           newsApiArticles = response.data.articles || [];
         } else {
-          if (category.toLowerCase() === 'world') {
+          if (langCode !== 'en' && category.toLowerCase() === 'world') {
+            // Fetch top-headlines in the target language
+            const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
+              params: {
+                apiKey,
+                language: langCode,
+                pageSize: 60
+              }
+            });
+            newsApiArticles = response.data.articles || [];
+          } else if (category.toLowerCase() === 'world') {
             const [usRes, gbRes, auRes] = await Promise.all([
               axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'us', pageSize: 30 } }).catch(() => ({ data: { articles: [] } })),
               axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'gb', pageSize: 20 } }).catch(() => ({ data: { articles: [] } })),
@@ -220,13 +231,15 @@ router.get('/', async (req, res) => {
             ];
           } else {
             const mapping = mapCategoryToQuery(category);
-            const response = await axios.get(`${NEWS_API_BASE}/${mapping.endpoint}`, {
-              params: {
-                apiKey,
-                ...mapping.params,
-                pageSize: 60
-              }
-            });
+            const params = {
+              apiKey,
+              ...mapping.params,
+              pageSize: 60
+            };
+            if (!params.country) {
+              params.language = langCode;
+            }
+            const response = await axios.get(`${NEWS_API_BASE}/${mapping.endpoint}`, { params });
             newsApiArticles = response.data.articles || [];
           }
         }

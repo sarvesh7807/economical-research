@@ -224,6 +224,11 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     }
     queryParams.append('page', pageNum);
     queryParams.append('pageSize', 20);
+    
+    const userLang = localStorage.getItem('userLanguage');
+    if (userLang) {
+      queryParams.append('language', userLang);
+    }
 
     const fetchUrl = `/api/news?${queryParams.toString()}`;
 
@@ -592,17 +597,17 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 {detectedCountry && (
                   <NewsSection 
                     title="News from Your Region" 
-                    fetchUrl={`/api/news?country=${detectedCountry}`} 
+                    fetchUrl={`/api/news?country=${detectedCountry}${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
                   />
                 )}
-                <NewsSection title="World News" fetchUrl="/api/news?category=world" />
-                <NewsSection title="India News" fetchUrl="/api/news?category=india" />
-                <NewsSection title="Business News" fetchUrl="/api/news?category=business" />
-                <NewsSection title="Technology News" fetchUrl="/api/news?category=tech" />
-                <NewsSection title="Sports News" fetchUrl="/api/news?category=sports" />
-                <NewsSection title="Health News" fetchUrl="/api/news?category=health" />
-                <NewsSection title="Science News" fetchUrl="/api/news?category=science" />
-                <NewsSection title="Entertainment News" fetchUrl="/api/news?category=entertainment" />
+                <NewsSection title="World News" fetchUrl={`/api/news?category=world${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="India News" fetchUrl={`/api/news?category=india${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Business News" fetchUrl={`/api/news?category=business${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Technology News" fetchUrl={`/api/news?category=tech${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Sports News" fetchUrl={`/api/news?category=sports${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Health News" fetchUrl={`/api/news?category=health${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Science News" fetchUrl={`/api/news?category=science${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Entertainment News" fetchUrl={`/api/news?category=entertainment${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
               </div>
             ) : articles.length === 0 ? (
               <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">

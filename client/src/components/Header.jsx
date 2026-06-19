@@ -2,6 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles } from 'lucide-react';
 
+const languages = [
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
+  { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
+  { code: 'gu', name: 'ગુજરાતી', flag: '🇮🇳' },
+  { code: 'bn', name: 'বাংলা', flag: '🇮🇳' },
+  { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' },
+  { code: 'te', name: 'తెలుగు', flag: '🇮🇳' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  { code: 'pt', name: 'Português', flag: '🇧🇷' },
+  { code: 'ur', name: 'اردو', flag: '🇵🇰' },
+];
+
 export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChange, activeCategory, openAuthModal, setView, view }) {
   const { 
     user, 
@@ -28,8 +47,13 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
+  const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('userLanguage') || 'en');
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
+
   const suggestionsRef = useRef(null);
   const notifRef = useRef(null);
+  const langRef = useRef(null);
 
   // Dynamic stock ticker data with simulated live random walk
   const [stocks, setStocks] = useState([
@@ -237,6 +261,38 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  const handleLanguageChange = (langCode) => {
+    localStorage.setItem('userLanguage', langCode);
+    
+    // Set cookie
+    const host = window.location.hostname;
+    document.cookie = `googtrans=/en/${langCode}; path=/`;
+    document.cookie = `googtrans=/en/${langCode}; path=/; domain=${host}`;
+    document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${host}`;
+    
+    if (host.includes('.')) {
+      const parts = host.split('.');
+      if (parts.length > 2) {
+        const domain = parts.slice(-2).join('.');
+        document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${domain}`;
+      }
+    }
+    
+    setSelectedLang(langCode);
+    setIsLangOpen(false);
+    
+    // Update user context if settings exists
+    if (updateSettings && settings) {
+      updateSettings({ language: langCode });
+    }
+    
+    // Dispatch a custom event to notify components that language changed
+    window.dispatchEvent(new CustomEvent('language-changed', { detail: langCode }));
+    
+    // Reload page to force translate reload and fetch localized news
+    window.location.reload();
+  };
+
   // Click outside handlers
   useEffect(() => {
     function handleClickOutside(event) {
@@ -245,6 +301,9 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       }
       if (notifRef.current && !notifRef.current.contains(event.target)) {
         setIsNotifOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(event.target)) {
+        setIsLangOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -405,21 +464,60 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
         </div>
 
         <div class="flex items-center gap-4 flex-wrap justify-end">
-          {/* Language Selector */}
-          <div class="flex items-center gap-1 border border-paper-border dark:border-paper-borderDark rounded px-1.5 py-0.5 bg-gray-50/50 dark:bg-navy-light/10">
-            <span class="text-[10px] text-gray-400">🌐</span>
-            <select
-              value={settings?.language || 'English'}
-              onChange={(e) => updateSettings({ language: e.target.value })}
-              class="bg-transparent text-gray-600 dark:text-gray-300 font-bold focus:outline-none cursor-pointer border-none text-[10px]"
+          {/* Custom Language Selector */}
+          <div ref={langRef} className="relative">
+            <button
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-1.5 border border-paper-border dark:border-paper-borderDark rounded px-2 py-0.5 bg-gray-50/55 dark:bg-navy-light/10 text-gray-650 dark:text-gray-300 hover:border-gold/50 transition-all font-bold text-[10px] focus:outline-none"
             >
-              <option value="English" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">EN</option>
-              <option value="Hindi" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">HI (हिंदी)</option>
-              <option value="Spanish" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white font-serif">ES</option>
-              <option value="French" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white font-serif">FR</option>
-              <option value="German" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white font-serif">DE</option>
-              <option value="Japanese" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white font-serif">JA</option>
-            </select>
+              <span>🌐</span>
+              <span>{languages.find(l => l.code === selectedLang)?.flag}</span>
+              <span className="font-serif">{languages.find(l => l.code === selectedLang)?.name}</span>
+              <span className="text-[7px] opacity-75">▼</span>
+            </button>
+            {isLangOpen && (
+              <div className="absolute right-0 mt-1.5 w-56 bg-[#0a192f] text-white border border-[#d4af37]/45 rounded-md shadow-2xl z-[100] p-2 font-sans">
+                {/* Search Box */}
+                <div className="relative mb-2">
+                  <input
+                    type="text"
+                    value={langSearch}
+                    onChange={(e) => setLangSearch(e.target.value)}
+                    placeholder="Search language..."
+                    className="w-full bg-[#112240] text-white border border-[#d4af37]/20 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-[#d4af37] placeholder-gray-400 font-medium"
+                  />
+                </div>
+                {/* Language list */}
+                <div className="max-h-60 overflow-y-auto scrollbar-none flex flex-col gap-0.5">
+                  {languages
+                    .filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase()) || l.code.includes(langSearch.toLowerCase()))
+                    .map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => handleLanguageChange(lang.code)}
+                        className={`flex items-center justify-between w-full text-left px-2.5 py-1.5 rounded text-[11px] font-semibold transition-all ${
+                          selectedLang === lang.code
+                            ? 'bg-[#d4af37] text-[#0a192f]'
+                            : 'hover:bg-[#112240] text-gray-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm">{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </span>
+                        {selectedLang === lang.code && (
+                          <span className="text-[9px] font-black">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  {languages.filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase()) || l.code.includes(langSearch.toLowerCase())).length === 0 && (
+                    <div className="text-center py-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      No matching language
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Theme Toggle */}
