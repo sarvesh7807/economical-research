@@ -222,7 +222,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header class="w-full bg-paper dark:bg-paper-dark border-b border-paper-border dark:border-paper-borderDark">
+    <header class="w-full bg-paper dark:bg-paper-dark border-b border-paper-border dark:border-paper-borderDark overflow-hidden">
       {/* 1. BREAKING NEWS TICKER */}
       <div class="w-full bg-navy text-white py-1 px-4 text-xs font-semibold overflow-hidden flex items-center h-8">
         <div class="bg-gold text-navy px-2 py-0.5 mr-3 rounded text-[10px] uppercase font-bold tracking-wider animate-pulse shrink-0">
@@ -277,7 +277,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           )}
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 flex-wrap justify-end">
           {/* Language Selector */}
           <div class="flex items-center gap-1 border border-paper-border dark:border-paper-borderDark rounded px-1.5 py-0.5 bg-gray-50/50 dark:bg-navy-light/10">
             <span class="text-[10px] text-gray-400">🌐</span>
@@ -460,9 +460,9 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 text-center relative">
         {/* Hamburger icon on mobile */}
         <button 
-          onClick={() => setIsMenuOpen(true)}
-          class="md:hidden absolute left-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-navy dark:text-gold"
-          title="Open Menu Drawer"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          class="hamburger md:hidden absolute right-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-navy dark:text-gold"
+          title="Open Menu Dropdown"
         >
           <Menu size={22} />
         </button>
@@ -481,7 +481,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       {/* 4. SEARCH AND NAVBAR */}
       <div class="max-w-7xl mx-auto px-4 md:px-6 pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-double-navy py-3">
         {/* Category Navbar */}
-        <nav class="flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full">
+        <nav class={`header-nav ${isMenuOpen ? 'open' : ''} flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full`}>
           
           {/* E-Paper navbar action */}
           <button
@@ -630,7 +630,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       </div>
 
       {/* 5. MOBILE DRAWER OVERLAY */}
-      {isMenuOpen && (
+      {false && isMenuOpen && (
         <div class="fixed inset-0 z-50 flex md:hidden font-sans">
           {/* Backdrop overlay */}
           <div 

@@ -65,3 +65,20 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+@media (max-width: 768px) {
+  .header-nav { display: none; }
+  .header-nav.open { 
+    display: flex; 
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: #0A1628;
+    padding: 16px;
+    z-index: 9999;
+  }
+  .mobile-only { display: flex !important; }
+  .hamburger { display: block; }
+}
