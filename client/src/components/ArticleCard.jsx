@@ -156,7 +156,7 @@ export default function ArticleCard({ article }) {
       const response = await fetch('/api/ai/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, content, source: source.name })
+        body: JSON.stringify({ title, description, content, source: source?.name || 'Unknown Source' })
       });
 
       if (!response.ok) throw new Error('Failed to generate summary');
@@ -195,7 +195,7 @@ export default function ArticleCard({ article }) {
       const response = await fetch('/api/ai/keypoints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, content, source: source.name })
+        body: JSON.stringify({ title, description, content, source: source?.name || 'Unknown Source' })
       });
 
       if (!response.ok) throw new Error('Failed to generate key points');
@@ -333,14 +333,14 @@ export default function ArticleCard({ article }) {
             {/* Overlay Category/Source */}
             <div class="absolute bottom-3 left-4 z-20">
                <span class="px-2.5 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-bold text-white uppercase tracking-widest font-sans border border-white/20">
-                 {source.name}
+                 {source?.name || 'Unknown Source'}
                </span>
             </div>
           </div>
         ) : (
           <div class="flex items-center justify-between mb-4">
             <span class="px-2.5 py-1 bg-gray-200 dark:bg-white/10 rounded-full text-[10px] font-bold text-navy dark:text-white uppercase tracking-widest font-sans">
-              {source.name}
+              {source?.name || 'Unknown Source'}
             </span>
           </div>
         )}
