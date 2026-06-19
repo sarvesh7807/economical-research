@@ -4,6 +4,133 @@ import ResearchMode from './ResearchMode';
 import { useAuth } from '../contexts/AuthContext';
 import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play } from 'lucide-react';
 
+function NewsSection({ title, fetchUrl, autoScroll = true }) {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retrySeconds, setRetrySeconds] = useState(0);
+  const scrollRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const fetchSectionNews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(fetchUrl);
+      if (!res.ok) throw new Error('Fetch failed');
+      const data = await res.json();
+      
+      const raw = data.articles || [];
+      // Filter duplicate articles by title
+      const unique = raw.filter((article, index, self) =>
+        article.title && index === self.findIndex(a => a.title === article.title)
+      );
+      
+      setArticles(unique);
+      setLoading(false);
+    } catch (err) {
+      console.error(`Error fetching section ${title}:`, err);
+      setError('Refreshing news...');
+      setLoading(false);
+      setRetrySeconds(30);
+    }
+  };
+
+  useEffect(() => {
+    fetchSectionNews();
+    const refreshInterval = setInterval(fetchSectionNews, 120000);
+    return () => clearInterval(refreshInterval);
+  }, [fetchUrl]);
+
+  useEffect(() => {
+    if (retrySeconds <= 0) return;
+    const timer = setTimeout(() => {
+      if (retrySeconds === 1) {
+        fetchSectionNews();
+      }
+      setRetrySeconds(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [retrySeconds]);
+
+  useEffect(() => {
+    if (articles.length === 0 || isHovered || !autoScroll) return;
+    
+    const interval = setInterval(() => {
+      const container = scrollRef.current;
+      if (!container) return;
+      
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (container.scrollLeft >= maxScroll - 15) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        container.scrollBy({ left: 360, behavior: 'smooth' });
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [articles, isHovered, autoScroll]);
+
+  if (loading && articles.length === 0) {
+    return (
+      <div class="mb-8">
+        <h3 class="font-display text-lg font-black text-navy dark:text-gold uppercase tracking-wider mb-4 border-b border-gray-150 dark:border-white/10 pb-1.5 flex items-center gap-2">
+          <span>{title}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-gold animate-ping"></span>
+        </h3>
+        <div class="flex overflow-x-auto gap-5 pb-4 scrollbar-none">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} class="w-[340px] shrink-0 border border-paper-border dark:border-paper-borderDark p-5 space-y-4 rounded-3xl bg-white dark:bg-black/20">
+              <div class="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+              <div class="h-5 w-5/6 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+              <div class="h-36 w-full rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+              <div class="space-y-2">
+                <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+                <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div class="mb-8">
+      <h3 class="font-display text-lg font-black text-navy dark:text-gold uppercase tracking-wider mb-4 border-b border-gray-150 dark:border-white/10 pb-1.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>{title}</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+        </div>
+        {error && (
+          <span class="text-[10px] text-red-500 font-mono font-bold animate-pulse">
+            ⚠️ {error} (retrying in {retrySeconds}s)
+          </span>
+        )}
+      </h3>
+
+      {articles.length === 0 && !loading ? (
+        <div class="py-8 text-center border border-dashed border-paper-border dark:border-paper-borderDark rounded-2xl bg-white/50 dark:bg-black/10">
+          <p class="text-xs text-gray-400">No wire articles available for this section.</p>
+        </div>
+      ) : (
+        <div 
+          ref={scrollRef}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          class="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth relative"
+        >
+          {articles.map((article, idx) => (
+            <div key={`${article.url}-${idx}`} class="w-[340px] shrink-0">
+              <ArticleCard article={article} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
   const { user, subscription } = useAuth();
   const [articles, setArticles] = useState([]);
@@ -13,7 +140,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const [warning, setWarning] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(120);
+  const [retrySeconds, setRetrySeconds] = useState(0);
 
   const INITIAL_CHANNELS = [
     { name: 'Al Jazeera', channelId: 'UCcA31iA8h4b11fNn1X8G_xw', id: 'gCNeDWCI0vo' },
@@ -106,8 +234,14 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       })
       .then(data => {
         const fetched = data.articles || [];
-        setArticles(prev => clear ? fetched : [...prev, ...fetched]);
-        // If we get fewer than 20 articles or total results are met, there are no more articles
+        setArticles(prev => {
+          const combined = clear ? fetched : [...prev, ...fetched];
+          // Filter duplicates by title
+          return combined.filter((article, index, self) =>
+            article.title && index === self.findIndex(a => a.title === article.title)
+          );
+        });
+
         const currentTotal = clear ? fetched.length : (articles.length + fetched.length);
         setHasMore(fetched.length === 20 && currentTotal < (data.totalResults || 100));
         
@@ -118,26 +252,36 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         }
         setLoading(false);
         setLoadingMore(false);
+        setError(null);
       })
       .catch(err => {
         console.error('Fetch error:', err);
-        setError('Failed to contact editorial database. Please verify the proxy is active.');
+        setError('Refreshing news...');
         setLoading(false);
         setLoadingMore(false);
+        setRetrySeconds(30);
       });
   };
 
+  const isHomepage = activeCategory.toLowerCase() === 'world' && !searchQuery;
+
   // Reset page and reload on filters/category changes
   useEffect(() => {
+    if (isHomepage) {
+      setLoading(false);
+      setArticles([]);
+      setError(null);
+      return;
+    }
     setPage(1);
     setHasMore(true);
-    setTimeLeft(60);
+    setTimeLeft(120);
     fetchArticles(1, true);
   }, [activeCategory, searchQuery, triggerRefresh]);
 
   // Infinite Scroll Observer
   useEffect(() => {
-    if (loading || loadingMore || !hasMore || articles.length === 0) return;
+    if (loading || loadingMore || !hasMore || articles.length === 0 || isHomepage) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
@@ -154,25 +298,37 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     }
 
     return () => observer.disconnect();
-  }, [loading, loadingMore, hasMore, articles]);
+  }, [loading, loadingMore, hasMore, articles, isHomepage]);
 
-  // 60 Seconds Auto-Refresh Timer
+  // 120 Seconds Auto-Refresh Timer
   useEffect(() => {
-    setTimeLeft(60);
+    if (isHomepage) return;
+    setTimeLeft(120);
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Trigger a refresh call which reloads the initial page
           fetchArticles(1, true);
           setPage(1);
-          return 60;
+          return 120;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, isHomepage]);
+
+  // Main view retry timer
+  useEffect(() => {
+    if (retrySeconds <= 0 || isHomepage) return;
+    const timer = setTimeout(() => {
+      if (retrySeconds === 1) {
+        fetchArticles(page, page === 1);
+      }
+      setRetrySeconds(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [retrySeconds, isHomepage]);
 
   const getFeedTitle = () => {
     if (searchQuery) {
@@ -398,14 +554,22 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           {getFeedTitle()}
         </h2>
         <div class="flex items-center gap-3">
-          {/* 60s Countdown indicator */}
-          <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full shadow-neon">
-            <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
-            <span>Sync: {timeLeft}s</span>
-          </span>
-          <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
-            {articles.length} Bulletins
-          </span>
+          {isHomepage ? (
+            <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full">
+              <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              <span>Live Broadcast Desk</span>
+            </span>
+          ) : (
+            <>
+              <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full shadow-neon">
+                <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
+                <span>Sync: {timeLeft}s</span>
+              </span>
+              <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
+                {articles.length} Bulletins
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -417,74 +581,92 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         </div>
       )}
 
-      {/* No articles state */}
-      {articles.length === 0 ? (
-        <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
-          <Newspaper size={40} class="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-          <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1">Archive Clean</h3>
-          <p class="text-xs text-gray-400 dark:text-gray-500">No wire articles match the current filter parameters.</p>
-        </div>
-      ) : (
-        /* Newspaper Grid Layout */
-        <div>
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Left/Middle: Lead Story & Standard Stories */}
-            <div class="col-span-1 lg:col-span-2 space-y-6">
-              <ArticleCard article={articles[0]} isLead={true} />
-              
-              {/* Grid for standard items on homepage */}
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {articles.slice(1, 5).map((article, idx) => (
-                  <ArticleCard key={`${article.url}-${idx}`} article={article} />
-                ))}
+      {/* Main Grid Layout */}
+      <div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Left/Middle: News Sections (Home) or Category Grid */}
+          <div class="col-span-1 lg:col-span-2 space-y-6">
+            {isHomepage ? (
+              <div class="space-y-2">
+                {detectedCountry && (
+                  <NewsSection 
+                    title="News from Your Region" 
+                    fetchUrl={`/api/news?country=${detectedCountry}`} 
+                  />
+                )}
+                <NewsSection title="World News" fetchUrl="/api/news?category=world" />
+                <NewsSection title="India News" fetchUrl="/api/news?category=india" />
+                <NewsSection title="Business News" fetchUrl="/api/news?category=business" />
+                <NewsSection title="Technology News" fetchUrl="/api/news?category=tech" />
+                <NewsSection title="Sports News" fetchUrl="/api/news?category=sports" />
+                <NewsSection title="Health News" fetchUrl="/api/news?category=health" />
+                <NewsSection title="Science News" fetchUrl="/api/news?category=science" />
+                <NewsSection title="Entertainment News" fetchUrl="/api/news?category=entertainment" />
               </div>
-            </div>
-
-            {/* Right Side: Live Broadcast, Research Desk & Side Panel */}
-            <div class="col-span-1 space-y-6">
-              {renderLiveTV()}
-              {renderResearchDesk()}
-              {renderSidePanel()}
-            </div>
+            ) : articles.length === 0 ? (
+              <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
+                <Newspaper size={40} class="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
+                <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1">Archive Clean</h3>
+                <p class="text-xs text-gray-400 dark:text-gray-500">No wire articles match the current filter parameters.</p>
+              </div>
+            ) : (
+              <>
+                <ArticleCard article={articles[0]} isLead={true} />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {articles.slice(1, 5).map((article, idx) => (
+                    <ArticleCard key={`${article.url}-${idx}`} article={article} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Remaining articles in standard 3-column layout */}
+          {/* Right Side: Live Broadcast, Research Desk & Side Panel */}
+          <div class="col-span-1 space-y-6">
+            {renderLiveTV()}
+            {renderResearchDesk()}
+            {renderSidePanel()}
+          </div>
+        </div>
+
+        {/* Remaining articles in standard 3-column layout (Non-Homepage only) */}
+        {!isHomepage && articles.length > 5 && (
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {articles.slice(5).map((article, idx) => (
               <ArticleCard key={`${article.url}-${idx + 5}`} article={article} />
             ))}
           </div>
+        )}
 
-          {/* Loader Element for Infinite Scroll or Load More button */}
-          {hasMore && (
-            <div ref={loaderRef} class="mt-8 pt-4 border-t border-dashed border-paper-border dark:border-paper-borderDark flex flex-col items-center justify-center">
-              {loadingMore ? (
-                <div class="flex items-center gap-2 text-xs font-bold text-navy dark:text-gold uppercase tracking-widest">
-                  <Loader size={16} class="animate-spin text-gold" />
-                  <span>Loading next page...</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    const nextPage = page + 1;
-                    fetchArticles(nextPage, false);
-                    setPage(nextPage);
-                  }}
-                  class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
-                >
-                  Load More Reports
-                </button>
-              )}
-            </div>
-          )}
+        {/* Loader Element for Infinite Scroll or Load More button (Non-Homepage only) */}
+        {!isHomepage && hasMore && articles.length > 0 && (
+          <div ref={loaderRef} class="mt-8 pt-4 border-t border-dashed border-paper-border dark:border-paper-borderDark flex flex-col items-center justify-center">
+            {loadingMore ? (
+              <div class="flex items-center gap-2 text-xs font-bold text-navy dark:text-gold uppercase tracking-widest">
+                <Loader size={16} class="animate-spin text-gold" />
+                <span>Loading next page...</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  const nextPage = page + 1;
+                  fetchArticles(nextPage, false);
+                  setPage(nextPage);
+                }}
+                class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
+              >
+                Load More Reports
+              </button>
+            )}
+          </div>
+        )}
 
-          {!hasMore && articles.length > 0 && (
-            <div class="mt-12 text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4 border-t border-double border-paper-border dark:border-paper-borderDark">
-              ✦ End of Editorial Ledger Wire ✦
-            </div>
-          )}
-        </div>
-      )}
+        {!isHomepage && !hasMore && articles.length > 0 && (
+          <div class="mt-12 text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4 border-t border-double border-paper-border dark:border-paper-borderDark">
+            ✦ End of Editorial Ledger Wire ✦
+          </div>
+        )}
+      </div>
       
       {isResearchOpen && (
         <ResearchMode topic={activeResearchTopic} onClose={() => setIsResearchOpen(false)} />

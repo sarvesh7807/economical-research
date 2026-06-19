@@ -9,7 +9,7 @@ const parser = new Parser({
 });
 
 const NEWS_API_BASE = 'https://newsapi.org/v2';
-const getNewsApiKey = () => process.env.NEWS_API_KEY;
+const getNewsApiKey = () => process.env.NEWS_API_KEY || '6f075b0f9ff24eff9cebc5eb569e4731';
 
 const RSS_FEEDS = {
   BBC: 'https://feeds.bbci.co.uk/news/world/rss.xml',
@@ -172,19 +172,30 @@ const setCachedFeed = (key, data) => {
 };
 
 router.get('/', async (req, res) => {
-  const { category = 'world', q = '', page = 1, pageSize = 20 } = req.query;
+  const { category = 'world', q = '', page = 1, pageSize = 20, country } = req.query;
   const apiKey = getNewsApiKey();
   const pageNum = parseInt(page, 10) || 1;
   const pageSizeNum = parseInt(pageSize, 10) || 20;
 
-  const cacheKey = q ? `search_${q.toLowerCase()}` : `cat_${category.toLowerCase()}`;
+  const cacheKey = country
+    ? `country_${country.toLowerCase()}`
+    : (q ? `search_${q.toLowerCase()}` : `cat_${category.toLowerCase()}`);
   let aggregatedArticles = getCachedFeed(cacheKey);
 
   if (!aggregatedArticles) {
     let newsApiArticles = [];
     if (apiKey && !apiKey.includes('YAHAN')) {
       try {
-        if (q) {
+        if (country) {
+          const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
+            params: {
+              apiKey,
+              country: country.toLowerCase(),
+              pageSize: 60
+            }
+          });
+          newsApiArticles = response.data.articles || [];
+        } else if (q) {
           const response = await axios.get(`${NEWS_API_BASE}/everything`, {
             params: {
               apiKey,
@@ -235,7 +246,7 @@ router.get('/', async (req, res) => {
         console.error('RSS Search Fetch Error:', err.message);
       }
     } else {
-      const feeds = getRSSFeedsForCategory(category);
+      const feeds = getRSSFeedsForCategory(country ? 'world' : category);
       const parsePromises = feeds.map(feed => parseRSSFeed(feed.name, feed.url));
       const parsedResults = await Promise.all(parsePromises);
       rssArticles = parsedResults.flat();
@@ -245,7 +256,7 @@ router.get('/', async (req, res) => {
     
     // Fallback to mock data ONLY if everything else fails
     if (rawMerged.length === 0) {
-      rawMerged = getMockArticles(category, q);
+      rawMerged = getMockArticles(country ? 'world' : category, q);
     }
 
     const seenUrls = new Set();

@@ -21,6 +21,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
   
   const [time, setTime] = useState(new Date());
   const [tickerNews, setTickerNews] = useState([]);
+  const [tickerIndex, setTickerIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -61,6 +62,17 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       .catch(err => console.error('Error fetching ticker news:', err));
   }, []);
 
+  // Breaking news ticker rotation (every 3 seconds)
+  useEffect(() => {
+    if (tickerNews.length === 0) return;
+    const interval = setInterval(() => {
+      setTickerIndex(prev => 
+        prev + 1 >= tickerNews.length ? 0 : prev + 1
+      );
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [tickerNews]);
+
   // Simulated live stock walk
   useEffect(() => {
     const interval = setInterval(() => {
@@ -93,6 +105,10 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     const isHighHumidity = humidity > 70;
     const hasRainDescription = description.toLowerCase().includes('rain') || description.toLowerCase().includes('drizzle');
     const monsoonActive = isMonsoonMonth && isIndia && isHighHumidity && hasRainDescription;
+
+    if (country) {
+      localStorage.setItem('er_weather_country_pref', country);
+    }
 
     setWeather({
       city: data.name,
@@ -312,17 +328,13 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           Breaking
         </div>
         <div class="relative w-full overflow-hidden h-full flex items-center">
-          <div class="whitespace-nowrap flex gap-12 animate-[marquee_40s_linear_infinite] hover:[animation-play-state:paused] cursor-pointer">
-            {tickerNews.length > 0 ? (
-              tickerNews.map((art, idx) => (
-                <span key={idx} class="hover:text-gold transition-colors font-medium">
-                  ✦ {art.title}
-                </span>
-              ))
-            ) : (
-              <span class="text-gray-400">✦ Loading global feeds... ✦ Striving for truth... ✦ Researching world events...</span>
-            )}
-          </div>
+          {tickerNews.length > 0 ? (
+            <span class="hover:text-gold transition-colors font-medium truncate block max-w-full">
+              ✦ {tickerNews[tickerIndex]?.title}
+            </span>
+          ) : (
+            <span class="text-gray-400">✦ Loading global feeds... ✦ Striving for truth... ✦ Researching world events...</span>
+          )}
         </div>
       </div>
 
