@@ -38,6 +38,61 @@ export default function ArticleCard({ article }) {
   // Comments drawer
   const [showComments, setShowComments] = useState(false);
 
+  // Voice Reader States
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const handleListen = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.speechSynthesis.cancel();
+
+    const textToSpeak = (translatedTitle || title) + ". " + (translatedDesc || description || "");
+    const speech = new SpeechSynthesisUtterance();
+    speech.text = textToSpeak;
+    speech.lang = 'en-US';
+    speech.rate = 0.9;
+
+    speech.onend = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+    };
+    speech.onerror = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+    };
+
+    window.speechSynthesis.speak(speech);
+    setIsPlaying(true);
+    setIsPaused(false);
+  };
+
+  const handlePause = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause();
+      setIsPaused(true);
+    } else if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setIsPaused(false);
+    }
+  };
+
+  const handleStop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.speechSynthesis.cancel();
+    setIsPlaying(false);
+    setIsPaused(false);
+  };
+
   const bookmarked = isBookmarked(url);
 
   // Fetch Sentiment and Trust score on mount
@@ -385,6 +440,38 @@ export default function ArticleCard({ article }) {
             >
               <Bookmark size={14} class={bookmarked ? "fill-accent-neon text-accent-neon drop-shadow-[0_0_8px_rgba(204,255,0,0.8)]" : "text-gray-400 dark:text-gray-500"} />
             </button>
+
+            {/* Voice News Reader */}
+            <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full text-[8.5px] font-sans shrink-0">
+              {!isPlaying ? (
+                <button
+                  onClick={handleListen}
+                  class="flex items-center gap-1 text-gray-550 hover:text-gold transition-colors focus:outline-none font-bold"
+                  title="Listen to Article"
+                >
+                  <span>🔊</span> Listen
+                </button>
+              ) : (
+                <div class="flex items-center gap-1.5 font-bold">
+                  <button
+                    onClick={handlePause}
+                    class="text-gray-550 hover:text-gold transition-colors focus:outline-none flex items-center gap-0.5"
+                    title={isPaused ? "Resume Speech" : "Pause Speech"}
+                  >
+                    <span>{isPaused ? '▶️' : '⏸️'}</span>
+                    <span>{isPaused ? 'Resume' : 'Pause'}</span>
+                  </button>
+                  <span class="text-gray-300">|</span>
+                  <button
+                    onClick={handleStop}
+                    class="text-red-500 hover:text-red-650 transition-colors focus:outline-none flex items-center gap-0.5"
+                    title="Stop Speech"
+                  >
+                    <span>⏹️</span> Stop
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

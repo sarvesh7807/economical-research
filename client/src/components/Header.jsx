@@ -747,6 +747,32 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <span>ER Assistant</span>
           </button>
 
+          {/* Fake News Checker navbar action */}
+          <button
+            onClick={() => setView('fake-news')}
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'fake-news'
+                ? 'border-navy dark:border-gold text-navy dark:text-gold'
+                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
+            }`}
+          >
+            <span>🔍</span>
+            <span>Fake News Checker</span>
+          </button>
+
+          {/* Bias Detector navbar action */}
+          <button
+            onClick={() => setView('bias-detector')}
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'bias-detector'
+                ? 'border-navy dark:border-gold text-navy dark:text-gold'
+                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
+            }`}
+          >
+            <span>⚖️</span>
+            <span>Bias Detector</span>
+          </button>
+
           <span class="text-gray-300 dark:text-gray-700 shrink-0 font-light mx-1">|</span>
 
           {categories.map((cat) => (

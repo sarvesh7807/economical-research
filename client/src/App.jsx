@@ -15,6 +15,8 @@ import LiveTV from './components/LiveTV';
 import LegalPages from './components/LegalPages';
 import CookieConsent from './components/CookieConsent';
 import ErAssistantFull from './components/ErAssistantFull';
+import FakeNewsChecker from './components/FakeNewsChecker';
+import BiasDetector from './components/BiasDetector';
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -98,6 +100,10 @@ function AppContent() {
         window.history.pushState({}, '', '/pricing');
       } else if (newView === 'feed') {
         window.history.pushState({}, '', '/');
+      } else if (newView === 'fake-news') {
+        window.history.pushState({}, '', '/fake-news-checker');
+      } else if (newView === 'bias-detector') {
+        window.history.pushState({}, '', '/bias-detector');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -134,6 +140,10 @@ function AppContent() {
       setViewInternal(viewParam);
     } else if (path === '/pricing' || path === '/billing') {
       setViewInternal('billing');
+    } else if (path === '/fake-news-checker') {
+      setViewInternal('fake-news');
+    } else if (path === '/bias-detector') {
+      setViewInternal('bias-detector');
     }
   }, []);
 
@@ -226,6 +236,10 @@ function AppContent() {
           />
         ) : view === 'assistant' ? (
           <ErAssistantFull />
+        ) : view === 'fake-news' ? (
+          <FakeNewsChecker />
+        ) : view === 'bias-detector' ? (
+          <BiasDetector />
         ) : view === 'profile' ? (
           user ? (
             <Profile 
