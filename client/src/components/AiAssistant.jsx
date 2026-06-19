@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageSquare, X, Send, Sparkles, AlertCircle, RefreshCw, Copy, Check } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, AlertCircle, RefreshCw, Copy, Check, Minus } from 'lucide-react';
 
 // Custom lightweight inline parser for the drawer message bubbles
 function parseDrawerMessageContent(text) {
@@ -177,9 +177,7 @@ function DrawerFormattedText({ text }) {
   }
 
   return <div class="formatted-markdown-drawer-wrapper">{formattedElements}</div>;
-}
-
-export default function AiAssistant() {
+}export default function AiAssistant() {
   const { user, subscription } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -189,6 +187,15 @@ export default function AiAssistant() {
   const scrollRef = useRef(null);
 
   const isPro = subscription?.tier === 'PRO';
+
+  const quickReplies = [
+    "📰 Latest News",
+    "💰 Business News",
+    "🌍 World News",
+    "📊 Stock Market",
+    "💎 Upgrade to PRO",
+    "❓ Help"
+  ];
 
   // Load chatbot history from local storage per user session
   useEffect(() => {
@@ -200,7 +207,7 @@ export default function AiAssistant() {
       setHistory([
         {
           sender: 'bot',
-          text: `Welcome to Economical Research. I am your Research Assistant. How can I assist you with today's intelligence bulletins?`,
+          text: `Hello! I am ER Assistant 👋\nI can help you with latest news, economic analysis and research.\nWhat would you like to know today?`,
           timestamp: new Date().toISOString()
         }
       ]);
@@ -261,29 +268,54 @@ export default function AiAssistant() {
     setError(null);
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: textToSend,
-          chatHistory: newHistory.slice(-10) // Send last 10 messages for context
-        })
-      });
+      const apiKey = 'AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk';
+      // Filter out paywall messages to prevent API schema validation errors
+      const geminiContents = newHistory
+        .filter(h => h.sender === 'user' || (h.sender === 'bot' && !h.isPaywall))
+        .map(h => ({
+          role: h.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: h.text }]
+        }));
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: geminiContents,
+            systemInstruction: {
+              parts: [{ 
+                text: `You are ER Assistant, the AI assistant for Economical Research news website (er-news-sarvesh.vercel.app).
+You help users with:
+- Latest news summaries
+- Economic analysis
+- Research help
+- Website navigation
+- Subscription plans info
+
+Always be helpful, professional, and concise. Make sure to format your answers nicely using markdown where appropriate.` 
+              }]
+            }
+          })
+        }
+      );
 
       if (!response.ok) throw new Error('Query error');
       const data = await response.json();
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I am having trouble connecting. Please try again in a moment.";
       
       saveHistory([
         ...newHistory,
         {
           sender: 'bot',
-          text: data.reply,
+          text: replyText,
           timestamp: new Date().toISOString()
         }
       ]);
     } catch (err) {
       console.error(err);
-      setError('Connection disrupted. Please check server settings.');
+      setError('I am having trouble connecting. Please try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -293,25 +325,19 @@ export default function AiAssistant() {
     const fresh = [
       {
         sender: 'bot',
-        text: `Chat logs purged. How can I assist you with today's intelligence bulletins?`,
+        text: `Hello! I am ER Assistant 👋\nI can help you with latest news, economic analysis and research.\nWhat would you like to know today?`,
         timestamp: new Date().toISOString()
       }
     ];
     saveHistory(fresh);
   };
 
-  const suggestionPrompts = [
-    'What is the economic impact of global shipping bottlenecks?',
-    'Explain the correlation between interest rates and inflation.',
-    'List recent technology policy changes in India.'
-  ];
-
   return (
     <>
       {/* 1. FLOATING CHAT TRIGGER BUBBLE */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        class="fixed bottom-6 right-6 z-40 bg-navy dark:bg-gold text-gold dark:text-navy p-3.5 rounded-full shadow-2xl hover:scale-105 transition-all flex items-center justify-center border border-gold/20 focus:outline-none"
+        class="fixed bottom-6 right-6 z-40 bg-navy hover:bg-navy-light text-gold p-4 rounded-full shadow-[0_4px_20px_rgba(10,22,40,0.35)] dark:shadow-[0_4px_20px_rgba(212,175,55,0.2)] hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center border border-gold/40 focus:outline-none"
         title="ER Intelligence Assistant"
       >
         {isOpen ? <X size={20} /> : <MessageSquare size={20} class="animate-pulse" />}
@@ -319,30 +345,30 @@ export default function AiAssistant() {
 
       {/* 2. CHAT DRAWER */}
       {isOpen && (
-        <div class="fixed bottom-20 right-6 w-80 sm:w-96 h-[480px] bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded-lg shadow-2xl z-40 flex flex-col overflow-hidden font-sans select-none">
+        <div class="fixed bottom-0 right-0 w-full h-full sm:bottom-20 sm:right-6 sm:w-96 sm:h-[480px] sm:rounded-2xl bg-white dark:bg-paper-cardDark border-t sm:border border-paper-border dark:border-paper-borderDark shadow-2xl z-40 flex flex-col overflow-hidden font-sans select-none animate-fade-in">
           {/* Header */}
-          <div class="bg-navy text-white px-4 py-3 flex items-center justify-between border-b border-gold/20 shrink-0">
+          <div class="bg-navy text-white px-4 py-3 flex items-center justify-between border-b border-gold/20 shrink-0 select-none">
             <div class="flex items-center gap-1.5">
               <Sparkles size={14} class="text-gold animate-pulse" />
               <span class="font-serif text-xs font-black uppercase tracking-wider text-gold">ER Assistant</span>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 select-none">
               <button 
                 onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('change-view', { detail: 'assistant' })); }}
-                class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-gold/30 text-gold px-1.5 py-0.5 rounded bg-gold/5"
+                class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-gold/30 text-gold px-1.5 py-0.5 rounded bg-gold/5 transition-all"
                 title="Open Split Workspace"
               >
                 Workspace
               </button>
               <button 
                 onClick={handleClear}
-                class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-white/20 px-1.5 py-0.5 rounded"
+                class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-white/20 px-1.5 py-0.5 rounded transition-all"
                 title="Clear Logs"
               >
                 Clear
               </button>
-              <button onClick={() => setIsOpen(false)} class="text-gray-400 hover:text-white ml-1">
-                <X size={14} />
+              <button onClick={() => setIsOpen(false)} class="text-gray-400 hover:text-white p-1 rounded transition-colors" title="Minimize Chat">
+                <Minus size={14} />
               </button>
             </div>
           </div>
@@ -365,12 +391,12 @@ export default function AiAssistant() {
                   )}
                   <div class="flex flex-col">
                     <div 
-                      class={`px-3 py-2 rounded text-[11px] leading-relaxed shadow-sm border ${
+                      class={`px-3 py-2 rounded-2xl text-[11px] leading-relaxed shadow-sm border ${
                         isUser
-                          ? 'bg-navy text-gold dark:bg-gold dark:text-navy font-semibold rounded-tr-none border-gold/15'
+                          ? 'bg-gold text-navy font-bold rounded-tr-none border-gold/30 ml-auto'
                           : msg.isPaywall 
-                            ? 'bg-red-500/10 text-red-650 dark:text-red-400 border border-red-500/30 rounded-tl-none'
-                            : 'bg-white dark:bg-paper-cardDark text-navy dark:text-gray-200 border border-paper-border dark:border-paper-borderDark rounded-tl-none'
+                            ? 'bg-red-500/10 text-red-650 dark:text-red-400 border border-red-500/30 rounded-tl-none mr-auto'
+                            : 'bg-navy text-white dark:bg-navy dark:text-white border border-gold/25 rounded-tl-none mr-auto'
                       }`}
                     >
                       {isUser ? (
@@ -391,7 +417,7 @@ export default function AiAssistant() {
                         </button>
                       )}
                     </div>
-                    <span class={`text-[7.5px] text-gray-450 dark:text-gray-500 mt-1 font-mono ${isUser ? 'text-right' : 'text-left'}`}>
+                    <span class={`text-[7.5px] text-gray-455 dark:text-gray-500 mt-1 font-mono ${isUser ? 'text-right' : 'text-left'}`}>
                       {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -399,37 +425,43 @@ export default function AiAssistant() {
               );
             })}
 
-            {/* Suggestions on empty/initial history */}
-            {history.length <= 1 && (
-              <div class="pt-4 space-y-2 select-none">
-                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block text-center mb-1">Suggested Inquiries</span>
-                {suggestionPrompts.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={(e) => handleSend(e, p)}
-                    class="w-full text-left bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark hover:border-gold dark:hover:border-gold p-2 rounded text-[10px] text-navy dark:text-gray-300 font-semibold leading-normal transition-all"
-                  >
-                    ✦ {p}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {loading && (
-              <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold uppercase tracking-wider animate-pulse select-none">
-                <RefreshCw size={10} class="animate-spin text-gold" />
-                <span>Analysing databases...</span>
+              <div class="flex gap-2 max-w-[88%] items-start animate-fade-in mr-auto">
+                <div class="w-6 h-6 rounded-full bg-navy text-gold border border-gold/15 flex items-center justify-center font-serif font-black text-[9px] shrink-0 select-none shadow">
+                  ER
+                </div>
+                <div class="flex flex-col">
+                  <div class="px-4 py-2 bg-navy text-gold border border-gold/25 rounded-2xl rounded-tl-none text-xs flex items-center gap-1 shadow-md">
+                    <span class="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span class="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span class="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                </div>
               </div>
             )}
 
             {error && (
-              <div class="flex items-center gap-1.5 text-[10px] text-red-500 bg-red-50 dark:bg-red-950/20 p-2 rounded border border-red-500/20 font-bold font-sans select-none">
+              <div class="flex items-center gap-1.5 text-[10px] text-red-500 bg-red-50 dark:bg-red-955/20 p-2 rounded border border-red-500/20 font-bold font-sans select-none">
                 <AlertCircle size={12} class="shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <div ref={scrollRef}></div>
+          </div>
+
+          {/* Quick Replies Row */}
+          <div class="px-3 py-2 border-t border-paper-border dark:border-paper-borderDark bg-gray-55 dark:bg-paper-dark/50 flex gap-2 overflow-x-auto scrollbar-none shrink-0 select-none">
+            {quickReplies.map((qr, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => handleSend(e, qr)}
+                class="shrink-0 px-2.5 py-1 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark hover:border-gold dark:hover:border-gold rounded-full text-[10px] font-bold text-navy dark:text-gray-300 transition-all shadow-sm"
+              >
+                {qr}
+              </button>
+            ))}
           </div>
 
           {/* Footer input form */}
@@ -465,3 +497,4 @@ export default function AiAssistant() {
     </>
   );
 }
+
