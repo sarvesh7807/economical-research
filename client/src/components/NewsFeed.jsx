@@ -264,6 +264,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   };
 
   const isHomepage = activeCategory.toLowerCase() === 'world' && !searchQuery;
+  const detectedCountry = localStorage.getItem('er_weather_country_pref');
 
   // Reset page and reload on filters/category changes
   useEffect(() => {
