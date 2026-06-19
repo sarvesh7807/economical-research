@@ -41,8 +41,10 @@ export default function LiveTV({ setView }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const getEmbedUrl = (channel) => {
-    return `https://www.youtube.com/embed/${channel.videoId}?autoplay=1&mute=${isMuted ? 1 : 0}`;
+    return `https://www.youtube.com/embed/${channel.videoId}?autoplay=${isPlaying ? 1 : 0}&mute=1&playsinline=1&rel=0`;
   };
 
   const handleFullscreen = () => {
@@ -95,14 +97,28 @@ export default function LiveTV({ setView }) {
         <div class="lg:col-span-2 space-y-4">
           
           {/* Iframe player container */}
-          <div class="relative w-full aspect-video bg-black border border-paper-border dark:border-paper-borderDark rounded shadow-lg overflow-hidden">
+          <div class="video-container relative w-full aspect-video bg-black border border-paper-border dark:border-paper-borderDark rounded shadow-lg overflow-hidden">
+            {!isPlaying && (
+              <div 
+                class="absolute inset-0 flex items-center justify-center bg-black/50 z-10 cursor-pointer md:hidden"
+                onClick={() => setIsPlaying(true)}
+              >
+                <div class="bg-red-600 rounded-full p-4 hover:bg-red-700 transition-colors shadow-lg flex items-center justify-center">
+                  <Play size={40} class="text-white ml-2" />
+                </div>
+              </div>
+            )}
             <iframe
               id="er-live-player"
               title={activeChannel.name}
               src={getEmbedUrl(activeChannel)}
               class="w-full h-full border-none"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              muted={true}
+              loading="lazy"
+              style={{ width: '100%', height: '100%' }}
             ></iframe>
           </div>
 

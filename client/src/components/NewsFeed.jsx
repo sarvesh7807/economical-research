@@ -26,6 +26,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const [liveChannels, setLiveChannels] = useState(INITIAL_CHANNELS);
   const [activeStream, setActiveStream] = useState(INITIAL_CHANNELS[0].id);
+  const [isPlayingLive, setIsPlayingLive] = useState(false);
 
   // Fetch Live YouTube Video IDs
   useEffect(() => {
@@ -211,13 +212,27 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">SAT FEED</span>
         </div>
         
-        <div class="relative w-full aspect-video rounded overflow-hidden bg-black border border-gray-200 dark:border-gray-800">
+        <div class="video-container relative w-full aspect-video rounded overflow-hidden bg-black border border-gray-200 dark:border-gray-800">
+          {!isPlayingLive && (
+            <div 
+              class="absolute inset-0 flex items-center justify-center bg-black/50 z-10 cursor-pointer md:hidden"
+              onClick={() => setIsPlayingLive(true)}
+            >
+              <div class="bg-red-600 rounded-full p-4 hover:bg-red-700 transition-colors shadow-lg flex items-center justify-center">
+                <Play size={40} class="text-white ml-2" />
+              </div>
+            </div>
+          )}
           <iframe 
-            src={`https://www.youtube.com/embed/${activeStream}?autoplay=1&mute=1`}
+            src={`https://www.youtube.com/embed/${activeStream}?autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`}
             title="Live Broadcast"
             class="absolute top-0 left-0 w-full h-full border-0"
+            frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            muted={true}
+            loading="lazy"
+            style={{ width: '100%', height: '100%' }}
           ></iframe>
         </div>
         
