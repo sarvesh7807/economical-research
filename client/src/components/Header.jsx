@@ -80,46 +80,127 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     return () => clearInterval(interval);
   }, []);
 
-  // Geolocation weather fetch
+  const API_KEY = '3ab51435ffdbc33e719cf21fd42d8dfc';
+
+  const updateWeatherState = (data) => {
+    const currentMonth = new Date().getMonth();
+    const isMonsoonMonth = currentMonth >= 5 && currentMonth <= 8; // June to Sept (0-indexed 5 to 8)
+    const country = data.sys?.country || '';
+    const humidity = data.main?.humidity || 0;
+    const description = data.weather?.[0]?.description || '';
+    
+    const isIndia = country === 'IN';
+    const isHighHumidity = humidity > 70;
+    const hasRainDescription = description.toLowerCase().includes('rain') || description.toLowerCase().includes('drizzle');
+    const monsoonActive = isMonsoonMonth && isIndia && isHighHumidity && hasRainDescription;
+
+    setWeather({
+      city: data.name,
+      temp: data.main?.temp || 0,
+      feels: data.main?.feels_like || 0,
+      humidity: humidity,
+      description: description,
+      country: country,
+      monsoonActive: monsoonActive
+    });
+  };
+
+  const fetchWeather = async (lat, lon) => {
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+      );
+      if (!res.ok) throw new Error('Weather fetch failed');
+      const data = await res.json();
+      updateWeatherState(data);
+    } catch (err) {
+      console.error('Error fetching weather by coordinates:', err);
+    }
+  };
+
+  const fetchWeatherByCity = async (cityName) => {
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cityName)}&appid=${API_KEY}&units=metric`
+      );
+      if (!res.ok) throw new Error('Weather fetch by city failed');
+      const data = await res.json();
+      updateWeatherState(data);
+      localStorage.setItem('er_weather_city_pref', data.name);
+    } catch (err) {
+      console.error('Error fetching weather by city:', err);
+    }
+  };
+
+  const handleCityChangePrompt = () => {
+    const newCity = prompt('Enter your preferred city name for local weather:', weather?.city || '');
+    if (newCity && newCity.trim().length > 0) {
+      fetchWeatherByCity(newCity.trim());
+    }
+  };
+
+  // Weather and geolocation manager
   useEffect(() => {
-    const fetchWeather = (lat = 28.6139, lon = 77.2090, cityName = 'New Delhi') => {
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.current_weather) {
-            setWeather({
-              temp: Math.round(data.current_weather.temperature),
-              code: data.current_weather.weathercode,
-              city: cityName
-            });
+    const loadWeather = () => {
+      const savedCity = localStorage.getItem('er_weather_city_pref');
+      if (savedCity) {
+        fetchWeatherByCity(savedCity);
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            fetchWeather(position.coords.latitude, position.coords.longitude);
+          },
+          (err) => {
+            console.warn('Geolocation failed or denied, using Mumbai fallback:', err);
+            fetchWeatherByCity('Mumbai');
           }
-        })
-        .catch(err => console.error('Error fetching weather:', err));
+        );
+      } else {
+        fetchWeatherByCity('Mumbai');
+      }
     };
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          fetchWeather(position.coords.latitude, position.coords.longitude, 'Local');
-        },
-        () => {
-          fetchWeather(); // Fallback to New Delhi
-        }
-      );
-    } else {
-      fetchWeather();
-    }
+    loadWeather();
+
+    // Auto-update weather every 30 minutes
+    const weatherInterval = setInterval(loadWeather, 30 * 60 * 1000);
+    return () => clearInterval(weatherInterval);
   }, []);
 
-  const getWeatherIcon = (code) => {
-    if (code === 0) return '☀️';
-    if ([1, 2, 3].includes(code)) return '🌤️';
-    if ([45, 48].includes(code)) return '🌫️';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return '❄️';
-    if ([95, 96, 99].includes(code)) return '⛈️';
+  const getWeatherEmoji = (desc) => {
+    if (!desc) return '⛅';
+    const d = desc.toLowerCase();
+    if (d.includes('thunderstorm') || d.includes('storm')) return '⛈️';
+    if (d.includes('rain')) return '🌧️';
+    if (d.includes('drizzle')) return '🌧️';
+    if (d.includes('snow') || d.includes('ice') || d.includes('hail')) return '❄️';
+    if (d.includes('mist') || d.includes('smoke') || d.includes('haze') || d.includes('fog')) return '🌫️';
+    if (d.includes('clear') || d.includes('sunny')) return '☀️';
+    if (d.includes('cloud')) return '☁️';
     return '⛅';
   };
+
+  const getLocalTimeStr = () => {
+    return time.toLocaleTimeString('en-IN', {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const getTimezoneAbbr = () => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz === 'Asia/Kolkata') return 'IST';
+    try {
+      return new Intl.DateTimeFormat('en-IN', { timeZoneName: 'short', timeZone: tz })
+        .formatToParts(new Date())
+        .find(part => part.type === 'timeZoneName').value;
+    } catch (e) {
+      return 'LT';
+    }
+  };
+
 
   // Fetch Search Suggestions
   useEffect(() => {
@@ -263,16 +344,33 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-navy dark:text-gold font-bold">LIVE:</span>
           <span>{formatDate(time)}</span>
-          <span class="text-gray-300 dark:text-gray-700">|</span>
-          <span class="font-mono tabular-nums">{formatTime(time)}</span>
-          {weather && (
+          {weather ? (
             <>
               <span class="text-gray-300 dark:text-gray-700">|</span>
-              <span class="flex items-center gap-1 font-semibold" title={`Weather code: ${weather.code}`}>
-                <span>{getWeatherIcon(weather.code)}</span>
-                <span>{weather.city}:</span>
-                <span class="font-mono">{weather.temp}°C</span>
+              <span class="flex items-center gap-2 flex-wrap font-semibold">
+                <span 
+                  class="cursor-pointer hover:underline flex items-center gap-1 text-navy dark:text-gold" 
+                  title="Click to change city preference"
+                  onClick={handleCityChangePrompt}
+                >
+                  {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C ✏️
+                </span>
+                <span class="text-gray-300 dark:text-gray-700">|</span>
+                <span>💧 Humidity {weather.humidity}%</span>
+                {weather.monsoonActive && (
+                  <>
+                    <span class="text-gray-300 dark:text-gray-700">|</span>
+                    <span class="text-blue-500 font-bold animate-pulse flex items-center gap-1">🌧️ Monsoon Active</span>
+                  </>
+                )}
+                <span class="text-gray-300 dark:text-gray-700">|</span>
+                <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
               </span>
+            </>
+          ) : (
+            <>
+              <span class="text-gray-300 dark:text-gray-700">|</span>
+              <span class="animate-pulse">Loading local weather...</span>
             </>
           )}
         </div>
