@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ArticleCard from './ArticleCard';
 import ResearchMode from './ResearchMode';
 import { useAuth } from '../contexts/AuthContext';
-import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send } from 'lucide-react';
+import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play } from 'lucide-react';
 
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
   const { user, subscription } = useAuth();
