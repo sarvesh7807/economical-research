@@ -602,21 +602,91 @@ export default function ErAssistantFull() {
     setError(null);
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: textToSend,
-          chatHistory: updatedHistory.slice(-10) // Context limited to last 10 turns
-        })
-      });
+      const apiKey = 'AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk';
 
-      if (!response.ok) throw new Error('Query error');
+      // Build valid Gemini contents from updated history
+      // 1. Filter out paywall messages
+      let rawContents = updatedHistory
+        .filter(h => h.sender === 'user' || (h.sender === 'bot' && !h.isPaywall))
+        .map(h => ({
+          role: h.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: h.text }]
+        }));
+
+      // 2. Gemini requires conversation to START with 'user' role
+      while (rawContents.length > 0 && rawContents[0].role === 'model') {
+        rawContents.shift();
+      }
+
+      // 3. Collapse consecutive same-role messages (Gemini API rejects them)
+      const geminiContents = rawContents.reduce((acc, curr) => {
+        if (acc.length > 0 && acc[acc.length - 1].role === curr.role) {
+          acc[acc.length - 1].parts[0].text += '\n' + curr.parts[0].text;
+        } else {
+          acc.push(curr);
+        }
+        return acc;
+      }, []);
+
+      // 4. Safety check
+      if (geminiContents.length === 0) {
+        geminiContents.push({ role: 'user', parts: [{ text: textToSend }] });
+      }
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: geminiContents,
+            systemInstruction: {
+              parts: [{ 
+                text: `You are ER Assistant, a specialized AI editor for the Economical Research news platform (er-news-sarvesh.vercel.app).
+
+You are an expert in:
+- Global economics, monetary policy, and market analysis
+- Financial data, stock market trends, interest rates
+- Geopolitical news and its economic implications
+- Data visualization (charts) and structured data (CSV reports)
+
+When appropriate, you can generate structured artifacts using this format:
+<erArtifact type="chart" title="Chart Title" filename="data.json">
+{"chartType":"line","labels":["Jan","Feb","Mar"],"datasets":[{"label":"GDP Growth","data":[2.1,2.3,2.5]}]}
+</erArtifact>
+
+Or for CSV data:
+<erArtifact type="csv" title="Report Title" filename="report.csv">
+Year,Value,Country
+2023,4.2,India
+</erArtifact>
+
+Always be professional, analytical, and cite economic context. Format responses with clear markdown structure.`
+              }]
+            },
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1200
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
+      }
+
       const data = await response.json();
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!replyText) {
+        throw new Error('Empty response from AI');
+      }
       
       const newBotMessage = {
         sender: 'bot',
-        text: data.reply,
+        text: replyText,
         timestamp: new Date().toISOString()
       };
 
@@ -624,7 +694,7 @@ export default function ErAssistantFull() {
         if (s.id === currentSessionId) {
           return {
             ...s,
-            messages: [...s.messages, newUserMessage, newBotMessage]
+            messages: [...updatedHistory, newBotMessage]
           };
         }
         return s;
@@ -634,7 +704,7 @@ export default function ErAssistantFull() {
 
       // Auto-open artifacts panel if a new artifact is found inside the bot's response
       const artifactRegex = /<erArtifact\s+type="([^"]+)"\s+title="([^"]+)"(?:\s+filename="([^"]+)")?>([\s\S]*?)<\/erArtifact>/;
-      const artifactMatch = data.reply.match(artifactRegex);
+      const artifactMatch = replyText.match(artifactRegex);
       if (artifactMatch) {
         const parsedArtifact = {
           type: artifactMatch[1],
@@ -647,8 +717,8 @@ export default function ErAssistantFull() {
       }
 
     } catch (err) {
-      console.error(err);
-      setError('Connection disrupted. Please check server settings.');
+      console.error('ER Assistant Full error:', err);
+      setError(`Connection error: ${err.message}. Please try again.`);
     } finally {
       setLoading(false);
     }

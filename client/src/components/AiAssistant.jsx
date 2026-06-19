@@ -269,13 +269,38 @@ function DrawerFormattedText({ text }) {
 
     try {
       const apiKey = 'AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk';
-      // Filter out paywall messages to prevent API schema validation errors
-      const geminiContents = newHistory
+
+      // Build valid Gemini contents:
+      // 1. Exclude paywall messages and system-only bot messages
+      // 2. Map to Gemini roles
+      let rawContents = newHistory
         .filter(h => h.sender === 'user' || (h.sender === 'bot' && !h.isPaywall))
         .map(h => ({
           role: h.sender === 'user' ? 'user' : 'model',
           parts: [{ text: h.text }]
         }));
+
+      // 3. Gemini requires conversation to START with 'user' role
+      //    Drop any leading 'model' messages
+      while (rawContents.length > 0 && rawContents[0].role === 'model') {
+        rawContents.shift();
+      }
+
+      // 4. Collapse consecutive same-role messages (Gemini rejects them)
+      const geminiContents = rawContents.reduce((acc, curr) => {
+        if (acc.length > 0 && acc[acc.length - 1].role === curr.role) {
+          // Merge text into the last message
+          acc[acc.length - 1].parts[0].text += '\n' + curr.parts[0].text;
+        } else {
+          acc.push(curr);
+        }
+        return acc;
+      }, []);
+
+      // 5. Safety check: if nothing remains, send a minimal user message
+      if (geminiContents.length === 0) {
+        geminiContents.push({ role: 'user', parts: [{ text: textToSend }] });
+      }
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -288,22 +313,34 @@ function DrawerFormattedText({ text }) {
               parts: [{ 
                 text: `You are ER Assistant, the AI assistant for Economical Research news website (er-news-sarvesh.vercel.app).
 You help users with:
-- Latest news summaries
-- Economic analysis
-- Research help
-- Website navigation
-- Subscription plans info
+- Latest news summaries and breaking stories
+- Economic and financial analysis
+- Market trends and stock information
+- Research help and fact-checking
+- Website navigation and subscription info
 
-Always be helpful, professional, and concise. Make sure to format your answers nicely using markdown where appropriate.` 
+Always be helpful, professional, and concise. Format responses clearly using markdown (bullet points, bold text) where appropriate. Keep responses focused and under 200 words unless asked for detail.` 
               }]
+            },
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 600
             }
           })
         }
       );
 
-      if (!response.ok) throw new Error('Query error');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
+      }
+
       const data = await response.json();
-      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I am having trouble connecting. Please try again in a moment.";
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!replyText) {
+        throw new Error('Empty response from AI');
+      }
       
       saveHistory([
         ...newHistory,
@@ -314,8 +351,8 @@ Always be helpful, professional, and concise. Make sure to format your answers n
         }
       ]);
     } catch (err) {
-      console.error(err);
-      setError('I am having trouble connecting. Please try again in a moment.');
+      console.error('ER Assistant error:', err);
+      setError(`Connection error: ${err.message}. Please try again.`);
     } finally {
       setLoading(false);
     }
