@@ -2,6 +2,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { Globe, Newspaper, ExternalLink, ChevronLeft, RefreshCw, Search, X, Loader } from 'lucide-react';
 
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+
 // Country name (from world-atlas topojson) → ISO 2-letter code for NewsAPI
 const COUNTRY_CODE_MAP = {
   'Afghanistan': 'af',
