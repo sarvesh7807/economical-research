@@ -364,58 +364,108 @@ function getMockArticles(category, query) {
 
 // WORLD MAP: Proxy NewsAPI top-headlines by country code (bypasses browser CORS)
 router.get('/country-headlines', async (req, res) => {
-  const { country } = req.query;
+  const { country, q } = req.query;
   if (!country || country.length !== 2) {
     return res.status(400).json({ error: 'Valid 2-letter country code required', articles: [] });
   }
 
   const apiKey = getNewsApiKey();
+  const countryCode = country.toLowerCase();
 
-  try {
-    const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
-      params: {
-        country: country.toLowerCase(),
-        pageSize: 20,
-        apiKey
-      },
-      timeout: 8000
-    });
+  // Supported country codes by NewsAPI top-headlines
+  const supportedNewsApiCountries = [
+    'ae', 'ar', 'at', 'au', 'be', 'bg', 'br', 'ca', 'ch', 'cn', 'co', 'cu', 'cz', 'de', 'eg', 'fr', 'gb', 'gr', 
+    'hk', 'hu', 'id', 'ie', 'il', 'in', 'it', 'jp', 'kr', 'lt', 'lv', 'ma', 'mx', 'my', 'ng', 'nl', 'no', 'nz', 
+    'ph', 'pl', 'pt', 'ro', 'rs', 'ru', 'sa', 'se', 'sg', 'si', 'sk', 'th', 'tr', 'tw', 'ua', 'us', 've', 'za'
+  ];
 
-    const data = response.data;
-    if (data.status !== 'ok') {
-      return res.status(502).json({ error: data.message || 'NewsAPI error', articles: [] });
-    }
+  let articles = [];
 
-    // Filter removed articles
-    const articles = (data.articles || []).filter(
-      a => a.title && a.title !== '[Removed]' && a.url
-    );
-
-    return res.json({ status: 'ok', totalResults: articles.length, articles });
-  } catch (err) {
-    console.error('country-headlines error:', err.message);
-
-    // Fallback: try everything endpoint with country name search
+  // 1. Try NewsAPI top-headlines first (only if country is supported and key is set/not rate-limited)
+  if (supportedNewsApiCountries.includes(countryCode) && apiKey && !apiKey.includes('YAHAN')) {
     try {
-      const fallback = await axios.get(`${NEWS_API_BASE}/everything`, {
+      const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
         params: {
-          q: country,
-          language: 'en',
-          sortBy: 'publishedAt',
-          pageSize: 10,
+          country: countryCode,
+          pageSize: 20,
           apiKey
         },
         timeout: 8000
       });
-      const articles = (fallback.data.articles || []).filter(
-        a => a.title && a.title !== '[Removed]'
-      );
-      return res.json({ status: 'ok', totalResults: articles.length, articles });
-    } catch (fallbackErr) {
-      console.error('country-headlines fallback error:', fallbackErr.message);
-      return res.status(502).json({ error: 'Failed to fetch country news', articles: [] });
+
+      if (response.data && response.data.status === 'ok') {
+        articles = (response.data.articles || []).filter(
+          a => a.title && a.title !== '[Removed]' && a.url
+        );
+      }
+    } catch (err) {
+      console.error('country-headlines NewsAPI top-headlines error:', err.message);
     }
   }
+
+  // 2. Try RSS Fallback if NewsAPI top-headlines failed or is unsupported/rate-limited
+  if (articles.length === 0) {
+    try {
+      // Look up full country name for RSS search query
+      let searchQuery = q || countryCode;
+      
+      const codeToName = {
+        'af': 'Afghanistan', 'ar': 'Argentina', 'au': 'Australia', 'at': 'Austria', 'be': 'Belgium', 
+        'br': 'Brazil', 'bg': 'Bulgaria', 'ca': 'Canada', 'cn': 'China', 'co': 'Colombia', 
+        'cu': 'Cuba', 'cz': 'Czech Republic', 'eg': 'Egypt', 'fr': 'France', 'de': 'Germany', 
+        'gr': 'Greece', 'hk': 'Hong Kong', 'hu': 'Hungary', 'in': 'India', 'id': 'Indonesia', 
+        'ie': 'Ireland', 'il': 'Israel', 'it': 'Italy', 'jp': 'Japan', 'lv': 'Latvia', 
+        'lt': 'Lithuania', 'my': 'Malaysia', 'mx': 'Mexico', 'ma': 'Morocco', 'nl': 'Netherlands', 
+        'nz': 'New Zealand', 'ng': 'Nigeria', 'no': 'Norway', 'ph': 'Philippines', 'pl': 'Poland', 
+        'pt': 'Portugal', 'ro': 'Romania', 'ru': 'Russia', 'sa': 'Saudi Arabia', 'rs': 'Serbia', 
+        'sg': 'Singapore', 'sk': 'Slovakia', 'si': 'Slovenia', 'za': 'South Africa', 'kr': 'South Korea', 
+        'es': 'Spain', 'se': 'Sweden', 'ch': 'Switzerland', 'tw': 'Taiwan', 'th': 'Thailand', 
+        'tr': 'Turkey', 'ua': 'Ukraine', 'ae': 'United Arab Emirates', 'gb': 'United Kingdom', 
+        'us': 'United States', 've': 'Venezuela'
+      };
+
+      if (!q && codeToName[countryCode]) {
+        searchQuery = codeToName[countryCode];
+      }
+
+      console.log(`Using RSS fallback for country: ${countryCode}, query: ${searchQuery}`);
+      
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=en-US&gl=US&ceid=US:en`;
+      const rssArticles = await parseRSSFeed(`Google News: ${searchQuery}`, rssUrl);
+      
+      articles = (rssArticles || []).filter(
+        a => a.title && a.title !== '[Removed]'
+      );
+    } catch (rssErr) {
+      console.error('country-headlines RSS fallback error:', rssErr.message);
+    }
+  }
+
+  // 3. Try Mock data fallback if both NewsAPI and RSS failed
+  if (articles.length === 0) {
+    let countryName = q;
+    if (!countryName) {
+      const codeToName = { 
+        'af': 'Afghanistan', 'ar': 'Argentina', 'au': 'Australia', 'at': 'Austria', 'be': 'Belgium', 
+        'br': 'Brazil', 'bg': 'Bulgaria', 'ca': 'Canada', 'cn': 'China', 'co': 'Colombia', 
+        'cu': 'Cuba', 'cz': 'Czech Republic', 'eg': 'Egypt', 'fr': 'France', 'de': 'Germany', 
+        'gr': 'Greece', 'hk': 'Hong Kong', 'hu': 'Hungary', 'in': 'India', 'id': 'Indonesia', 
+        'ie': 'Ireland', 'il': 'Israel', 'it': 'Italy', 'jp': 'Japan', 'lv': 'Latvia', 
+        'lt': 'Lithuania', 'my': 'Malaysia', 'mx': 'Mexico', 'ma': 'Morocco', 'nl': 'Netherlands', 
+        'nz': 'New Zealand', 'ng': 'Nigeria', 'no': 'Norway', 'ph': 'Philippines', 'pl': 'Poland', 
+        'pt': 'Portugal', 'ro': 'Romania', 'ru': 'Russia', 'sa': 'Saudi Arabia', 'rs': 'Serbia', 
+        'sg': 'Singapore', 'sk': 'Slovakia', 'si': 'Slovenia', 'za': 'South Africa', 'kr': 'South Korea', 
+        'es': 'Spain', 'se': 'Sweden', 'ch': 'Switzerland', 'tw': 'Taiwan', 'th': 'Thailand', 
+        'tr': 'Turkey', 'ua': 'Ukraine', 'ae': 'United Arab Emirates', 'gb': 'United Kingdom', 
+        'us': 'United States', 've': 'Venezuela' 
+      };
+      countryName = codeToName[countryCode] || countryCode;
+    }
+    console.log(`Using mock data fallback for country: ${countryName}`);
+    articles = getMockArticles('world', countryName).slice(0, 10);
+  }
+
+  return res.json({ status: 'ok', totalResults: articles.length, articles });
 });
 
 export default router;
