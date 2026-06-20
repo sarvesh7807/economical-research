@@ -35,7 +35,8 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     notifications,
     markAsRead,
     markAllRead,
-    clearAllNotifications
+    clearAllNotifications,
+    userAlerts
   } = useAuth();
   
   const [time, setTime] = useState(new Date());
@@ -378,6 +379,8 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
   ];
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+  const activeAlertsCount = userAlerts ? userAlerts.length : 0;
+  const totalBadgeCount = unreadNotificationsCount + activeAlertsCount;
 
   return (
     <header class="w-full bg-paper dark:bg-paper-dark border-b border-paper-border dark:border-paper-borderDark overflow-hidden">
@@ -546,12 +549,15 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                 class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all relative flex items-center justify-center focus:outline-none"
                 title="Alert Ledger"
               >
-                {unreadNotificationsCount > 0 ? (
+                {totalBadgeCount > 0 ? (
                   <>
                     <BellRing size={15} class="text-gold animate-bounce" />
-                    <span class="absolute top-0 right-0 w-3 h-3 bg-red-655 rounded-full border border-paper dark:border-paper-dark text-[7.5px] font-black text-white flex items-center justify-center scale-95 shadow">
-                      {unreadNotificationsCount}
+                    <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-600 rounded-full border border-paper dark:border-paper-dark text-[7.5px] font-black text-white flex items-center justify-center scale-95 shadow">
+                      {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
                     </span>
+                    {activeAlertsCount > 0 && (
+                      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gold rounded-full border border-paper dark:border-paper-dark animate-ping" style={{ animationDuration: '2s' }}></span>
+                    )}
                   </>
                 ) : (
                   <Bell size={15} />
@@ -626,8 +632,40 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                       ))
                     )}
                   </div>
+
+                  {/* Feature 2: Active Topic Alerts panel */}
+                  {userAlerts && userAlerts.length > 0 && (
+                    <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-2 bg-gold/5">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-[9px] font-black text-gold uppercase tracking-widest flex items-center gap-1">
+                          <BellRing size={9} />
+                          Your Topic Alerts
+                        </span>
+                        <button
+                          onClick={() => { setIsNotifOpen(false); setView('profile'); }}
+                          class="text-[8px] font-bold text-navy/60 dark:text-gray-400 hover:text-gold uppercase tracking-wider"
+                        >
+                          Manage ↗
+                        </button>
+                      </div>
+                      <div class="flex flex-wrap gap-1.5">
+                        {userAlerts.slice(0, 5).map((alert) => (
+                          <span
+                            key={alert.id}
+                            class="px-2 py-0.5 bg-gold/10 border border-gold/30 text-navy dark:text-gold text-[9px] font-bold rounded-full"
+                          >
+                            🔔 {alert.topic}
+                          </span>
+                        ))}
+                        {userAlerts.length > 5 && (
+                          <span class="text-[9px] text-gray-400 font-bold self-center">+{userAlerts.length - 5} more</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
             </div>
           )}
 

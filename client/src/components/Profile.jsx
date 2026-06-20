@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut } from 'lucide-react';
+import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut, Bell, Plus, BellRing } from 'lucide-react';
 
 export default function Profile({ setView, onSearchSubmit }) {
   const { 
@@ -17,14 +17,19 @@ export default function Profile({ setView, onSearchSubmit }) {
     settings,
     updateSettings,
     updateUserProfile,
-    deleteUserAccount
+    deleteUserAccount,
+    userAlerts,
+    addAlert,
+    deleteAlert
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('bookmarks'); // 'bookmarks', 'history', 'search', 'settings'
+  const [activeTab, setActiveTab] = useState('bookmarks'); // 'bookmarks', 'history', 'search', 'settings', 'alerts'
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [newAlertTopic, setNewAlertTopic] = useState('');
+  const [alertAddError, setAlertAddError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -85,6 +90,21 @@ export default function Profile({ setView, onSearchSubmit }) {
       nextFavs = [...currentFavs, catId];
     }
     updateSettings({ favorites: nextFavs });
+  };
+
+  const handleAddAlert = async () => {
+    if (!newAlertTopic.trim()) {
+      setAlertAddError('Please enter a topic.');
+      return;
+    }
+    const alreadyExists = userAlerts.some(a => a.topic.toLowerCase() === newAlertTopic.trim().toLowerCase());
+    if (alreadyExists) {
+      setAlertAddError('This topic alert already exists.');
+      return;
+    }
+    await addAlert(newAlertTopic.trim());
+    setNewAlertTopic('');
+    setAlertAddError('');
   };
 
   const handleHistoryItemClick = (query) => {
@@ -230,6 +250,7 @@ export default function Profile({ setView, onSearchSubmit }) {
               { id: 'bookmarks', name: 'Saved Briefings' },
               { id: 'history', name: 'Reading Logs' },
               { id: 'search', name: 'Search Ledger' },
+              { id: 'alerts', name: `🔔 My Alerts${userAlerts.length > 0 ? ` (${userAlerts.length})` : ''}` },
               { id: 'settings', name: 'Edit Profile' }
             ].map(tab => (
               <button
@@ -359,6 +380,93 @@ export default function Profile({ setView, onSearchSubmit }) {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* SMART TOPIC ALERTS TAB */}
+            {activeTab === 'alerts' && (
+              <div class="space-y-5">
+                <div class="border-b border-gray-100 dark:border-gray-800 pb-2">
+                  <h4 class="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <BellRing size={12} class="text-gold" />
+                    Smart Topic Alerts
+                  </h4>
+                  <p class="text-[10px] text-gray-400 mt-1 leading-relaxed">
+                    Get notified when news matches your topics. Keywords are matched against article headlines.
+                  </p>
+                </div>
+
+                {/* Add New Alert */}
+                {user ? (
+                  <div class="flex items-stretch gap-2">
+                    <input
+                      type="text"
+                      value={newAlertTopic}
+                      onChange={(e) => { setNewAlertTopic(e.target.value); setAlertAddError(''); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddAlert(); }}
+                      placeholder="e.g. Cricket, Stock Market, Elections..."
+                      class="flex-grow bg-gray-50 dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white placeholder:text-gray-400"
+                    />
+                    <button
+                      onClick={handleAddAlert}
+                      class="flex items-center gap-1.5 px-4 py-2 bg-gold hover:bg-yellow-500 text-navy font-bold text-xs uppercase tracking-wider rounded transition-all shrink-0"
+                    >
+                      <Plus size={14} />
+                      Add Alert
+                    </button>
+                  </div>
+                ) : (
+                  <div class="text-center py-6 text-gray-400">
+                    <Bell size={24} class="mx-auto mb-2 text-gray-300 dark:text-gray-700" />
+                    <p class="text-xs">Log in to create topic alerts.</p>
+                  </div>
+                )}
+
+                {alertAddError && (
+                  <p class="text-[10px] text-red-500 font-semibold">{alertAddError}</p>
+                )}
+
+                {/* Alert List */}
+                <div>
+                  <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-3">Your Alerts ({userAlerts.length})</span>
+                  {userAlerts.length === 0 ? (
+                    <div class="text-center py-10">
+                      <Bell size={28} class="mx-auto text-gray-200 dark:text-gray-800 mb-2" />
+                      <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">No alerts set. Add a topic above.</p>
+                    </div>
+                  ) : (
+                    <div class="space-y-2">
+                      {userAlerts.map((alert) => (
+                        <div
+                          key={alert.id}
+                          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-navy-light/5 border border-paper-border dark:border-paper-borderDark rounded-lg group"
+                        >
+                          <div class="flex items-center gap-2.5">
+                            <span class="w-7 h-7 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                              <Bell size={12} class="text-gold" />
+                            </span>
+                            <div>
+                              <span class="text-xs font-bold text-navy dark:text-white block">{alert.topic}</span>
+                              <span class="text-[9px] font-mono text-gray-400">Added {new Date(alert.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => deleteAlert(alert.id)}
+                            class="text-gray-400 hover:text-red-500 p-1.5 rounded transition-colors opacity-0 group-hover:opacity-100"
+                            title="Remove alert"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info notice */}
+                <div class="bg-gold/5 border border-gold/20 rounded-lg p-3 text-[10px] text-navy/70 dark:text-gray-400 leading-relaxed">
+                  <span class="font-bold text-gold">How it works:</span> When you visit the news feed, articles matching your topics will show a 🔔 badge and the bell icon in the header will display a notification count.
+                </div>
               </div>
             )}
 

@@ -27,7 +27,9 @@ import {
   addDoc,
   getDocs,
   getDoc,
-  writeBatch
+  writeBatch,
+  serverTimestamp,
+  where
 } from 'firebase/firestore';
 
 const AuthContext = createContext();
@@ -78,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     alertFrequency: "Instant"
   });
   const [notifications, setNotifications] = useState([]);
+  const [userAlerts, setUserAlerts] = useState([]); // Feature 2: Smart Topic Alerts
 
   // Sync settings, bookmarks, history, stats, subscription, notifications on user change
   useEffect(() => {
@@ -85,6 +88,7 @@ export const AuthProvider = ({ children }) => {
     let unsubscribeBookmarks = () => {};
     let unsubscribeHistory = () => {};
     let unsubscribeNotifications = () => {};
+    let unsubscribeAlerts = () => {};
 
     if (user) {
       if (db) {
@@ -127,6 +131,15 @@ export const AuthProvider = ({ children }) => {
           snap.forEach((doc) => loaded.push({ id: doc.id, ...doc.data() }));
           setNotifications(loaded);
         }, (err) => console.error('Error fetching notifications:', err));
+
+        // Feature 2: Sync Smart Topic Alerts
+        const alertsRef = collection(db, 'user_alerts');
+        const alertsQuery = query(alertsRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+        unsubscribeAlerts = onSnapshot(alertsQuery, (snap) => {
+          const loaded = [];
+          snap.forEach((d) => loaded.push({ id: d.id, ...d.data() }));
+          setUserAlerts(loaded);
+        }, (err) => console.error('Error fetching user alerts:', err));
       }
 
       // Load Search Ledger
@@ -140,6 +153,7 @@ export const AuthProvider = ({ children }) => {
       setReadingHistory([]);
       setSearchHistory([]);
       setNotifications([]);
+      setUserAlerts([]);
       setReadingStats({ articlesRead: 0, timeSpentMinutes: 0 });
       setSubscription({ tier: 'Basic', plan: null, expiresAt: null, status: 'Inactive' });
       setSettings({
@@ -163,6 +177,7 @@ export const AuthProvider = ({ children }) => {
       unsubscribeBookmarks();
       unsubscribeHistory();
       unsubscribeNotifications();
+      unsubscribeAlerts();
     };
   }, [user]);
 
@@ -616,6 +631,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // --- FEATURE 2: SMART TOPIC ALERTS ---
+  const addAlert = async (topic) => {
+    if (!user || !topic || topic.trim() === '') return;
+    const cleanTopic = topic.trim();
+    // Prevent duplicates
+    const alreadyExists = userAlerts.some(a => a.topic.toLowerCase() === cleanTopic.toLowerCase());
+    if (alreadyExists) return;
+
+    if (db) {
+      try {
+        await addDoc(collection(db, 'user_alerts'), {
+          userId: user.uid,
+          topic: cleanTopic,
+          createdAt: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error('Error adding alert:', e);
+      }
+    } else {
+      // Local fallback
+      setUserAlerts(prev => [{ id: Date.now().toString(), userId: user.uid, topic: cleanTopic, createdAt: new Date().toISOString() }, ...prev]);
+    }
+  };
+
+  const deleteAlert = async (alertId) => {
+    if (!user) return;
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'user_alerts', alertId));
+      } catch (e) {
+        console.error('Error deleting alert:', e);
+      }
+    } else {
+      setUserAlerts(prev => prev.filter(a => a.id !== alertId));
+    }
+  };
+
+  const alertsMatchNews = (articleTitle = '', articleDescription = '') => {
+    if (!userAlerts || userAlerts.length === 0) return [];
+    const text = (articleTitle + ' ' + articleDescription).toLowerCase();
+    return userAlerts.filter(alert => text.includes(alert.topic.toLowerCase()));
+  };
+
   // --- NOTIFICATIONS METHODS ---
   const addNotification = async (type, title, text, url = null) => {
     // Quiet hours range checks
@@ -847,7 +905,12 @@ export const AuthProvider = ({ children }) => {
     markAsRead,
     markAllRead,
     clearAllNotifications,
-    registerFcmToken
+    registerFcmToken,
+    // Feature 2: Smart Topic Alerts
+    userAlerts,
+    addAlert,
+    deleteAlert,
+    alertsMatchNews
   };
 
   return (

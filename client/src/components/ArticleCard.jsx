@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages } from 'lucide-react';
+import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages, TrendingUp, FileText } from 'lucide-react';
 import CommentsSection from './CommentsSection';
 
 export default function ArticleCard({ article }) {
@@ -41,6 +41,18 @@ export default function ArticleCard({ article }) {
   // Voice Reader States
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Feature 1: 5 Point Summary
+  const [fivePoints, setFivePoints] = useState(null);
+  const [loadingFivePoints, setLoadingFivePoints] = useState(false);
+  const [errorFivePoints, setErrorFivePoints] = useState(null);
+  const [showFivePoints, setShowFivePoints] = useState(false);
+
+  // Feature 3: Market Impact Meter
+  const [marketImpact, setMarketImpact] = useState(null);
+  const [loadingMarketImpact, setLoadingMarketImpact] = useState(false);
+  const [errorMarketImpact, setErrorMarketImpact] = useState(null);
+  const [showMarketImpact, setShowMarketImpact] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -262,6 +274,90 @@ export default function ArticleCard({ article }) {
       setErrorKeyPoints('The AI analyst was unable to extract key points. Please check your credentials.');
     } finally {
       setLoadingKeyPoints(false);
+    }
+  };
+
+  // Feature 1: 5 Point Summary handler
+  const handleFivePoints = async () => {
+    const paywall = checkPaywallLimit('summaries');
+    if (paywall.blocked) {
+      setPaywallActive(true);
+      setPaywallType('summaries');
+      return;
+    }
+
+    if (fivePoints) {
+      setShowFivePoints(!showFivePoints);
+      setShowSummary(false);
+      setShowKeyPoints(false);
+      setShowMarketImpact(false);
+      return;
+    }
+
+    setLoadingFivePoints(true);
+    setErrorFivePoints(null);
+    setShowFivePoints(true);
+    setShowSummary(false);
+    setShowKeyPoints(false);
+    setShowMarketImpact(false);
+
+    try {
+      const response = await fetch('/api/ai/five-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, content })
+      });
+      if (!response.ok) throw new Error('Failed to generate 5-point summary');
+      const data = await response.json();
+      setFivePoints(data.points);
+      incrementPaywallCount('summaries');
+    } catch (err) {
+      console.error(err);
+      setErrorFivePoints('Unable to generate 5-point summary. Please try again.');
+    } finally {
+      setLoadingFivePoints(false);
+    }
+  };
+
+  // Feature 3: Market Impact Meter handler
+  const handleMarketImpact = async () => {
+    const paywall = checkPaywallLimit('summaries');
+    if (paywall.blocked) {
+      setPaywallActive(true);
+      setPaywallType('summaries');
+      return;
+    }
+
+    if (marketImpact) {
+      setShowMarketImpact(!showMarketImpact);
+      setShowSummary(false);
+      setShowKeyPoints(false);
+      setShowFivePoints(false);
+      return;
+    }
+
+    setLoadingMarketImpact(true);
+    setErrorMarketImpact(null);
+    setShowMarketImpact(true);
+    setShowSummary(false);
+    setShowKeyPoints(false);
+    setShowFivePoints(false);
+
+    try {
+      const response = await fetch('/api/ai/market-impact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, content })
+      });
+      if (!response.ok) throw new Error('Failed to analyze market impact');
+      const data = await response.json();
+      setMarketImpact(data);
+      incrementPaywallCount('summaries');
+    } catch (err) {
+      console.error(err);
+      setErrorMarketImpact('Unable to analyze market impact. Please try again.');
+    } finally {
+      setLoadingMarketImpact(false);
     }
   };
 
@@ -521,7 +617,7 @@ export default function ArticleCard({ article }) {
 
       {/* AI Controls, Drawer & Comments */}
       <div>
-        {/* Action Buttons */}
+        {/* Action Buttons Row 1 */}
         <div class="flex items-center gap-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
           {/* AI Summary Button */}
           <button
@@ -565,6 +661,39 @@ export default function ArticleCard({ article }) {
             <MessageSquare size={12} />
             <span>Debate</span>
             {showComments ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+        </div>
+
+        {/* Action Buttons Row 2 — New AI Features */}
+        <div class="flex items-center gap-2 mt-2">
+          {/* Feature 1: 5-Point Summary */}
+          <button
+            onClick={handleFivePoints}
+            disabled={loadingFivePoints}
+            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+              showFivePoints
+                ? 'bg-amber-500 text-white border border-transparent'
+                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-amber-400/60 text-navy dark:text-gray-200'
+            }`}
+          >
+            <FileText size={12} class={showFivePoints ? 'text-white' : 'text-amber-500'} />
+            <span>📝 5 Points</span>
+            {showFivePoints ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+
+          {/* Feature 3: Market Impact Meter */}
+          <button
+            onClick={handleMarketImpact}
+            disabled={loadingMarketImpact}
+            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+              showMarketImpact
+                ? 'bg-emerald-600 text-white border border-transparent'
+                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-emerald-500/60 text-navy dark:text-gray-200'
+            }`}
+          >
+            <TrendingUp size={12} class={showMarketImpact ? 'text-white' : 'text-emerald-500'} />
+            <span>📊 Market Impact</span>
+            {showMarketImpact ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
 
@@ -645,6 +774,108 @@ export default function ArticleCard({ article }) {
                 </a>
               </div>
             )}
+          </div>
+        )}
+
+        {/* FEATURE 1: 5-POINT SUMMARY DRAWER */}
+        {showFivePoints && (
+          <div class="mt-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 relative overflow-hidden transition-all duration-300 shadow-inner">
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-orange-500"></div>
+            <div class="flex items-center gap-1.5 text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-3 font-mono">
+              <FileText size={11} />
+              <span>📝 News in 5 Points</span>
+            </div>
+            {loadingFivePoints ? (
+              <div class="space-y-2 py-1">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} class="h-2.5 rounded bg-amber-200/60 dark:bg-amber-800/30 animate-pulse" style={{ width: `${85 + (i % 3) * 5}%` }}></div>
+                ))}
+              </div>
+            ) : errorFivePoints ? (
+              <div class="flex items-start gap-1.5 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
+                <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                <span>{errorFivePoints}</span>
+              </div>
+            ) : fivePoints ? (
+              <ol class="space-y-2">
+                {fivePoints.map((point, idx) => (
+                  <li key={idx} class="flex items-start gap-2.5">
+                    <span class="shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white text-[9px] font-black flex items-center justify-center font-mono">{idx + 1}</span>
+                    <span class="text-[11px] text-navy/90 dark:text-gray-200 font-sans leading-snug">{point}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+          </div>
+        )}
+
+        {/* FEATURE 3: MARKET IMPACT METER DRAWER */}
+        {showMarketImpact && (
+          <div class="mt-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 relative overflow-hidden transition-all duration-300 shadow-inner">
+            <div class={`absolute left-0 top-0 bottom-0 w-1 ${
+              marketImpact?.impactLevel === 'HIGH' ? 'bg-red-500' :
+              marketImpact?.impactLevel === 'LOW' ? 'bg-green-500' : 'bg-yellow-500'
+            }`}></div>
+            <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-emerald-400 uppercase tracking-widest mb-3 font-mono">
+              <TrendingUp size={11} />
+              <span>📊 Market Impact Analysis</span>
+            </div>
+            {loadingMarketImpact ? (
+              <div class="space-y-2 py-1">
+                <div class="h-7 w-40 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
+                <div class="h-2.5 rounded w-[70%] bg-gray-200 dark:bg-gray-800 animate-pulse mt-3"></div>
+                <div class="h-2.5 rounded w-[50%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
+              </div>
+            ) : errorMarketImpact ? (
+              <div class="flex items-start gap-1.5 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
+                <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                <span>{errorMarketImpact}</span>
+              </div>
+            ) : marketImpact ? (
+              <div class="space-y-3">
+                {/* Impact Badge */}
+                <div class={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                  marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'NEGATIVE'
+                    ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/30'
+                  : marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'POSITIVE'
+                    ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/30'
+                  : marketImpact.impactLevel === 'MEDIUM'
+                    ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-500/30'
+                  : marketImpact.direction === 'POSITIVE'
+                    ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/30'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'
+                }`}>
+                  <span>
+                    {marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'NEGATIVE' ? '🔴' :
+                     marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'POSITIVE' ? '🟢' :
+                     marketImpact.impactLevel === 'MEDIUM' ? '🟡' :
+                     marketImpact.direction === 'POSITIVE' ? '🟢' : '⚪'}
+                  </span>
+                  <span>{marketImpact.impactLevel} IMPACT — {marketImpact.direction}</span>
+                </div>
+
+                {/* Affected Sectors */}
+                {marketImpact.sectors && marketImpact.sectors.length > 0 && (
+                  <div>
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Affected Sectors</span>
+                    <div class="flex flex-wrap gap-1.5">
+                      {marketImpact.sectors.map((sector, idx) => (
+                        <span key={idx} class="px-2 py-0.5 bg-navy/5 dark:bg-white/10 text-navy dark:text-gray-200 text-[9px] font-bold rounded-full border border-navy/10 dark:border-white/10">
+                          {sector}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reasoning */}
+                {marketImpact.reasoning && (
+                  <p class="text-[10px] text-gray-500 dark:text-gray-400 italic font-sans leading-relaxed border-t border-gray-100 dark:border-white/5 pt-2">
+                    {marketImpact.reasoning}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
         )}
 

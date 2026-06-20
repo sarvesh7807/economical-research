@@ -339,4 +339,96 @@ This intelligence dispatch covers recent structural adjustments regarding "${top
   }
 });
 
+// 7. FIVE POINT SUMMARY
+router.post('/five-points', async (req, res) => {
+  const { title, description, content } = req.body;
+
+  if (!genAI) {
+    return res.json({
+      points: [
+        `Key development: ${title?.substring(0, 60) || 'Breaking story'} is currently unfolding.`,
+        'Authorities and stakeholders are closely monitoring the situation for further updates.',
+        'Market observers indicate this event could influence multiple economic sectors.',
+        'Analysts expect policy responses within the coming days from relevant bodies.',
+        'Follow-up coverage is expected as more information becomes available from official sources.'
+      ]
+    });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Summarize this news in exactly 5 short bullet points. Keep each point under 15 words. Be factual and concise. Output ONLY the 5 points, one per line, each starting with a dash (-).
+Title: ${title}
+Description: ${description || ''}
+Content: ${content || ''}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const points = text.split('\n')
+      .map(l => l.replace(/^[\s*\-•\d.]+/, '').trim())
+      .filter(l => l.length > 5)
+      .slice(0, 5);
+
+    // Pad to 5 if fewer extracted
+    while (points.length < 5) {
+      points.push('Further details are emerging from official sources.');
+    }
+
+    res.json({ points });
+  } catch (err) {
+    console.error('Five points error:', err.message);
+    res.json({
+      points: [
+        `Key development: ${title?.substring(0, 60) || 'Breaking story'} is currently unfolding.`,
+        'Authorities and stakeholders are closely monitoring the situation.',
+        'Market observers indicate potential impact across multiple sectors.',
+        'Analysts expect a policy response within the coming days.',
+        'More details expected as official sources release further information.'
+      ]
+    });
+  }
+});
+
+// 8. MARKET IMPACT METER
+router.post('/market-impact', async (req, res) => {
+  const { title, description, content } = req.body;
+
+  if (!genAI) {
+    return res.json({
+      impactLevel: 'MEDIUM',
+      direction: 'NEUTRAL',
+      sectors: ['Equity Markets', 'Commodities'],
+      reasoning: 'Standard market assessment — no immediate systemic risk identified.'
+    });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Analyze the likely stock market impact of this news. Respond ONLY with a valid JSON object in this exact format:
+{
+  "impactLevel": "HIGH" or "MEDIUM" or "LOW",
+  "direction": "POSITIVE" or "NEGATIVE" or "NEUTRAL",
+  "sectors": ["Sector 1", "Sector 2", "Sector 3"],
+  "reasoning": "One short sentence explanation under 20 words."
+}
+Title: ${title}
+Description: ${description || ''}
+Content: ${content || ''}`;
+
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    const data = JSON.parse(raw);
+    res.json(data);
+  } catch (err) {
+    console.error('Market impact error:', err.message);
+    res.json({
+      impactLevel: 'MEDIUM',
+      direction: 'NEUTRAL',
+      sectors: ['Equity Markets', 'Debt Markets'],
+      reasoning: 'Standard market conditions apply; no immediate systemic disruption expected.'
+    });
+  }
+});
+
 export default router;
+
