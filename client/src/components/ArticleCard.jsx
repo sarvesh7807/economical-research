@@ -393,19 +393,37 @@ export default function ArticleCard({ article }) {
   const [imgError, setImgError] = useState(false);
 
   const categoryFallbacks = {
-    world: 'https://images.unsplash.com/photo-1529245005476-ebdf853c8485?w=800&auto=format&fit=crop', // Better fallback images from unsplash that actually work
-    business: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop',
-    technology: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop',
-    sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop',
-    entertainment: 'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=800&auto=format&fit=crop',
-    health: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop',
-    science: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop',
-    politics: 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&auto=format&fit=crop',
-    default: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop'
+    world: [
+      'https://images.unsplash.com/photo-1529245005476-ebdf853c8485?w=800&auto=format&fit=crop', // Better fallback images from unsplash that actually work
+      'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1495465798138-718f86d1a4bd?w=800&auto=format&fit=crop'
+    ],
+    business: [
+      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop'
+    ],
+    technology: [
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1531297172868-9f1d8b67115e?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop'
+    ],
+    sports: [
+      'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1495555687398-3f50d6e79e1e?w=800&auto=format&fit=crop'
+    ],
+    entertainment: ['https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=800&auto=format&fit=crop'],
+    health: ['https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop'],
+    science: ['https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop'],
+    politics: ['https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&auto=format&fit=crop'],
+    default: ['https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop']
   };
 
-  const getCategoryFallback = (category) => {
-    return categoryFallbacks[category] || categoryFallbacks.default;
+  const getCategoryFallback = (category, articleId) => {
+    const images = categoryFallbacks[category] || categoryFallbacks.default;
+    const index = articleId ? articleId.length % images.length : 0;
+    return images[index];
   };
 
   if (paywallActive) {
@@ -461,7 +479,7 @@ export default function ArticleCard({ article }) {
         <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden" style={{ background: '#1A3A5C', minHeight: '200px' }}>
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
           <img 
-            src={imgError || !urlToImage ? getCategoryFallback(article.category) : urlToImage} 
+            src={imgError || !urlToImage ? getCategoryFallback(article.category, title) : urlToImage} 
             alt={title} 
             loading="lazy"
             class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
