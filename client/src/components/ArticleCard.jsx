@@ -389,6 +389,25 @@ export default function ArticleCard({ article }) {
     );
   };
 
+  // Image error handling
+  const [imgError, setImgError] = useState(false);
+
+  const categoryFallbacks = {
+    world: 'https://images.unsplash.com/photo-1529245005476-ebdf853c8485?w=800&auto=format&fit=crop', // Better fallback images from unsplash that actually work
+    business: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop',
+    technology: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop',
+    sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop',
+    entertainment: 'https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=800&auto=format&fit=crop',
+    health: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop',
+    science: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop',
+    politics: 'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&auto=format&fit=crop',
+    default: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop'
+  };
+
+  const getCategoryFallback = (category) => {
+    return categoryFallbacks[category] || categoryFallbacks.default;
+  };
+
   if (paywallActive) {
     return (
       <div class="bg-white dark:bg-paper-cardDark border-2 border-gold p-6 rounded text-center relative overflow-hidden flex flex-col justify-center items-center min-h-[300px]">
@@ -439,29 +458,22 @@ export default function ArticleCard({ article }) {
 
       <div>
         {/* Featured Image - Bleeds to top edge */}
-        {urlToImage ? (
-          <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
-            <img 
-              src={urlToImage} 
-              alt={title} 
-              class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-            {/* Overlay Category/Source */}
-            <div class="absolute bottom-3 left-4 z-20">
-               <span class="px-2.5 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-bold text-white uppercase tracking-widest font-sans border border-white/20">
-                 {source?.name || 'Unknown Source'}
-               </span>
-            </div>
+        <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden" style={{ background: '#1A3A5C', minHeight: '200px' }}>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+          <img 
+            src={imgError || !urlToImage ? getCategoryFallback(article.category) : urlToImage} 
+            alt={title} 
+            loading="lazy"
+            class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+            onError={() => setImgError(true)}
+          />
+          {/* Overlay Category/Source */}
+          <div class="absolute bottom-3 left-4 z-20">
+             <span class="px-2.5 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-bold text-white uppercase tracking-widest font-sans border border-white/20">
+               {source?.name || 'Unknown Source'}
+             </span>
           </div>
-        ) : (
-          <div class="flex items-center justify-between mb-4">
-            <span class="px-2.5 py-1 bg-gray-200 dark:bg-white/10 rounded-full text-[10px] font-bold text-navy dark:text-white uppercase tracking-widest font-sans">
-              {source?.name || 'Unknown Source'}
-            </span>
-          </div>
-        )}
+        </div>
 
         {/* Top Info Row */}
         <div class="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 font-sans flex-wrap gap-2">

@@ -240,13 +240,28 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         return res.json();
       })
       .then(data => {
-        const fetched = data.articles || [];
+        let fetched = data.articles || [];
+        
+        // Filter out articles without images
+        fetched = fetched.filter(article => article.urlToImage && article.urlToImage.startsWith('http'));
+        
+        // Inject category for fallback routing in ArticleCard
+        fetched = fetched.map(article => ({
+          ...article,
+          category: activeCategory
+        }));
+
         setArticles(prev => {
           const combined = clear ? fetched : [...prev, ...fetched];
           // Filter duplicates by title
-          return combined.filter((article, index, self) =>
+          const uniqueArticles = combined.filter((article, index, self) =>
             article.title && index === self.findIndex(a => a.title === article.title)
           );
+          
+          if (clear) {
+             console.log(`First 5 images for ${activeCategory || searchQuery}:`, uniqueArticles.slice(0,5).map(n => n.urlToImage));
+          }
+          return uniqueArticles;
         });
 
         const currentTotal = clear ? fetched.length : (articles.length + fetched.length);
