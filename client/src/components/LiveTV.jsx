@@ -1,50 +1,131 @@
-import React, { useState } from 'react';
-import { Play, Tv, Volume2, VolumeX, Maximize, ArrowLeft, Radio, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Tv, Maximize, ArrowLeft, Radio, AlertCircle } from 'lucide-react';
+
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+
+const channels = [
+  {
+    id: 'aljazeera',
+    name: 'Al Jazeera English',
+    source: 'YouTube Live',
+    channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg',
+    description: 'Comprehensive international news coverage and independent analysis from the Middle East and beyond.',
+    region: 'Qatar / Middle East'
+  },
+  {
+    id: 'bbc',
+    name: 'BBC News',
+    source: 'YouTube Live',
+    channelId: 'UC16niRr50-MSBwiO3YDb3RA',
+    description: 'Latest breaking news, business, and world news from the BBC.',
+    region: 'United Kingdom / Global'
+  },
+  {
+    id: 'skynews',
+    name: 'Sky News Live',
+    source: 'YouTube Live',
+    channelId: 'UByTSdyZrjSi1aHmd0wkSQGw',
+    description: 'First for breaking news, video, headlines, analysis and top stories from the UK and around the world.',
+    region: 'United Kingdom / Global'
+  },
+  {
+    id: 'dw',
+    name: 'DW News',
+    source: 'YouTube Live',
+    channelId: 'UCknLrEdhRCp1aegoMqRaCZg',
+    description: 'In-depth global news, analysis, and documentary reports from Germany\'s international broadcaster.',
+    region: 'Germany / Global'
+  },
+  {
+    id: 'ndtv',
+    name: 'NDTV 24x7',
+    source: 'YouTube Live',
+    channelId: 'UCZFMm1mMw0F81Z37aaEzTUA',
+    description: 'Leading English news channel from India, delivering local and global bulletins.',
+    region: 'India / Asia-Pacific'
+  },
+  {
+    id: 'republic',
+    name: 'Republic World',
+    source: 'YouTube Live',
+    channelId: 'UC_gUM8rL-Lrg6O3adPW9K1g',
+    description: 'India\'s fastest-growing English news channel covering national and international updates.',
+    region: 'India / Asia-Pacific'
+  }
+];
 
 export default function LiveTV({ setView }) {
-  const channels = [
-    {
-      id: 'aljazeera',
-      name: 'Al Jazeera English',
-      source: 'YouTube Live',
-      videoId: '21X5lGlDOfg',
-      description: 'Comprehensive international news coverage and independent analysis from the Middle East and beyond.',
-      region: 'Qatar / Middle East'
-    },
-    {
-      id: 'dwnews',
-      name: 'DW News',
-      source: 'YouTube Live',
-      videoId: 'mGC74ktp0Zg',
-      description: 'In-depth global news, analysis, and documentary reports from Germany\'s international broadcaster.',
-      region: 'Germany / Global'
-    },
-    {
-      id: 'ndtv',
-      name: 'NDTV 24x7',
-      source: 'YouTube Live',
-      videoId: 'FPSzDkQkHdU',
-      description: 'Leading English news channel from India, delivering local and global bulletins.',
-      region: 'India / Asia-Pacific'
-    },
-    {
-      id: 'skynews',
-      name: 'Sky News Live',
-      source: 'YouTube Live',
-      videoId: '9Auq9mYxFEE',
-      description: 'First for breaking news, video, headlines, analysis and top stories from the UK and around the world.',
-      region: 'United Kingdom / Global'
-    }
-  ];
-
   const [activeChannel, setActiveChannel] = useState(channels[0]);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoId, setVideoId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const [isPlaying, setIsPlaying] = useState(false);
+  const getCachedVideoId = (channelId) => {
+    try {
+      const cached = sessionStorage.getItem(`live_${channelId}`);
+      if (cached) {
+        const { videoId, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          return videoId;
+        }
+      }
+    } catch (e) {}
+    return null;
+  };
 
-  const getEmbedUrl = (channel) => {
-    return `https://www.youtube.com/embed/${channel.videoId}?autoplay=${isPlaying ? 1 : 0}&mute=1&playsinline=1&rel=0`;
+  const setCachedVideoId = (channelId, videoId) => {
+    try {
+      sessionStorage.setItem(`live_${channelId}`, JSON.stringify({
+        videoId,
+        timestamp: Date.now()
+      }));
+    } catch (e) {}
+  };
+
+  const getChannelLiveVideo = async (channelId) => {
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${YOUTUBE_API_KEY}`
+      );
+      if (!res.ok) throw new Error('API Error');
+      const data = await res.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].id.videoId;
+      }
+      return null;
+    } catch (e) {
+      console.error('YouTube API Error:', e);
+      return null;
+    }
+  };
+
+  const switchChannel = async (channel) => {
+    setActiveChannel(channel);
+    setLoading(true);
+    setError(false);
+    
+    let liveVideoId = getCachedVideoId(channel.channelId);
+    
+    if (!liveVideoId) {
+      liveVideoId = await getChannelLiveVideo(channel.channelId);
+      if (liveVideoId) {
+        setCachedVideoId(channel.channelId, liveVideoId);
+      } else {
+        setError(true);
+      }
+    }
+
+    setVideoId(liveVideoId || null);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    switchChannel(channels[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getEmbedUrl = () => {
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&rel=0`;
   };
 
   const handleFullscreen = () => {
@@ -62,7 +143,6 @@ export default function LiveTV({ setView }) {
 
   return (
     <div class="max-w-6xl mx-auto px-4 md:px-6 py-8 font-sans">
-      {/* Navigation Header */}
       <button 
         onClick={() => setView('feed')}
         class="inline-flex items-center gap-1.5 text-xs font-bold text-navy hover:text-gold dark:text-gray-300 dark:hover:text-gold uppercase tracking-wider mb-6 transition-colors"
@@ -80,7 +160,6 @@ export default function LiveTV({ setView }) {
           <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono mt-0.5">Global Satellite Dispatch Wire</p>
         </div>
 
-        {/* Live Indicator */}
         <div class="flex items-center gap-2 px-3 py-1 bg-red-600/10 border border-red-500/20 rounded">
           <span class="relative flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -90,39 +169,41 @@ export default function LiveTV({ setView }) {
         </div>
       </div>
 
-      {/* Main player layout grid */}
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
-        {/* Left/Middle Column: Main Player & Controls */}
         <div class="lg:col-span-2 space-y-4">
           
-          {/* Iframe player container */}
-          <div class="video-container relative w-full aspect-video bg-black border border-paper-border dark:border-paper-borderDark rounded shadow-lg overflow-hidden">
-            {!isPlaying && (
-              <div 
-                class="absolute inset-0 flex items-center justify-center bg-black/50 z-10 cursor-pointer md:hidden"
-                onClick={() => setIsPlaying(true)}
-              >
-                <div class="bg-red-600 rounded-full p-4 hover:bg-red-700 transition-colors shadow-lg flex items-center justify-center">
-                  <Play size={40} class="text-white ml-2" />
-                </div>
-              </div>
+          <div class="video-container relative w-full aspect-video bg-black border border-paper-border dark:border-paper-borderDark rounded shadow-lg overflow-hidden flex items-center justify-center">
+            {loading && <p class="text-gold animate-pulse font-mono text-sm">Loading live stream...</p>}
+            
+            {!loading && videoId && (
+              <iframe
+                id="er-live-player"
+                title={activeChannel.name}
+                src={getEmbedUrl()}
+                class="absolute top-0 left-0 w-full h-full border-none"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                loading="lazy"
+              ></iframe>
             )}
-            <iframe
-              id="er-live-player"
-              title={activeChannel.name}
-              src={getEmbedUrl(activeChannel)}
-              class="w-full h-full border-none"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              muted={true}
-              loading="lazy"
-              style={{ width: '100%', height: '100%' }}
-            ></iframe>
-          </div>
 
-          {/* Quick Info & Custom Overlay control simulator */}
+            {!loading && !videoId && !error && (
+              <p class="text-red-500 font-mono text-sm px-4 text-center">This channel is currently offline. Please try another channel.</p>
+            )}
+
+            {!loading && error && (
+              <p class="text-red-500 font-mono text-sm px-4 text-center">Live stream temporarily unavailable, please try again later.</p>
+            )}
+          </div>
+          
+          {!loading && videoId && (
+            <p class="text-[11px] text-gray-500 font-bold tracking-wide italic text-center mt-2">
+              🔇 Tap video and use YouTube controls to unmute
+            </p>
+          )}
+
           <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-4 rounded shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <div class="flex items-center gap-2">
@@ -138,16 +219,7 @@ export default function LiveTV({ setView }) {
               </h3>
             </div>
 
-            {/* Custom controls bar */}
             <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                class="p-2 border border-paper-border dark:border-paper-borderDark hover:border-gold rounded hover:bg-gray-50 dark:hover:bg-navy-light/10 text-navy dark:text-gray-300 transition-colors"
-                title={isMuted ? 'Unmute stream' : 'Mute stream'}
-              >
-                {isMuted ? <VolumeX size={15} class="text-red-500" /> : <Volume2 size={15} />}
-              </button>
-
               <button
                 onClick={handleFullscreen}
                 class="p-2 border border-paper-border dark:border-paper-borderDark hover:border-gold rounded hover:bg-gray-50 dark:hover:bg-navy-light/10 text-navy dark:text-gray-300 transition-colors"
@@ -158,7 +230,6 @@ export default function LiveTV({ setView }) {
             </div>
           </div>
 
-          {/* Channel Briefing description */}
           <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-4 rounded shadow-sm">
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest font-mono block mb-1">Station Intelligence Brief</span>
             <p class="text-xs text-navy/90 dark:text-gray-300 leading-relaxed font-serif">
@@ -168,7 +239,6 @@ export default function LiveTV({ setView }) {
 
         </div>
 
-        {/* Right Column: Station Directory / Selector */}
         <div class="lg:col-span-1 space-y-4">
           <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-4 rounded shadow-sm flex flex-col">
             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest font-mono block mb-3 pb-1 border-b border-gray-100 dark:border-gray-800">
@@ -181,7 +251,7 @@ export default function LiveTV({ setView }) {
                 return (
                   <button
                     key={chan.id}
-                    onClick={() => setActiveChannel(chan)}
+                    onClick={() => switchChannel(chan)}
                     class={`w-full text-left p-3 border rounded transition-all flex items-start gap-3 select-none ${
                       isSelected
                         ? 'bg-navy/5 border-navy dark:bg-gold/10 dark:border-gold text-navy dark:text-gold-light shadow-sm'
@@ -210,7 +280,6 @@ export default function LiveTV({ setView }) {
               })}
             </div>
 
-            {/* Quality Warning message */}
             <div class="mt-4 p-2.5 bg-gold/5 border border-gold/15 rounded flex gap-2 text-[10px] text-gray-550 dark:text-gray-400 leading-normal">
               <AlertCircle size={14} class="text-gold shrink-0 mt-0.5" />
               <span>Streams are aggregated from public channels. Resolution and load latency may vary depending on local connection throughput.</span>
