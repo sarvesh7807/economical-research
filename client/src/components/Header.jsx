@@ -732,7 +732,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
 
         <h1 
           onClick={() => { onCategoryChange('world'); setSearchQuery(''); setView('feed'); }}
-          class="font-serif text-2xl min-[350px]:text-3xl min-[480px]:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-navy dark:text-gold cursor-pointer hover:opacity-90 select-none transition-all duration-300 leading-none"
+          class="font-serif text-xl min-[350px]:text-2xl min-[400px]:text-3xl min-[480px]:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-navy dark:text-gold cursor-pointer hover:opacity-90 select-none transition-all duration-300 leading-none px-10 md:px-0"
         >
           ECONOMICAL RESEARCH
         </h1>
@@ -744,7 +744,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       {/* 4. SEARCH AND NAVBAR */}
       <div class="max-w-7xl mx-auto px-4 md:px-6 pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-double-navy py-3">
         {/* Category Navbar */}
-        <nav class={`header-nav ${isMenuOpen ? 'open' : ''} flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full`}>
+        <nav class={`header-nav ${isMenuOpen ? 'open bg-white dark:bg-[#0A1628] shadow-2xl border-b border-gray-200 dark:border-white/10' : ''} flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full`}>
           
           {/* E-Paper navbar action */}
           <button
