@@ -2,10 +2,6 @@ import React, { useState, useCallback, useRef } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { Globe, Newspaper, ExternalLink, ChevronLeft, RefreshCw, Search, X, Loader } from 'lucide-react';
 
-const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
-
-const NEWS_API_KEY = '6f075b0f9ff24eff9cebc5eb569e4731';
-
 // Country name (from world-atlas topojson) → ISO 2-letter code for NewsAPI
 const COUNTRY_CODE_MAP = {
   'Afghanistan': 'af',
@@ -101,41 +97,41 @@ export default function WorldMap({ setView }) {
 
   const fetchCountryNews = useCallback(async (countryName) => {
     const code = COUNTRY_CODE_MAP[countryName];
-    if (!code) {
-      setSelectedCountry(countryName);
-      setSelectedCode(null);
-      setCountryNews([]);
-      setError(`Live news feed not yet available for ${countryName}. Coverage expanding soon.`);
-      return;
-    }
 
     setSelectedCountry(countryName);
-    setSelectedCode(code);
+    setSelectedCode(code || null);
     setLoading(true);
     setError(null);
     setCountryNews([]);
     setSearchFilter('');
 
     try {
-      const res = await fetch(
-        `https://newsapi.org/v2/top-headlines?country=${code}&pageSize=20&apiKey=${NEWS_API_KEY}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let url;
+      if (code) {
+        // Use backend proxy to bypass NewsAPI CORS restriction
+        url = `/api/news/country-headlines?country=${code}`;
+      } else {
+        // For countries not in map, search by name via proxy
+        url = `/api/news/country-headlines?country=us&q=${encodeURIComponent(countryName)}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
 
-      if (data.status === 'error') {
-        throw new Error(data.message || 'NewsAPI error');
+      if (data.error && (!data.articles || data.articles.length === 0)) {
+        throw new Error(data.error);
       }
 
       const articles = (data.articles || []).filter(a => a.title && a.title !== '[Removed]');
       setCountryNews(articles);
 
       if (articles.length === 0) {
-        setError(`No live articles available for ${countryName} right now. Try again shortly.`);
+        setError(`No live articles available for ${countryName} right now. Try clicking Retry or choose another country.`);
       }
     } catch (err) {
       console.error('WorldMap news fetch error:', err);
-      setError(`Could not load news for ${countryName}. ${err.message}`);
+      setError(`Could not load news for ${countryName}. ${err.message}. Check server logs.`);
     } finally {
       setLoading(false);
     }

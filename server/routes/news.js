@@ -362,4 +362,60 @@ function getMockArticles(category, query) {
   return replicated;
 }
 
+// WORLD MAP: Proxy NewsAPI top-headlines by country code (bypasses browser CORS)
+router.get('/country-headlines', async (req, res) => {
+  const { country } = req.query;
+  if (!country || country.length !== 2) {
+    return res.status(400).json({ error: 'Valid 2-letter country code required', articles: [] });
+  }
+
+  const apiKey = getNewsApiKey();
+
+  try {
+    const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
+      params: {
+        country: country.toLowerCase(),
+        pageSize: 20,
+        apiKey
+      },
+      timeout: 8000
+    });
+
+    const data = response.data;
+    if (data.status !== 'ok') {
+      return res.status(502).json({ error: data.message || 'NewsAPI error', articles: [] });
+    }
+
+    // Filter removed articles
+    const articles = (data.articles || []).filter(
+      a => a.title && a.title !== '[Removed]' && a.url
+    );
+
+    return res.json({ status: 'ok', totalResults: articles.length, articles });
+  } catch (err) {
+    console.error('country-headlines error:', err.message);
+
+    // Fallback: try everything endpoint with country name search
+    try {
+      const fallback = await axios.get(`${NEWS_API_BASE}/everything`, {
+        params: {
+          q: country,
+          language: 'en',
+          sortBy: 'publishedAt',
+          pageSize: 10,
+          apiKey
+        },
+        timeout: 8000
+      });
+      const articles = (fallback.data.articles || []).filter(
+        a => a.title && a.title !== '[Removed]'
+      );
+      return res.json({ status: 'ok', totalResults: articles.length, articles });
+    } catch (fallbackErr) {
+      console.error('country-headlines fallback error:', fallbackErr.message);
+      return res.status(502).json({ error: 'Failed to fetch country news', articles: [] });
+    }
+  }
+});
+
 export default router;
