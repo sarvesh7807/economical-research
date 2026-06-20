@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import ArticleCard from './ArticleCard';
 import ResearchMode from './ResearchMode';
 import { useAuth } from '../contexts/AuthContext';
-import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play } from 'lucide-react';
+import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, ClipboardList, ArrowRight } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 function NewsSection({ title, fetchUrl, autoScroll = true }) {
   const [articles, setArticles] = useState([]);
@@ -631,6 +633,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           <div class="col-span-1 space-y-6">
             {renderLiveTV()}
             {renderResearchDesk()}
+            {isHomepage && <OutcomeTrackerWidget />}
             {renderSidePanel()}
           </div>
         </div>
@@ -676,6 +679,87 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       
       {isResearchOpen && (
         <ResearchMode topic={activeResearchTopic} onClose={() => setIsResearchOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function OutcomeTrackerWidget() {
+  const [stories, setStories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWidgetStories = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'tracked_stories'), orderBy('updatedAt', 'desc'), limit(3)));
+        const list = [];
+        snap.forEach(doc => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        setStories(list);
+      } catch (err) {
+        console.error('Error fetching widget stories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWidgetStories();
+  }, []);
+
+  const getStatusColor = (stage) => {
+    if (stage === 'completed') return 'text-green-500 bg-green-500/10 border-green-500/20';
+    if (stage === 'failed') return 'text-red-500 bg-red-500/10 border-red-500/20';
+    return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+  };
+
+  return (
+    <div class="glass-card p-5 rounded-3xl">
+      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <ClipboardList size={14} class="text-gold" />
+          <h3 class="font-display text-sm font-black text-navy dark:text-gold uppercase tracking-wider">
+            Promise Outcome Tracker
+          </h3>
+        </div>
+        <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">AUDIT</span>
+      </div>
+
+      {loading ? (
+        <div class="flex items-center justify-center py-6 text-xs text-gray-400 gap-1.5">
+          <Loader size={12} class="animate-spin text-gold" />
+          <span>Compiling audits...</span>
+        </div>
+      ) : stories.length === 0 ? (
+        <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No announcements currently tracked.</p>
+      ) : (
+        <div class="space-y-3">
+          {stories.map(story => (
+            <div
+              key={story.id}
+              onClick={() => window.dispatchEvent(new CustomEvent('change-view-detail', { detail: story.id }))}
+              class="group rounded-xl p-3 border border-white/5 cursor-pointer hover:border-yellow-400/20 transition-all text-left"
+              style={{ background: 'rgba(255,255,255,0.01)' }}
+            >
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-[8px] font-bold text-yellow-400/80 uppercase tracking-wide truncate">{story.category}</span>
+                <span class={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${getStatusColor(story.currentStage)}`}>
+                  {story.currentStage}
+                </span>
+              </div>
+              <h4 class="text-white text-[11.5px] font-bold leading-snug group-hover:text-yellow-300 transition-colors line-clamp-2">
+                {story.title}
+              </h4>
+            </div>
+          ))}
+          
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('change-view', { detail: 'outcome-tracker' }))}
+            class="w-full mt-2 flex items-center justify-center gap-1 py-2 text-[10px] font-bold uppercase tracking-wider text-yellow-400 hover:text-yellow-300 transition-colors border border-dashed border-white/10 hover:border-yellow-400/25 rounded-xl bg-white/5"
+          >
+            <span>View Full Audit Ledger</span>
+            <ArrowRight size={10} />
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles } from 'lucide-react';
+import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles, ClipboardList } from 'lucide-react';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -824,6 +824,19 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <span>World Map</span>
           </button>
 
+          {/* Outcome Tracker navbar action */}
+          <button
+            onClick={() => setView('outcome-tracker')}
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'outcome-tracker' || view === 'outcome-detail'
+                ? 'border-navy dark:border-gold text-navy dark:text-gold'
+                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
+            }`}
+          >
+            <ClipboardList size={13} class="text-gold" />
+            <span>Outcome Tracker</span>
+          </button>
+
           <span class="text-gray-300 dark:text-gray-700 shrink-0 font-light mx-1">|</span>
 
           {categories.map((cat) => (
@@ -1057,6 +1070,13 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
               >
                 <Sparkles size={15} class="text-gold" />
                 <span>ER Claude Assistant</span>
+              </button>
+              <button
+                onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}
+                class="w-full flex items-center gap-2.5 p-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-navy-light/10 text-left border border-transparent hover:border-paper-border dark:hover:border-paper-borderDark"
+              >
+                <ClipboardList size={15} class="text-gold" />
+                <span>Outcome Tracker</span>
               </button>
             </div>
 

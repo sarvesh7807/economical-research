@@ -430,5 +430,60 @@ Content: ${content || ''}`;
   }
 });
 
+// 5. EXTRACT PROMISE FOR OUTCOME TRACKER
+router.post('/extract-promise', async (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'Article text is required.' });
+  }
+
+  if (!genAI) {
+    return res.json({
+      isTrackable: true,
+      title: "Extracted Announcement",
+      category: "Policy",
+      promise: "Sample promise extracted from mock text.",
+      expectedTimeline: "Within 6 months"
+    });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `You are an AI research assistant for "Economical Research". Analyze the following news article text to determine if it contains a government promise, policy announcement, new scheme, or target (e.g. "Govt announces 10 lakh jobs", "State targets zero carbon emissions by 2030", "Ministry launches health scheme").
+
+If yes, extract:
+- Title: A short, engaging tracking title (under 10 words)
+- Category: Choose exactly one category from: Employment, Government, Policy, Infrastructure, Health, Education, Finance, Business, Technology, Science, Environment, Travel, Lifestyle, Law.
+- The Promise: A clear, concise statement of what was promised/announced (under 30 words).
+- Expected Timeline: Any mentioned timelines, dates, or expected milestone durations (e.g., "by June 2026", "within 2 years").
+
+Respond ONLY with a valid JSON object in this exact format (no markdown blocks, no additional text):
+{
+  "isTrackable": true or false,
+  "title": "Short title here (or empty string if not trackable)",
+  "category": "Category here (or empty string if not trackable)",
+  "promise": "Promise description here (or empty string if not trackable)",
+  "expectedTimeline": "Expected timeline here (or empty string if not trackable)"
+}
+
+Article:
+${text}`;
+
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    const data = JSON.parse(raw);
+    res.json(data);
+  } catch (err) {
+    console.error('Extract promise error:', err.message);
+    res.json({
+      isTrackable: true,
+      title: "AI Extracted Promise",
+      category: "Policy",
+      promise: "Extract from news content failed, pre-fill template.",
+      expectedTimeline: "Within 1 year"
+    });
+  }
+});
+
 export default router;
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { BarChart, Users, FileText, Bell, ShieldAlert, ArrowLeft, RefreshCw, Plus, Ban, CheckCircle, TrendingUp, AlertTriangle } from 'lucide-react';
+import { BarChart, Users, FileText, Bell, ShieldAlert, ArrowLeft, RefreshCw, Plus, Ban, CheckCircle, TrendingUp, AlertTriangle, ClipboardList, Trash2, Sparkles, X as XIcon, Loader } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, orderBy, where, setDoc } from 'firebase/firestore';
 
 export default function AdminPanel({ setView }) {
   const { user } = useAuth();
@@ -34,6 +36,310 @@ export default function AdminPanel({ setView }) {
 
   // Verify Admin email permission
   const isAdmin = user && (user.email === 'admin@economicalresearch.com' || user.email?.endsWith('@economicalresearch.com'));
+
+  // Outcome Tracker states
+  const [storiesList, setStoriesList] = useState([]);
+  const [loadingStories, setLoadingStories] = useState(true);
+  const [showNewStoryForm, setShowNewStoryForm] = useState(false);
+  const [selectedStoryForUpdate, setSelectedStoryForUpdate] = useState(null);
+  const [aiInputText, setAiInputText] = useState('');
+  const [extractingPromise, setExtractingPromise] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
+  
+  const [newStoryForm, setNewStoryForm] = useState({
+    title: '',
+    category: 'Policy',
+    promise: '',
+    originalNewsUrl: '',
+    originalNewsDate: new Date().toISOString().split('T')[0],
+    initialStageDescription: '',
+    initialStageSourceUrl: '',
+    nextUpdateExpected: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0]
+  });
+
+  const [newUpdateForm, setNewUpdateForm] = useState({
+    stage: 'notification',
+    title: '',
+    description: '',
+    sourceUrl: ''
+  });
+
+  const loadStories = async () => {
+    setLoadingStories(true);
+    try {
+      const snap = await getDocs(query(collection(db, 'tracked_stories'), orderBy('updatedAt', 'desc')));
+      const list = [];
+      snap.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setStoriesList(list);
+    } catch (err) {
+      console.error('Error loading tracked stories:', err);
+    } finally {
+      setLoadingStories(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin || activeTab !== 'outcomes') return;
+    loadStories();
+  }, [isAdmin, activeTab]);
+
+  const handleCreateStorySubmit = async (e) => {
+    e.preventDefault();
+    if (!newStoryForm.title.trim() || !newStoryForm.promise.trim()) return;
+
+    try {
+      const dateStr = newStoryForm.originalNewsDate || new Date().toISOString();
+      const nextDateStr = newStoryForm.nextUpdateExpected || new Date().toISOString();
+      
+      const firstStage = {
+        stage: 'announcement',
+        title: 'Announcement Made',
+        date: new Date(dateStr).toISOString(),
+        description: newStoryForm.initialStageDescription || 'Government officially made the announcement.',
+        sourceUrl: newStoryForm.originalNewsUrl || '',
+        status: 'completed'
+      };
+
+      const pendingNotificationStage = {
+        stage: 'notification',
+        title: 'Official Notification',
+        date: null,
+        description: 'Waiting for official gazette notification or guidelines.',
+        sourceUrl: '',
+        status: 'pending'
+      };
+
+      const storyData = {
+        title: newStoryForm.title,
+        category: newStoryForm.category,
+        originalNewsUrl: newStoryForm.originalNewsUrl,
+        originalNewsDate: new Date(dateStr).toISOString(),
+        promise: newStoryForm.promise,
+        currentStage: 'announcement',
+        stages: [firstStage, pendingNotificationStage],
+        finalResult: null,
+        nextUpdateExpected: new Date(nextDateStr).toISOString(),
+        followersCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await addDoc(collection(db, 'tracked_stories'), storyData);
+      setShowNewStoryForm(false);
+      setNewStoryForm({
+        title: '',
+        category: 'Policy',
+        promise: '',
+        originalNewsUrl: '',
+        originalNewsDate: new Date().toISOString().split('T')[0],
+        initialStageDescription: '',
+        initialStageSourceUrl: '',
+        nextUpdateExpected: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0]
+      });
+      setAiInputText('');
+      setAiStatus(null);
+      loadStories();
+    } catch (err) {
+      console.error('Error creating tracked story:', err);
+    }
+  };
+
+  const handleDeleteStory = async (storyId) => {
+    if (!window.confirm('Are you sure you want to delete this tracked story? This will remove all updates and follower mappings.')) return;
+    try {
+      await deleteDoc(doc(db, 'tracked_stories', storyId));
+      loadStories();
+    } catch (err) {
+      console.error('Error deleting tracked story:', err);
+    }
+  };
+
+  const handleAddUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedStoryForUpdate || !newUpdateForm.title.trim()) return;
+
+    try {
+      const storyId = selectedStoryForUpdate.id;
+      const storyRef = doc(db, 'tracked_stories', storyId);
+
+      const newStage = {
+        stage: newUpdateForm.stage,
+        title: newUpdateForm.title,
+        date: new Date().toISOString(),
+        description: newUpdateForm.description,
+        sourceUrl: newUpdateForm.sourceUrl,
+        status: 'completed'
+      };
+
+      let updatedStages = [...selectedStoryForUpdate.stages];
+      
+      const existingPendingIdx = updatedStages.findIndex(s => s.stage === newUpdateForm.stage && s.status === 'pending');
+      
+      if (existingPendingIdx !== -1) {
+        updatedStages[existingPendingIdx] = newStage;
+      } else {
+        updatedStages.push(newStage);
+      }
+
+      let finalResult = null;
+      let currentStage = newUpdateForm.stage;
+      if (newUpdateForm.stage === 'completed' || newUpdateForm.stage === 'failed') {
+        finalResult = newUpdateForm.stage === 'completed' ? 'Successfully Completed' : 'Failed / Shelved';
+        updatedStages = updatedStages.map(s => s.status === 'pending' ? { ...s, status: newUpdateForm.stage } : s);
+      } else {
+        const nextPendingStages = {
+          'notification': 'process',
+          'process': 'result',
+          'result': 'completed'
+        };
+        const nextStageType = nextPendingStages[newUpdateForm.stage];
+        if (nextStageType && !updatedStages.some(s => s.stage === nextStageType)) {
+          updatedStages.push({
+            stage: nextStageType,
+            title: nextStageType === 'process' ? 'Implementation Process' : nextStageType === 'result' ? 'Final Outcome / Result' : 'Project Completion',
+            date: null,
+            description: '',
+            sourceUrl: '',
+            status: 'pending'
+          });
+        }
+      }
+
+      const stageOrder = {
+        'announcement': 1,
+        'notification': 2,
+        'process': 3,
+        'result': 4,
+        'completed': 5,
+        'failed': 5
+      };
+      
+      updatedStages.sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return 1;
+        if (a.status !== 'pending' && b.status === 'pending') return -1;
+        return stageOrder[a.stage] - stageOrder[b.stage];
+      });
+
+      const updateData = {
+        currentStage: currentStage,
+        stages: updatedStages,
+        updatedAt: new Date().toISOString(),
+        nextUpdateExpected: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString()
+      };
+
+      if (finalResult) {
+        updateData.finalResult = finalResult;
+      }
+
+      await updateDoc(storyRef, updateData);
+      
+      notifyFollowers(selectedStoryForUpdate, newUpdateForm.title, newUpdateForm.description);
+
+      setSelectedStoryForUpdate(null);
+      setNewUpdateForm({
+        stage: 'process',
+        title: '',
+        description: '',
+        sourceUrl: ''
+      });
+      loadStories();
+    } catch (err) {
+      console.error('Error adding stage update:', err);
+    }
+  };
+
+  const notifyFollowers = async (story, updateTitle, updateDesc) => {
+    try {
+      const qFollowers = query(collection(db, 'story_followers'), where('storyId', '==', story.id));
+      const snap = await getDocs(qFollowers);
+      const followers = [];
+      snap.forEach(d => {
+        followers.push(d.data());
+      });
+
+      for (const follower of followers) {
+        const { userId, userEmail } = follower;
+
+        fetch('/api/notifications/send-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            title: `Promise Tracker Update: ${story.title}`,
+            text: `${updateTitle}: ${updateDesc || 'A new stage update has been published.'}`,
+            url: `/outcome-tracker/${story.id}`
+          })
+        }).catch(err => console.error('Error sending direct push:', err));
+
+        if (userEmail) {
+          fetch('/api/notifications/dispatch-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: userEmail,
+              type: 'breaking',
+              data: { headline: `Tracker Update: ${story.title} - ${updateTitle}` }
+            })
+          }).catch(err => console.error('Error sending follower email:', err));
+        }
+
+        try {
+          const notifId = `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          await setDoc(doc(db, 'users', userId, 'notifications', notifId), {
+            id: notifId,
+            type: 'breaking',
+            title: `Promise Tracker Update: ${story.title}`,
+            text: `Milestone reached: "${updateTitle}". Stage status is now updated.`,
+            timestamp: new Date().toISOString(),
+            read: false,
+            url: `/outcome-tracker/${story.id}`
+          });
+        } catch (dbErr) {
+          // ignore rules restriction
+        }
+      }
+    } catch (e) {
+      console.error('Error in notifyFollowers logic:', e);
+    }
+  };
+
+  const handleAiExtractPromise = async () => {
+    if (!aiInputText.trim()) return;
+    setExtractingPromise(true);
+    setAiStatus(null);
+
+    try {
+      const res = await fetch('/api/ai/extract-promise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: aiInputText })
+      });
+      
+      if (!res.ok) throw new Error('AI extraction request failed');
+      const data = await res.json();
+
+      if (data.isTrackable) {
+        setNewStoryForm(prev => ({
+          ...prev,
+          title: data.title || '',
+          category: data.category || 'Policy',
+          promise: data.promise || '',
+          initialStageDescription: `Announcement made: ${data.promise || ''}`,
+          nextUpdateExpected: data.expectedTimeline ? new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0] : prev.nextUpdateExpected
+        }));
+        setAiStatus({ success: true, message: 'AI extracted details successfully! Form fields are updated below.' });
+      } else {
+        setAiStatus({ success: false, message: 'AI did not detect any trackable government promise or scheme in this article.' });
+      }
+    } catch (err) {
+      console.error('AI extraction error:', err);
+      setAiStatus({ success: false, message: 'Failed to connect to AI engine. Please enter details manually.' });
+    } finally {
+      setExtractingPromise(false);
+    }
+  };
 
   // Load stats
   useEffect(() => {
@@ -198,7 +504,8 @@ export default function AdminPanel({ setView }) {
             { id: 'overview', name: 'Overview Stats', icon: <BarChart size={14} /> },
             { id: 'users', name: 'User Controls', icon: <Users size={14} /> },
             { id: 'publish', name: 'Manual Publishing', icon: <FileText size={14} /> },
-            { id: 'alerts', name: 'Push Dispatches', icon: <Bell size={14} /> }
+            { id: 'alerts', name: 'Push Dispatches', icon: <Bell size={14} /> },
+            { id: 'outcomes', name: 'Outcome Tracker', icon: <ClipboardList size={14} /> }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -506,6 +813,356 @@ export default function AdminPanel({ setView }) {
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* TAB 5: OUTCOME TRACKER MANAGER */}
+          {activeTab === 'outcomes' && (
+            <div class="space-y-6">
+              <div class="border-b border-paper-border dark:border-paper-borderDark pb-2 flex justify-between items-center">
+                <h3 class="font-serif text-sm font-black text-navy dark:text-gold uppercase tracking-wider">Outcome Tracker Manager</h3>
+                {!showNewStoryForm && !selectedStoryForUpdate && (
+                  <button
+                    onClick={() => setShowNewStoryForm(true)}
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-navy font-bold text-[10px] uppercase tracking-wider rounded shadow hover:bg-gold-light transition-all"
+                  >
+                    <Plus size={12} />
+                    <span>New Tracked Story</span>
+                  </button>
+                )}
+              </div>
+
+              {/* FORM: CREATE NEW STORY */}
+              {showNewStoryForm && (
+                <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded p-5 space-y-6">
+                  <div class="flex justify-between items-center border-b border-paper-border dark:border-paper-borderDark pb-2">
+                    <h4 class="font-serif text-xs font-black text-navy dark:text-gold uppercase tracking-widest">Create New Tracked Story</h4>
+                    <button
+                      onClick={() => { setShowNewStoryForm(false); setAiStatus(null); }}
+                      class="text-gray-400 hover:text-red-500 font-bold uppercase tracking-widest text-[10px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {/* AI Suggestion Box */}
+                  <div class="bg-navy/5 dark:bg-white/5 border border-navy/10 dark:border-white/10 rounded-xl p-4 space-y-3">
+                    <span class="text-[9px] font-mono font-bold text-gold uppercase tracking-widest block">🤖 AI Suggestion Generator</span>
+                    <p class="text-[10px] text-gray-500 leading-normal">
+                      Paste news article text below and let Gemini extract the policy details to pre-fill the form.
+                    </p>
+                    <textarea
+                      rows={4}
+                      placeholder="Paste article text here..."
+                      value={aiInputText}
+                      onChange={(e) => setAiInputText(e.target.value)}
+                      class="w-full bg-white dark:bg-black/40 border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                    ></textarea>
+                    <button
+                      type="button"
+                      disabled={extractingPromise || !aiInputText.trim()}
+                      onClick={handleAiExtractPromise}
+                      class="inline-flex items-center gap-1.5 px-4 py-2 bg-navy hover:bg-navy-light text-accent-neon font-bold text-[10px] uppercase tracking-wider rounded transition-all disabled:opacity-50"
+                    >
+                      {extractingPromise ? <Loader size={12} class="animate-spin text-gold" /> : <Sparkles size={12} />}
+                      <span>{extractingPromise ? 'AI Extracting...' : 'Suggest from News'}</span>
+                    </button>
+
+                    {aiStatus && (
+                      <p class={`text-[10px] font-bold ${aiStatus.success ? 'text-green-500' : 'text-red-500'}`}>
+                        {aiStatus.success ? '✓' : '✗'} {aiStatus.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Manual / pre-filled Form fields */}
+                  <form onSubmit={handleCreateStorySubmit} class="space-y-4 text-xs font-semibold font-sans">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Story Title</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 10 Lakh Govt Jobs Announcement"
+                          value={newStoryForm.title}
+                          onChange={(e) => setNewStoryForm({ ...newStoryForm, title: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Category</label>
+                        <select
+                          value={newStoryForm.category}
+                          onChange={(e) => setNewStoryForm({ ...newStoryForm, category: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        >
+                          <option value="Employment">Employment</option>
+                          <option value="Government">Government</option>
+                          <option value="Policy">Policy</option>
+                          <option value="Infrastructure">Infrastructure</option>
+                          <option value="Health">Health</option>
+                          <option value="Education">Education</option>
+                          <option value="Finance">Finance</option>
+                          <option value="Business">Business</option>
+                          <option value="Technology">Technology</option>
+                          <option value="Science">Science</option>
+                          <option value="Environment">Environment</option>
+                          <option value="Travel">Travel</option>
+                          <option value="Lifestyle">Lifestyle</option>
+                          <option value="Law">Law & Crime</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Original Promise / Scheme Detail</label>
+                      <textarea
+                        required
+                        rows={2}
+                        placeholder="What was promised - keep it clear and short..."
+                        value={newStoryForm.promise}
+                        onChange={(e) => setNewStoryForm({ ...newStoryForm, promise: e.target.value })}
+                        class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                      ></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Original News URL</label>
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={newStoryForm.originalNewsUrl}
+                          onChange={(e) => setNewStoryForm({ ...newStoryForm, originalNewsUrl: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Original News Date</label>
+                        <input
+                          type="date"
+                          value={newStoryForm.originalNewsDate}
+                          onChange={(e) => setNewStoryForm({ ...newStoryForm, originalNewsDate: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Next Expected Update</label>
+                        <input
+                          type="date"
+                          value={newStoryForm.nextUpdateExpected}
+                          onChange={(e) => setNewStoryForm({ ...newStoryForm, nextUpdateExpected: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="border-t border-dashed border-paper-border dark:border-paper-borderDark pt-4">
+                      <span class="text-[9px] font-mono font-bold text-gray-450 uppercase tracking-widest block mb-2">Stage 1: Announcement Details</span>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Announcement Description</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Finance ministry signs off on scheme framework."
+                            value={newStoryForm.initialStageDescription}
+                            onChange={(e) => setNewStoryForm({ ...newStoryForm, initialStageDescription: e.target.value })}
+                            class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Source link</label>
+                          <input
+                            type="url"
+                            placeholder="https://..."
+                            value={newStoryForm.initialStageSourceUrl}
+                            onChange={(e) => setNewStoryForm({ ...newStoryForm, initialStageSourceUrl: e.target.value })}
+                            class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-paper-border dark:border-paper-borderDark">
+                      <button
+                        type="button"
+                        onClick={() => { setShowNewStoryForm(false); setAiStatus(null); }}
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-navy dark:text-white font-bold uppercase tracking-wider rounded text-[10px]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        class="px-5 py-2.5 bg-navy hover:bg-navy-light text-gold font-bold uppercase tracking-wider rounded transition-all shadow"
+                      >
+                        <span>Save Tracked Story</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* FORM: ADD STAGE UPDATE */}
+              {selectedStoryForUpdate && (
+                <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded p-5 space-y-4">
+                  <div class="flex justify-between items-center border-b border-paper-border dark:border-paper-borderDark pb-2">
+                    <div>
+                      <h4 class="font-serif text-xs font-black text-navy dark:text-gold uppercase tracking-widest">Add Timeline Milestone</h4>
+                      <p class="text-[10px] text-gray-450">Story: {selectedStoryForUpdate.title}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedStoryForUpdate(null)}
+                      class="text-gray-450 hover:text-red-500 font-bold uppercase tracking-widest text-[10px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddUpdateSubmit} class="space-y-4 text-xs font-semibold font-sans">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Milestone Stage Type</label>
+                        <select
+                          value={newUpdateForm.stage}
+                          onChange={(e) => setNewUpdateForm({ ...newUpdateForm, stage: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        >
+                          <option value="notification">Notification / Guidelines</option>
+                          <option value="process">Implementation Process</option>
+                          <option value="result">Milestone / Result</option>
+                          <option value="completed">Successfully Completed</option>
+                          <option value="failed">Failed / Shelved</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Milestone Title</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Official Gazette Published"
+                          value={newUpdateForm.title}
+                          onChange={(e) => setNewUpdateForm({ ...newUpdateForm, title: e.target.value })}
+                          class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Description / Details</label>
+                      <textarea
+                        required
+                        rows={3}
+                        placeholder="Provide details about this milestone update..."
+                        value={newUpdateForm.description}
+                        onChange={(e) => setNewUpdateForm({ ...newUpdateForm, description: e.target.value })}
+                        class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                      ></textarea>
+                    </div>
+
+                    <div>
+                      <label class="block text-gray-400 uppercase tracking-wider text-[9px] mb-1">Verification Source URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={newUpdateForm.sourceUrl}
+                        onChange={(e) => setNewUpdateForm({ ...newUpdateForm, sourceUrl: e.target.value })}
+                        class="w-full bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
+                      />
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStoryForUpdate(null)}
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10 text-navy dark:text-white font-bold uppercase tracking-wider rounded text-[10px]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        class="px-5 py-2.5 bg-navy hover:bg-navy-light text-gold font-bold uppercase tracking-wider rounded transition-all shadow"
+                      >
+                        <span>Publish Milestone Update</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* LIST OF TRACKED STORIES */}
+              {!showNewStoryForm && !selectedStoryForUpdate && (
+                <div class="space-y-4">
+                  {loadingStories ? (
+                    <div class="flex items-center justify-center py-20 text-xs font-bold text-gray-400 gap-2">
+                      <RefreshCw size={14} class="animate-spin text-gold" />
+                      <span>RETRIEVING TRACKED PROJECTS...</span>
+                    </div>
+                  ) : storiesList.length === 0 ? (
+                    <div class="py-16 text-center border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
+                      <ClipboardList size={36} class="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
+                      <h4 class="font-serif text-sm font-black text-navy dark:text-white mb-1">No Tracked Stories</h4>
+                      <p class="text-xs text-gray-400">Click "+ New Tracked Story" to create a new outcome tracking pipeline.</p>
+                    </div>
+                  ) : (
+                    <div class="overflow-x-auto bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded">
+                      <table class="w-full text-left text-[11px] font-sans text-navy dark:text-gray-300">
+                        <thead>
+                          <tr class="border-b border-paper-border dark:border-paper-borderDark text-[9px] uppercase tracking-widest text-gray-450 font-bold">
+                            <th class="p-3">Tracked Story</th>
+                            <th class="p-3">Category</th>
+                            <th class="p-3">Current Stage</th>
+                            <th class="p-3">Followers</th>
+                            <th class="p-3">Last Updated</th>
+                            <th class="p-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                          {storiesList.map((story) => (
+                            <tr key={story.id} class="hover:bg-gray-50/50 dark:hover:bg-white/5">
+                              <td class="p-3">
+                                <span class="font-serif font-black text-navy dark:text-white block truncate max-w-xs">{story.title}</span>
+                                <span class="text-[9px] text-gray-450 block truncate max-w-xs italic">{story.promise}</span>
+                              </td>
+                              <td class="p-3 font-bold uppercase text-[9px] text-gold">{story.category}</td>
+                              <td class="p-3">
+                                <span class={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                  story.currentStage === 'completed' 
+                                    ? 'bg-green-500/10 text-green-600' 
+                                    : story.currentStage === 'failed' 
+                                    ? 'bg-red-500/10 text-red-650' 
+                                    : 'bg-yellow-500/10 text-yellow-600'
+                                }`}>
+                                  {story.currentStage}
+                                </span>
+                              </td>
+                              <td class="p-3 font-mono font-bold">{story.followersCount || 0}</td>
+                              <td class="p-3 font-mono text-[10px] text-gray-400">
+                                {new Date(story.updatedAt).toLocaleDateString()}
+                              </td>
+                              <td class="p-3 text-right space-x-1.5">
+                                <button
+                                  onClick={() => setSelectedStoryForUpdate(story)}
+                                  class="px-2 py-1 bg-navy hover:bg-navy-light text-gold text-[9px] font-bold uppercase tracking-wider rounded shadow transition-all"
+                                  title="Add Update Milestone"
+                                >
+                                  + Update
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteStory(story.id)}
+                                  class="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-650 rounded transition-colors inline-flex items-center justify-center"
+                                  title="Delete Tracked Story"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -18,6 +18,8 @@ import ErAssistantFull from './components/ErAssistantFull';
 import FakeNewsChecker from './components/FakeNewsChecker';
 import BiasDetector from './components/BiasDetector';
 import WorldMap from './components/WorldMap';
+import OutcomeTracker from './components/OutcomeTracker';
+import OutcomeDetail from './components/OutcomeDetail';
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -89,11 +91,15 @@ function AppContent() {
 
   const [activeCategory, setActiveCategory] = useState('world');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const setView = (newView) => {
+  const [selectedTrackerId, setSelectedTrackerId] = useState(null);
+  
+  const setView = (newView, detailId = null) => {
     setViewLoading(true);
     setTimeout(() => {
       setViewInternal(newView);
+      if (detailId) {
+        setSelectedTrackerId(detailId);
+      }
       setViewLoading(false);
       
       // Update history state URL path to provide pricing route and clean parameters
@@ -107,6 +113,11 @@ function AppContent() {
         window.history.pushState({}, '', '/bias-detector');
       } else if (newView === 'world-map') {
         window.history.pushState({}, '', '/world-map');
+      } else if (newView === 'outcome-tracker') {
+        window.history.pushState({}, '', '/outcome-tracker');
+      } else if (newView === 'outcome-detail') {
+        const idToUse = detailId || selectedTrackerId;
+        window.history.pushState({}, '', `/outcome-tracker/${idToUse}`);
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -118,13 +129,18 @@ function AppContent() {
     const handleViewChange = (e) => {
       if (e.detail) setView(e.detail);
     };
+    const handleViewDetailChange = (e) => {
+      if (e.detail) setView('outcome-detail', e.detail);
+    };
     const handleOpenAuth = () => {
       setAuthModalOpen(true);
     };
     window.addEventListener('change-view', handleViewChange);
+    window.addEventListener('change-view-detail', handleViewDetailChange);
     window.addEventListener('open-auth-modal', handleOpenAuth);
     return () => {
       window.removeEventListener('change-view', handleViewChange);
+      window.removeEventListener('change-view-detail', handleViewDetailChange);
       window.removeEventListener('open-auth-modal', handleOpenAuth);
     };
   }, []);
@@ -149,6 +165,12 @@ function AppContent() {
       setViewInternal('bias-detector');
     } else if (path === '/world-map') {
       setViewInternal('world-map');
+    } else if (path === '/outcome-tracker') {
+      setViewInternal('outcome-tracker');
+    } else if (path.startsWith('/outcome-tracker/')) {
+      const id = path.split('/').pop();
+      setSelectedTrackerId(id);
+      setViewInternal('outcome-detail');
     }
   }, []);
 
@@ -247,6 +269,10 @@ function AppContent() {
           <BiasDetector />
         ) : view === 'world-map' ? (
           <WorldMap setView={setView} />
+        ) : view === 'outcome-tracker' ? (
+          <OutcomeTracker setView={setView} />
+        ) : view === 'outcome-detail' ? (
+          <OutcomeDetail setView={setView} trackerId={selectedTrackerId} />
         ) : view === 'profile' ? (
           user ? (
             <Profile 
