@@ -744,7 +744,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       {/* 4. SEARCH AND NAVBAR */}
       <div class="max-w-7xl mx-auto px-4 md:px-6 pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-double-navy py-3">
         {/* Category Navbar */}
-        <nav class={`header-nav ${isMenuOpen ? 'open bg-white dark:bg-[#0A1628] shadow-2xl border-b border-gray-200 dark:border-white/10' : ''} flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full`}>
+        <nav class="header-nav flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full">
           
           {/* E-Paper navbar action */}
           <button
@@ -945,191 +945,52 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       </div>
 
       {/* 5. MOBILE DRAWER OVERLAY */}
-      {false && isMenuOpen && (
-        <div class="fixed inset-0 z-50 flex md:hidden font-sans">
-          {/* Backdrop overlay */}
-          <div 
-            onClick={() => setIsMenuOpen(false)}
-            class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          ></div>
-          
-          {/* Drawer body */}
-          <div class="relative flex w-full max-w-[280px] flex-col bg-paper dark:bg-paper-cardDark p-5 overflow-y-auto shadow-2xl border-r border-paper-border dark:border-paper-borderDark text-navy dark:text-gray-200 transition-transform animate-slide-right">
-            {/* Drawer Header */}
-            <div class="flex items-center justify-between pb-3 border-b border-paper-border dark:border-paper-borderDark mb-5">
-              <span class="font-serif font-black uppercase tracking-widest text-gold text-xs">ER News Bureau</span>
-              <button 
-                onClick={() => setIsMenuOpen(false)}
-                class="text-gray-400 hover:text-navy dark:hover:text-white p-1 rounded"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      <div class="md:hidden font-sans">
+        <div 
+          class={`mobile-menu-backdrop ${isMenuOpen ? 'open' : ''}`} 
+          onClick={() => setIsMenuOpen(false)}
+        ></div>
+        <div class={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+          <div class="mobile-menu-header">
+            <span style={{ color: '#F4A726', fontWeight: 'bold', fontSize: '18px', letterSpacing: '2px' }}>MENU</span>
+            <button class="mobile-menu-close" onClick={() => setIsMenuOpen(false)}>✕</button>
+          </div>
+          <div style={{ paddingBottom: '40px' }}>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Home</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>World News</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('india'); setView('feed'); setIsMenuOpen(false); }}>India News</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('politics'); setView('feed'); setIsMenuOpen(false); }}>Politics</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('tech'); setView('feed'); setIsMenuOpen(false); }}>Technology</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('business'); setView('feed'); setIsMenuOpen(false); }}>Business</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('finance'); setView('feed'); setIsMenuOpen(false); }}>Finance</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('sports'); setView('feed'); setIsMenuOpen(false); }}>Sports</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('entertainment'); setView('feed'); setIsMenuOpen(false); }}>Entertainment</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('science'); setView('feed'); setIsMenuOpen(false); }}>Science</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('environment'); setView('feed'); setIsMenuOpen(false); }}>Environment</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('health'); setView('feed'); setIsMenuOpen(false); }}>Health</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('education'); setView('feed'); setIsMenuOpen(false); }}>Education</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('travel'); setView('feed'); setIsMenuOpen(false); }}>Travel</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('lifestyle'); setView('feed'); setIsMenuOpen(false); }}>Lifestyle</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('law'); setView('feed'); setIsMenuOpen(false); }}>Law & Crime</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('research'); setView('feed'); setIsMenuOpen(false); }}>Research</button>
             
-            {/* User Session section */}
-            <div class="mb-6 p-3 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded">
-              {user ? (
-                <div class="space-y-3">
-                  <div class="flex items-center gap-2">
-                    {user.photoURL ? (
-                      <img src={user.photoURL} alt="Avatar" class="w-7 h-7 rounded-full object-cover border border-gold" />
-                    ) : (
-                      <UserIcon size={18} class="text-gold shrink-0" />
-                    )}
-                    <div class="min-w-0 flex-grow">
-                      <p class="text-xs font-black truncate">{user.displayName || user.email}</p>
-                      <span class="text-[9px] text-gray-450 block font-mono">
-                        Status: {subscription?.tier === 'PRO' ? 'PRO Press' : 'Basic Wire'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div class="flex gap-2">
-                    <button
-                      onClick={() => { setView('profile'); setIsMenuOpen(false); }}
-                      class="flex-grow py-1 bg-navy text-gold text-[10px] font-bold uppercase tracking-wider rounded text-center border border-gold/15"
-                    >
-                      Profile
-                    </button>
-                    {subscription?.tier !== 'PRO' && (
-                      <button
-                        onClick={() => { setView('billing'); setIsMenuOpen(false); }}
-                        class="flex-grow py-1 bg-gold text-navy text-[10px] font-black uppercase tracking-wider rounded text-center border border-gold/30"
-                      >
-                        Upgrade
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => { openAuthModal(); setIsMenuOpen(false); }}
-                  class="w-full py-2 bg-navy text-gold text-[10px] font-black uppercase tracking-widest rounded flex items-center justify-center gap-1.5 border border-gold/15"
-                >
-                  <LogIn size={12} />
-                  <span>Log In Credentials</span>
-                </button>
-              )}
-            </div>
-
-            {/* Mobile notifications ledger */}
-            {user && (
-              <div class="mb-6 p-3 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded">
-                <div class="flex items-center justify-between pb-2 border-b border-paper-border dark:border-paper-borderDark mb-3">
-                  <span class="text-[9px] font-bold text-gray-450 uppercase tracking-widest font-mono">Notification Ledger</span>
-                  {unreadNotificationsCount > 0 && (
-                    <span class="bg-red-655 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full scale-95">{unreadNotificationsCount}</span>
-                  )}
-                </div>
-                
-                <div class="max-h-40 overflow-y-auto space-y-2.5 divide-y divide-gray-150/10 scrollbar-none pr-1">
-                  {notifications.length === 0 ? (
-                    <p class="text-[10px] text-gray-450 italic text-center py-2">No active notifications</p>
-                  ) : (
-                    notifications.slice(0, 5).map(n => (
-                      <div 
-                        key={n.id} 
-                        onClick={() => { markAsRead(n.id); setIsMenuOpen(false); if (n.url) window.open(n.url, '_blank'); else setView('feed'); }}
-                        class={`text-[10.5px] leading-relaxed cursor-pointer hover:text-gold pt-1.5 flex items-start gap-1.5 ${n.read ? 'opacity-60' : 'font-bold'}`}
-                      >
-                        <span class="shrink-0">{n.type === 'breaking' ? '🔴' : n.type === 'topic' ? '📰' : n.type === 'subscription' ? '💳' : n.type === 'welcome' ? '👋' : '🔐'}</span>
-                        <div class="min-w-0 flex-grow">
-                          <div class="flex justify-between items-center gap-1.5">
-                            <span class="truncate block font-bold">{n.title}</span>
-                            {!n.read && <span class="w-1.5 h-1.5 shrink-0 bg-red-655 rounded-full"></span>}
-                          </div>
-                          <span class="text-[8px] text-gray-500 font-mono block mt-0.5">{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+            <button class="mobile-menu-item" onClick={() => { setView('fake-news'); setIsMenuOpen(false); }} style={{ marginTop: '10px', borderTop: '1px solid #1A3A5C' }}>Fake News Checker</button>
+            <button class="mobile-menu-item" onClick={() => { setView('bias-detector'); setIsMenuOpen(false); }}>Bias Detector</button>
+            <button class="mobile-menu-item" onClick={() => { setView('world-map'); setIsMenuOpen(false); }}>World News Map</button>
+            <button class="mobile-menu-item" onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}>Outcome Tracker</button>
+            <button class="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
+            <button class="mobile-menu-item" onClick={() => { setView('livetv'); setIsMenuOpen(false); }}>Live TV</button>
+            <button class="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Deep Research Desk</button>
+            <button class="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
+            
+            {user ? (
+              <button class="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile</button>
+            ) : (
+              <button class="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
             )}
-
-            {/* Premium Dispatches section */}
-            <div class="space-y-2 mb-6">
-              <span class="text-[9px] font-bold text-gray-450 uppercase tracking-widest block font-mono mb-1">Premium Desks</span>
-              <button
-                onClick={() => { setView('epaper'); setIsMenuOpen(false); }}
-                class="w-full flex items-center gap-2.5 p-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-navy-light/10 text-left border border-transparent hover:border-paper-border dark:hover:border-paper-borderDark"
-              >
-                <Newspaper size={15} class="text-gold" />
-                <span>Broadsheet E-Paper</span>
-              </button>
-              <button
-                onClick={() => { setView('livetv'); setIsMenuOpen(false); }}
-                class="w-full flex items-center gap-2.5 p-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-navy-light/10 text-left border border-transparent hover:border-paper-border dark:hover:border-paper-borderDark"
-              >
-                <Tv size={15} class="text-red-500 animate-pulse" />
-                <span>Live Satellite TV</span>
-              </button>
-              <button
-                onClick={() => { setView('assistant'); setIsMenuOpen(false); }}
-                class="w-full flex items-center gap-2.5 p-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-navy-light/10 text-left border border-transparent hover:border-paper-border dark:hover:border-paper-borderDark text-gold-dark dark:text-gold"
-              >
-                <Sparkles size={15} class="text-gold" />
-                <span>ER Claude Assistant</span>
-              </button>
-              <button
-                onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}
-                class="w-full flex items-center gap-2.5 p-2 rounded text-xs font-bold uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-navy-light/10 text-left border border-transparent hover:border-paper-border dark:hover:border-paper-borderDark"
-              >
-                <ClipboardList size={15} class="text-gold" />
-                <span>Outcome Tracker</span>
-              </button>
-            </div>
-
-            {/* Categories section */}
-            <div class="space-y-1 mb-6">
-              <span class="text-[9px] font-bold text-gray-455 uppercase tracking-widest block font-mono mb-2">News Categories</span>
-              <div class="grid grid-cols-2 gap-1.5">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setSearchQuery('');
-                      onCategoryChange(cat.id);
-                      setView('feed');
-                      setIsMenuOpen(false);
-                    }}
-                    class={`p-2 rounded text-[10.5px] font-bold uppercase tracking-wide hover:bg-gray-55 dark:hover:bg-navy-light/5 text-left truncate border border-transparent ${
-                      activeCategory === cat.id && !searchQuery
-                        ? 'bg-navy/5 text-gold-dark dark:bg-gold/10 dark:text-gold-light border-navy/20 dark:border-gold/25'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    ✦ {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick settings footer */}
-            <div class="border-t border-paper-border dark:border-paper-borderDark pt-4 mt-auto flex justify-between items-center gap-3">
-              {/* Theme toggle */}
-              <button 
-                onClick={() => { setTheme(theme === 'dark' ? 'light' : 'dark'); setIsMenuOpen(false); }}
-                class="flex items-center gap-1 text-[10px] font-bold uppercase text-gray-500 hover:text-navy dark:hover:text-gold transition-colors"
-              >
-                {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-                <span>{theme === 'dark' ? 'Day' : 'Night'} Mode</span>
-              </button>
-              
-              {/* Logout */}
-              {user && (
-                <button
-                  onClick={() => { logout(); setIsMenuOpen(false); }}
-                  class="flex items-center gap-1 text-[10px] font-bold uppercase text-red-655 hover:text-red-700"
-                >
-                  <LogOut size={13} />
-                  <span>Log Out</span>
-                </button>
-              )}
-            </div>
           </div>
         </div>
-      )}
+      </div>
 
       <style>{`
         @keyframes marquee {
