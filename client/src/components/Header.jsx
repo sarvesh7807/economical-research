@@ -723,8 +723,12 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 text-center relative">
         {/* Hamburger icon on mobile */}
         <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          class="hamburger md:hidden absolute right-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-navy dark:text-gold"
+          onClick={() => {
+            console.log('Hamburger clicked');
+            setIsMenuOpen(true);
+          }}
+          class="hamburger md:hidden absolute right-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-navy dark:text-gold z-[100000]"
+          style={{ minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}
           title="Open Menu Dropdown"
         >
           <Menu size={22} />
