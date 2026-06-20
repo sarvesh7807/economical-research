@@ -59,6 +59,7 @@ const videoCache = {};
 const getChannelVideo = async (channelId, channelKey) => {
   const cached = videoCache[channelKey];
   const now = Date.now();
+  const apiKey = "AIzaSyCkOqqu_RUCy_xWo6ksYCO5TUopgHNMaNU";
   
   if (cached && (now - cached.timestamp) < 300000) {
     return cached.data;
@@ -66,9 +67,8 @@ const getChannelVideo = async (channelId, channelKey) => {
   
   // STEP 1: Try to find LIVE video
   try {
-    const liveRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`
-    );
+    const liveUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=1&key=${apiKey}`;
+    const liveRes = await fetch(liveUrl);
     const liveData = await liveRes.json();
     
     if (liveData.items && liveData.items.length > 0) {
@@ -85,9 +85,8 @@ const getChannelVideo = async (channelId, channelKey) => {
 
   // STEP 2: No live found - get most recent upload
   try {
-    const recentRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`
-    );
+    const recentUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=1&key=${apiKey}`;
+    const recentRes = await fetch(recentUrl);
     const recentData = await recentRes.json();
     
     if (recentData.items && recentData.items.length > 0) {

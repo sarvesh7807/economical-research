@@ -177,7 +177,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
         const updatedChannels = await Promise.all(INITIAL_CHANNELS.map(async (ch) => {
           try {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.channelId}&eventType=live&type=video&key=${apiKey}`);
+            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.channelId}&eventType=live&type=video&key=${apiKey}`;
+            const res = await fetch(url);
             const data = await res.json();
             if (data.items && data.items.length > 0) {
               return { ...ch, id: data.items[0].id.videoId };
