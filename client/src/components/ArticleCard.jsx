@@ -159,8 +159,7 @@ export default function ArticleCard({ article }) {
     const currentCount = parseInt(localStorage.getItem(key) || '0', 10);
     
     const limits = {
-      reads: 10,
-      summaries: 3
+      reads: 10
     };
     
     if (currentCount >= limits[type]) {
@@ -403,7 +402,7 @@ export default function ArticleCard({ article }) {
           🔒 Editorial paywall locked
         </h3>
         <p class="text-[10px] text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed mb-5 font-semibold uppercase font-sans">
-          You have reached your daily limit of {paywallType === 'reads' ? '10 articles' : '3 AI summaries'} on the ER Basic tier.
+          You have reached your daily limit of 10 articles on the ER Basic tier.
         </p>
         
         <div class="flex flex-col gap-2 w-full max-w-[180px]">
