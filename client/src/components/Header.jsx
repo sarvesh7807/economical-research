@@ -811,6 +811,19 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <span>Bias Detector</span>
           </button>
 
+          {/* World Map navbar action */}
+          <button
+            onClick={() => setView('world-map')}
+            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
+              view === 'world-map'
+                ? 'border-navy dark:border-gold text-navy dark:text-gold'
+                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
+            }`}
+          >
+            <span>🌍</span>
+            <span>World Map</span>
+          </button>
+
           <span class="text-gray-300 dark:text-gray-700 shrink-0 font-light mx-1">|</span>
 
           {categories.map((cat) => (

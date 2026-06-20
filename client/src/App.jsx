@@ -17,6 +17,7 @@ import CookieConsent from './components/CookieConsent';
 import ErAssistantFull from './components/ErAssistantFull';
 import FakeNewsChecker from './components/FakeNewsChecker';
 import BiasDetector from './components/BiasDetector';
+import WorldMap from './components/WorldMap';
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -104,6 +105,8 @@ function AppContent() {
         window.history.pushState({}, '', '/fake-news-checker');
       } else if (newView === 'bias-detector') {
         window.history.pushState({}, '', '/bias-detector');
+      } else if (newView === 'world-map') {
+        window.history.pushState({}, '', '/world-map');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -144,6 +147,8 @@ function AppContent() {
       setViewInternal('fake-news');
     } else if (path === '/bias-detector') {
       setViewInternal('bias-detector');
+    } else if (path === '/world-map') {
+      setViewInternal('world-map');
     }
   }, []);
 
@@ -240,6 +245,8 @@ function AppContent() {
           <FakeNewsChecker />
         ) : view === 'bias-detector' ? (
           <BiasDetector />
+        ) : view === 'world-map' ? (
+          <WorldMap setView={setView} />
         ) : view === 'profile' ? (
           user ? (
             <Profile 
