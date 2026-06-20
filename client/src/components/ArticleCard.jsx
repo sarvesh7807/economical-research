@@ -201,13 +201,6 @@ export default function ArticleCard({ article }) {
 
   // Trigger Gemini Summary
   const handleFetchSummary = async () => {
-    const paywall = checkPaywallLimit('summaries');
-    if (paywall.blocked) {
-      setPaywallActive(true);
-      setPaywallType('summaries');
-      return;
-    }
-
     if (summary) {
       setShowSummary(!showSummary);
       setShowKeyPoints(false);
@@ -229,7 +222,6 @@ export default function ArticleCard({ article }) {
       if (!response.ok) throw new Error('Failed to generate summary');
       const data = await response.json();
       setSummary(data.summary);
-      incrementPaywallCount('summaries');
     } catch (err) {
       console.error(err);
       setErrorSummary('The AI analyst was unable to process this article. Please check your credentials.');
@@ -240,13 +232,6 @@ export default function ArticleCard({ article }) {
 
   // Trigger Gemini Key Points
   const handleFetchKeyPoints = async () => {
-    const paywall = checkPaywallLimit('summaries');
-    if (paywall.blocked) {
-      setPaywallActive(true);
-      setPaywallType('summaries');
-      return;
-    }
-
     if (keyPoints) {
       setShowKeyPoints(!showKeyPoints);
       setShowSummary(false);
@@ -268,7 +253,6 @@ export default function ArticleCard({ article }) {
       if (!response.ok) throw new Error('Failed to generate key points');
       const data = await response.json();
       setKeyPoints(data.keyPoints);
-      incrementPaywallCount('summaries');
     } catch (err) {
       console.error(err);
       setErrorKeyPoints('The AI analyst was unable to extract key points. Please check your credentials.');
@@ -279,13 +263,6 @@ export default function ArticleCard({ article }) {
 
   // Feature 1: 5 Point Summary handler
   const handleFivePoints = async () => {
-    const paywall = checkPaywallLimit('summaries');
-    if (paywall.blocked) {
-      setPaywallActive(true);
-      setPaywallType('summaries');
-      return;
-    }
-
     if (fivePoints) {
       setShowFivePoints(!showFivePoints);
       setShowSummary(false);
@@ -310,7 +287,6 @@ export default function ArticleCard({ article }) {
       if (!response.ok) throw new Error('Failed to generate 5-point summary');
       const data = await response.json();
       setFivePoints(data.points);
-      incrementPaywallCount('summaries');
     } catch (err) {
       console.error(err);
       setErrorFivePoints('Unable to generate 5-point summary. Please try again.');
@@ -321,13 +297,6 @@ export default function ArticleCard({ article }) {
 
   // Feature 3: Market Impact Meter handler
   const handleMarketImpact = async () => {
-    const paywall = checkPaywallLimit('summaries');
-    if (paywall.blocked) {
-      setPaywallActive(true);
-      setPaywallType('summaries');
-      return;
-    }
-
     if (marketImpact) {
       setShowMarketImpact(!showMarketImpact);
       setShowSummary(false);
@@ -352,7 +321,6 @@ export default function ArticleCard({ article }) {
       if (!response.ok) throw new Error('Failed to analyze market impact');
       const data = await response.json();
       setMarketImpact(data);
-      incrementPaywallCount('summaries');
     } catch (err) {
       console.error(err);
       setErrorMarketImpact('Unable to analyze market impact. Please try again.');
