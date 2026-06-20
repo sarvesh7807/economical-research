@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tv, Maximize, ArrowLeft, Radio, AlertCircle } from 'lucide-react';
 
-const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+const YOUTUBE_API_KEY = 'AIzaSyCkOqqu_RUCy_xWo6ksYCO5TUopgHNMaNU';
 
 const channels = [
   {
@@ -48,74 +48,80 @@ const channels = [
     id: 'republic',
     name: 'Republic World',
     source: 'YouTube Live',
-    channelId: 'UC_gUM8rL-Lrg6O3adPW9K1g',
+    channelId: 'UCwqusr8YDwOLcN8gNCRrShQ',
     description: 'India\'s fastest-growing English news channel covering national and international updates.',
     region: 'India / Asia-Pacific'
   }
 ];
+
+const videoCache = {};
+
+const getChannelVideo = async (channelId, channelKey) => {
+  const cached = videoCache[channelKey];
+  const now = Date.now();
+  
+  if (cached && (now - cached.timestamp) < 300000) {
+    return cached.data;
+  }
+  
+  // STEP 1: Try to find LIVE video
+  try {
+    const liveRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`
+    );
+    const liveData = await liveRes.json();
+    
+    if (liveData.items && liveData.items.length > 0) {
+      const result = {
+        videoId: liveData.items[0].id.videoId,
+        isLive: true
+      };
+      videoCache[channelKey] = { data: result, timestamp: now };
+      return result;
+    }
+  } catch (err) {
+    console.error('Live search failed:', err);
+  }
+
+  // STEP 2: No live found - get most recent upload
+  try {
+    const recentRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`
+    );
+    const recentData = await recentRes.json();
+    
+    if (recentData.items && recentData.items.length > 0) {
+      const result = {
+        videoId: recentData.items[0].id.videoId,
+        isLive: false
+      };
+      videoCache[channelKey] = { data: result, timestamp: now };
+      return result;
+    }
+  } catch (err) {
+    console.error('Recent video search failed:', err);
+  }
+
+  return { videoId: null, isLive: false };
+};
 
 export default function LiveTV({ setView }) {
   const [activeChannel, setActiveChannel] = useState(channels[0]);
   const [videoId, setVideoId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  const getCachedVideoId = (channelId) => {
-    try {
-      const cached = sessionStorage.getItem(`live_${channelId}`);
-      if (cached) {
-        const { videoId, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < 5 * 60 * 1000) {
-          return videoId;
-        }
-      }
-    } catch (e) {}
-    return null;
-  };
-
-  const setCachedVideoId = (channelId, videoId) => {
-    try {
-      sessionStorage.setItem(`live_${channelId}`, JSON.stringify({
-        videoId,
-        timestamp: Date.now()
-      }));
-    } catch (e) {}
-  };
-
-  const getChannelLiveVideo = async (channelId) => {
-    try {
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${YOUTUBE_API_KEY}`
-      );
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
-      if (data.items && data.items.length > 0) {
-        return data.items[0].id.videoId;
-      }
-      return null;
-    } catch (e) {
-      console.error('YouTube API Error:', e);
-      return null;
-    }
-  };
+  const [isLive, setIsLive] = useState(true);
 
   const switchChannel = async (channel) => {
     setActiveChannel(channel);
     setLoading(true);
+    setVideoId(null);
     setError(false);
     
-    let liveVideoId = getCachedVideoId(channel.channelId);
+    const result = await getChannelVideo(channel.channelId, channel.id);
     
-    if (!liveVideoId) {
-      liveVideoId = await getChannelLiveVideo(channel.channelId);
-      if (liveVideoId) {
-        setCachedVideoId(channel.channelId, liveVideoId);
-      } else {
-        setError(true);
-      }
-    }
-
-    setVideoId(liveVideoId || null);
+    setVideoId(result.videoId);
+    setIsLive(result.isLive);
     setLoading(false);
   };
 
@@ -174,27 +180,34 @@ export default function LiveTV({ setView }) {
         <div class="lg:col-span-2 space-y-4">
           
           <div class="video-container relative w-full aspect-video bg-black border border-paper-border dark:border-paper-borderDark rounded shadow-lg overflow-hidden flex items-center justify-center">
-            {loading && <p class="text-gold animate-pulse font-mono text-sm">Loading live stream...</p>}
+            {loading && <p class="text-gold animate-pulse font-mono text-sm">Loading {activeChannel.name} stream...</p>}
             
             {!loading && videoId && (
-              <iframe
-                id="er-live-player"
-                title={activeChannel.name}
-                src={getEmbedUrl()}
-                class="absolute top-0 left-0 w-full h-full border-none"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-              ></iframe>
+              <div class="w-full h-full relative">
+                <iframe
+                  id="er-live-player"
+                  title={activeChannel.name}
+                  src={getEmbedUrl()}
+                  class="absolute top-0 left-0 w-full h-full border-none"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                ></iframe>
+                {isLive ? (
+                  <span class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 z-10 shadow-lg border border-red-400">
+                    <span class="animate-pulse h-2 w-2 bg-white rounded-full"></span> LIVE
+                  </span>
+                ) : (
+                  <span class="absolute top-3 right-3 bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 z-10 shadow-lg border border-gray-600">
+                    📼 Recent Video (Channel offline right now)
+                  </span>
+                )}
+              </div>
             )}
 
-            {!loading && !videoId && !error && (
-              <p class="text-red-500 font-mono text-sm px-4 text-center">This channel is currently offline. Please try another channel.</p>
-            )}
-
-            {!loading && error && (
-              <p class="text-red-500 font-mono text-sm px-4 text-center">Live stream temporarily unavailable, please try again later.</p>
+            {!loading && !videoId && (
+              <p class="text-red-500 font-mono text-sm px-4 text-center">Unable to load this channel. Please try another.</p>
             )}
           </div>
           
