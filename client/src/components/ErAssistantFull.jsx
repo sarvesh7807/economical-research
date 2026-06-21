@@ -6,6 +6,7 @@ import {
   X, Maximize2, Minimize2, Copy, Check 
 } from 'lucide-react';
 import Chart from 'chart.js/auto';
+import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
 
 // Custom Markdown + Code block parser
 function parseMessageContent(text, onOpenArtifact) {
@@ -427,6 +428,7 @@ export default function ErAssistantFull() {
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
   const [fullscreenArtifact, setFullscreenArtifact] = useState(false);
+  const [usageLimit, setUsageLimit] = useState({ allowed: true, remaining: 21 });
 
   const scrollRef = useRef(null);
   const isPro = subscription?.tier === 'PRO';
@@ -467,6 +469,11 @@ export default function ErAssistantFull() {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [sessions, currentSessionId, loading]);
+
+  // Fetch limit
+  useEffect(() => {
+    checkMessageLimit(user, subscription).then(setUsageLimit);
+  }, [user, subscription]);
 
   const activeSession = sessions.find(s => s.id === currentSessionId);
   const history = activeSession ? activeSession.messages : [];
@@ -546,33 +553,28 @@ export default function ErAssistantFull() {
     const textToSend = directText || message;
     if (!textToSend.trim()) return;
 
-    // Daily summaries / AI count check for Basic users
-    if (!isPro) {
-      const today = new Date().toISOString().split('T')[0];
-      const countKey = `er_paywall_summaries_${today}`;
-      const summariesToday = parseInt(localStorage.getItem(countKey) || '0', 10);
-      if (summariesToday >= 3) {
-        const paywallMessage = {
-          sender: 'bot',
-          text: '⚠️ You have exceeded the 3 daily AI queries limit on the Basic Tier. Please upgrade to PRO for unlimited assistant queries.',
-          isPaywall: true,
-          timestamp: new Date().toISOString()
-        };
-        const updated = sessions.map(s => {
-          if (s.id === currentSessionId) {
-            return {
-              ...s,
-              messages: [...s.messages, { sender: 'user', text: textToSend, timestamp: new Date().toISOString() }, paywallMessage]
-            };
-          }
-          return s;
-        });
-        saveSessions(updated);
-        setMessage('');
-        return;
-      }
-      // Increment AI query count
-      localStorage.setItem(countKey, summariesToday + 1);
+    // Message limit check
+    const limitCheck = await checkMessageLimit(user, subscription);
+    if (!limitCheck.allowed) {
+      const paywallMessage = {
+        sender: 'bot',
+        text: `You've used all 21 free messages! 🎉\nUpgrade to ER PRO for unlimited AI assistance.`,
+        isPaywall: true,
+        timestamp: new Date().toISOString()
+      };
+      const updated = sessions.map(s => {
+        if (s.id === currentSessionId) {
+          return {
+            ...s,
+            messages: [...s.messages, { sender: 'user', text: textToSend, timestamp: new Date().toISOString() }, paywallMessage]
+          };
+        }
+        return s;
+      });
+      saveSessions(updated);
+      setMessage('');
+      setUsageLimit(limitCheck);
+      return;
     }
 
     const newUserMessage = {
@@ -702,6 +704,11 @@ Always be professional, analytical, and cite economic context. Format responses 
 
       saveSessions(finalSessions);
 
+      // Increment limit count and update state
+      await incrementMessageCount(user);
+      const newLimitCheck = await checkMessageLimit(user, subscription);
+      setUsageLimit(newLimitCheck);
+
       // Auto-open artifacts panel if a new artifact is found inside the bot's response
       const artifactRegex = /<erArtifact\s+type="([^"]+)"\s+title="([^"]+)"(?:\s+filename="([^"]+)")?>([\s\S]*?)<\/erArtifact>/;
       const artifactMatch = replyText.match(artifactRegex);
@@ -797,19 +804,36 @@ Always be professional, analytical, and cite economic context. Format responses 
         <div class="flex-grow bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded-lg flex flex-col overflow-hidden shadow-md min-w-0">
           
           {/* Header */}
-          <div class="px-4 py-3 bg-navy text-white flex items-center justify-between border-b border-gold/20 shrink-0">
-            <div class="flex items-center gap-2">
-              <Sparkles size={15} class="text-gold" />
-              <span class="font-serif text-[11px] font-black uppercase tracking-wider text-gold">ER Claude Assistant</span>
+          <div class="px-4 py-3 bg-navy text-white flex flex-col gap-2 border-b border-gold/20 shrink-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <Sparkles size={15} class="text-gold" />
+                <span class="font-serif text-[11px] font-black uppercase tracking-wider text-gold">ER Claude Assistant</span>
+              </div>
+              {artifactPanelOpen && (
+                <button 
+                  onClick={() => setArtifactPanelOpen(false)}
+                  class="lg:hidden text-gray-450 hover:text-white text-xs border border-white/20 px-2 py-0.5 rounded font-sans uppercase tracking-wider"
+                >
+                  Hide Panel
+                </button>
+              )}
             </div>
-            {artifactPanelOpen && (
-              <button 
-                onClick={() => setArtifactPanelOpen(false)}
-                class="lg:hidden text-gray-450 hover:text-white text-xs border border-white/20 px-2 py-0.5 rounded font-sans uppercase tracking-wider"
-              >
-                Hide Panel
-              </button>
-            )}
+            {/* Limit Banner */}
+            <div class="flex justify-between items-center bg-white/5 px-2.5 py-1.5 rounded text-[11px] font-bold">
+              {isPro ? (
+                <span class="text-gold">✨ Unlimited messages (PRO member)</span>
+              ) : (
+                <>
+                  <span class={`${usageLimit.remaining <= 5 ? 'text-orange-400' : 'text-gray-300'}`}>
+                    {usageLimit.remaining <= 5 ? '⚠️ Only ' : '💬 '}{usageLimit.remaining} free messages remaining
+                  </span>
+                  {usageLimit.remaining <= 5 && (
+                    <button onClick={() => window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }))} class="text-gold hover:text-white transition-colors underline">Upgrade</button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* Messages list */}
@@ -851,9 +875,9 @@ Always be professional, analytical, and cite economic context. Format responses 
                           onClick={() => {
                             window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
                           }}
-                          class="mt-3 block bg-red-600 hover:bg-red-700 text-white font-bold text-[9px] uppercase px-3 py-1.5 rounded text-center tracking-widest font-sans"
+                          class="mt-3 w-full block bg-navy text-gold border border-gold hover:bg-navy-light font-bold text-[10px] uppercase px-3 py-2 rounded text-center tracking-wider transition-all font-sans"
                         >
-                          Upgrade to PRO Press
+                          🚀 Upgrade to PRO - Unlimited Messages
                         </button>
                       )}
                     </div>

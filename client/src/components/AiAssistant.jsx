@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, X, Send, Sparkles, AlertCircle, RefreshCw, Copy, Check, Minus } from 'lucide-react';
+import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
 
 // Custom lightweight inline parser for the drawer message bubbles
 function parseDrawerMessageContent(text) {
@@ -184,6 +185,7 @@ function DrawerFormattedText({ text }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [usageLimit, setUsageLimit] = useState({ allowed: true, remaining: 21 });
   const scrollRef = useRef(null);
 
   const isPro = subscription?.tier === 'PRO';
@@ -221,6 +223,13 @@ function DrawerFormattedText({ text }) {
     }
   }, [history, loading]);
 
+  // Load limits when opened
+  useEffect(() => {
+    if (isOpen) {
+      checkMessageLimit(user, subscription).then(setUsageLimit);
+    }
+  }, [isOpen, user, subscription]);
+
   const saveHistory = (updated) => {
     setHistory(updated);
     const key = `er_chat_history_${user ? user.uid : 'guest'}`;
@@ -232,27 +241,22 @@ function DrawerFormattedText({ text }) {
     const textToSend = directText || message;
     if (!textToSend.trim()) return;
 
-    // Daily summaries / AI count check for Basic users
-    if (!isPro) {
-      const today = new Date().toISOString().split('T')[0];
-      const countKey = `er_paywall_summaries_${today}`;
-      const summariesToday = parseInt(localStorage.getItem(countKey) || '0', 10);
-      if (summariesToday >= 3) {
-        saveHistory([
-          ...history,
-          { sender: 'user', text: textToSend, timestamp: new Date().toISOString() },
-          { 
-            sender: 'bot', 
-            text: '⚠️ You have exceeded the 3 daily AI queries limit on the Basic Tier. Please upgrade to PRO for unlimited assistant queries.',
-            isPaywall: true,
-            timestamp: new Date().toISOString() 
-          }
-        ]);
-        setMessage('');
-        return;
-      }
-      // Increment AI query count
-      localStorage.setItem(countKey, summariesToday + 1);
+    // Message limit check
+    const limitCheck = await checkMessageLimit(user, subscription);
+    if (!limitCheck.allowed) {
+      saveHistory([
+        ...history,
+        { sender: 'user', text: textToSend, timestamp: new Date().toISOString() },
+        { 
+          sender: 'bot', 
+          text: `You've used all 21 free messages! 🎉\nUpgrade to ER PRO for unlimited AI assistance.`,
+          isPaywall: true,
+          timestamp: new Date().toISOString() 
+        }
+      ]);
+      setMessage('');
+      setUsageLimit(limitCheck);
+      return;
     }
 
     const newUserMessage = {
@@ -349,6 +353,11 @@ Always be helpful, professional, and concise. Format responses clearly using mar
           timestamp: new Date().toISOString()
         }
       ]);
+
+      // Increment limit count and update state
+      await incrementMessageCount(user);
+      const newLimitCheck = await checkMessageLimit(user, subscription);
+      setUsageLimit(newLimitCheck);
     } catch (err) {
       console.error('ER Assistant error:', err);
       setError(`Connection error: ${err.message}. Please try again.`);
@@ -383,29 +392,46 @@ Always be helpful, professional, and concise. Format responses clearly using mar
       {isOpen && (
         <div class="fixed bottom-0 right-0 w-full h-full sm:bottom-20 sm:right-6 sm:w-96 sm:h-[480px] sm:rounded-2xl bg-white dark:bg-paper-cardDark border-t sm:border border-paper-border dark:border-paper-borderDark shadow-2xl z-40 flex flex-col overflow-hidden font-sans select-none animate-fade-in">
           {/* Header */}
-          <div class="bg-navy text-white px-4 py-3 flex items-center justify-between border-b border-gold/20 shrink-0 select-none">
-            <div class="flex items-center gap-1.5">
-              <Sparkles size={14} class="text-gold animate-pulse" />
-              <span class="font-serif text-xs font-black uppercase tracking-wider text-gold">ER Assistant</span>
+          <div class="bg-navy text-white px-4 py-3 flex flex-col gap-2 border-b border-gold/20 shrink-0 select-none">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <Sparkles size={14} class="text-gold animate-pulse" />
+                <span class="font-serif text-xs font-black uppercase tracking-wider text-gold">ER Assistant</span>
+              </div>
+              <div class="flex items-center gap-1.5 select-none">
+                <button 
+                  onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('change-view', { detail: 'assistant' })); }}
+                  class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-gold/30 text-gold px-1.5 py-0.5 rounded bg-gold/5 transition-all"
+                  title="Open Split Workspace"
+                >
+                  Workspace
+                </button>
+                <button 
+                  onClick={handleClear}
+                  class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-white/20 px-1.5 py-0.5 rounded transition-all"
+                  title="Clear Logs"
+                >
+                  Clear
+                </button>
+                <button onClick={() => setIsOpen(false)} class="text-gray-400 hover:text-white p-1 rounded transition-colors" title="Minimize Chat">
+                  <Minus size={14} />
+                </button>
+              </div>
             </div>
-            <div class="flex items-center gap-1.5 select-none">
-              <button 
-                onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('change-view', { detail: 'assistant' })); }}
-                class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-gold/30 text-gold px-1.5 py-0.5 rounded bg-gold/5 transition-all"
-                title="Open Split Workspace"
-              >
-                Workspace
-              </button>
-              <button 
-                onClick={handleClear}
-                class="text-[9px] hover:text-gold uppercase tracking-wider font-bold border border-white/20 px-1.5 py-0.5 rounded transition-all"
-                title="Clear Logs"
-              >
-                Clear
-              </button>
-              <button onClick={() => setIsOpen(false)} class="text-gray-400 hover:text-white p-1 rounded transition-colors" title="Minimize Chat">
-                <Minus size={14} />
-              </button>
+            {/* Limit Banner */}
+            <div class="flex justify-between items-center bg-white/5 px-2 py-1 rounded text-[10px] font-bold">
+              {isPro ? (
+                <span class="text-gold">✨ Unlimited messages (PRO member)</span>
+              ) : (
+                <>
+                  <span class={`${usageLimit.remaining <= 5 ? 'text-orange-400' : 'text-gray-300'}`}>
+                    {usageLimit.remaining <= 5 ? '⚠️ Only ' : '💬 '}{usageLimit.remaining} free messages remaining
+                  </span>
+                  {usageLimit.remaining <= 5 && (
+                    <button onClick={() => { setIsOpen(false); window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' })); }} class="text-gold hover:text-white transition-colors underline">Upgrade</button>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -447,9 +473,9 @@ Always be helpful, professional, and concise. Format responses clearly using mar
                             setIsOpen(false);
                             window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
                           }}
-                          class="mt-2 block bg-red-600 text-white font-bold text-[9px] uppercase px-2 py-1 rounded text-center tracking-wider hover:bg-red-700 font-sans"
+                          class="mt-2 block w-full bg-navy border border-gold hover:bg-navy-light text-gold font-bold text-[9px] uppercase px-2 py-1.5 rounded text-center tracking-wider transition-all font-sans"
                         >
-                          Upgrade to PRO
+                          🚀 Upgrade to PRO - Unlimited Messages
                         </button>
                       )}
                     </div>
