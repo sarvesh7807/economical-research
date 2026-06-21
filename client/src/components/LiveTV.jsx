@@ -201,7 +201,7 @@ export default function LiveTV({ setView }) {
             {loading && <p class="text-gold animate-pulse font-mono text-sm">Loading {activeChannel.name} stream...</p>}
             
             {!loading && videoId && (
-              <div class="w-full h-full relative">
+              <div class="absolute inset-0">
                 <iframe
                   id="er-live-player"
                   title={activeChannel.name}
