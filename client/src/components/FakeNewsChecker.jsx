@@ -1,21 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, CheckCircle, AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
+import { getCachedOrFetchAI, hashText } from '../utils/aiCache';
 
 export default function FakeNewsChecker() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [cacheStatus, setCacheStatus] = useState(null);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const handleCheck = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!inputText.trim()) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
+    setCacheStatus(null);
 
-    try {
+    const apiCall = async () => {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const prompt = `Analyze this news article or headline:
 "${inputText.trim()}"
@@ -46,26 +56,34 @@ Provide the response strictly as a JSON object matching this schema:
       );
 
       if (response.status === 429) {
-        setError("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
-        setLoading(false);
-        return;
+        throw { status: 429 };
       }
 
       if (!response.ok) {
-        setError("Something went wrong. Please try again in a moment.");
-        setLoading(false);
-        return;
+        throw new Error('API failed');
       }
       
       const data = await response.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawText) throw new Error('Empty response from AI model');
 
-      const parsed = JSON.parse(rawText);
-      setResult(parsed);
+      return JSON.parse(rawText);
+    };
+
+    try {
+      const textHash = hashText(inputText.trim());
+      const cacheKey = `fakenews_${textHash}`;
+      const { content, fromCache } = await getCachedOrFetchAI(cacheKey, apiCall);
+      setResult(content);
+      setCacheStatus(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
-      setError("Connection issue. Please check your internet and try again.");
+      if (err.status === 429) {
+        setError("⏳ High demand right now! Try again in 30 seconds.");
+        setCountdown(30);
+      } else {
+        setError("Connection issue. Please check your internet and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -164,15 +182,13 @@ Provide the response strictly as a JSON object matching this schema:
           <div className="flex items-center gap-2">
             <span>⚠️ {error}</span>
           </div>
-          {error.includes("⏳") && (
-            <button 
-              onClick={(e) => handleCheck(e)}
-              disabled={loading}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 px-4 py-1.5 rounded-full text-[10px] uppercase font-bold tracking-wider transition-colors disabled:opacity-50 shrink-0"
-            >
-              {loading ? 'Retrying...' : 'Retry Now'}
-            </button>
-          )}
+          <button 
+            onClick={handleCheck}
+            disabled={loading || countdown > 0}
+            className="bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 px-4 py-1.5 rounded-full text-[10px] uppercase font-bold tracking-wider transition-colors disabled:opacity-50 shrink-0"
+          >
+            {countdown > 0 ? `Retry in ${countdown}s` : '🔄 Retry'}
+          </button>
         </div>
       )}
 
@@ -193,8 +209,19 @@ Provide the response strictly as a JSON object matching this schema:
                   <div className="p-3 bg-navy-light/10 dark:bg-white/5 rounded-2xl">
                     {styles.icon}
                   </div>
-                  <div>
-                    <h3 className="font-display text-sm font-black text-gray-400 uppercase tracking-widest">Analysis Verdict</h3>
+                  <div className="flex-grow">
+                    <div className="flex items-center justify-between gap-4">
+                      <h3 className="font-display text-sm font-black text-gray-400 uppercase tracking-widest">Analysis Verdict</h3>
+                      {cacheStatus && (
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                          cacheStatus === 'instant' 
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
+                            : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
+                        }`}>
+                          {cacheStatus === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
+                        </span>
+                      )}
+                    </div>
                     <p className={`font-serif text-2xl font-black ${styles.textColor} uppercase tracking-wider mt-1`}>
                       {styles.prefix} {styles.title} — {result.confidence}% Confidence
                     </p>

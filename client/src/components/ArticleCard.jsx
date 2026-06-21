@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages, TrendingUp, FileText } from 'lucide-react';
 import CommentsSection from './CommentsSection';
-import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getCachedOrFetchAI } from '../utils/aiCache';
 
 export default function ArticleCard({ article }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
@@ -150,39 +149,7 @@ export default function ArticleCard({ article }) {
     return await response.json();
   };
 
-  const getAIContent = async (articleId, type) => {
-    const cacheKey = `${articleId}_${type}`;
-    const cacheRef = doc(db, 'ai_cache', cacheKey);
-    const cached = await getDoc(cacheRef);
-    
-    if (cached.exists()) {
-      const data = cached.data();
-      const ageInHours = (Date.now() - data.timestamp) / 3600000;
-      if (ageInHours < 24) {
-        return { content: data.content, fromCache: true };
-      }
-    }
-    
-    // Not cached or expired - call Gemini API
-    try {
-      const result = await callGeminiAPI(type);
-      
-      // Save to cache for next time
-      await setDoc(cacheRef, {
-        content: result,
-        timestamp: Date.now(),
-        type: type,
-        articleId: articleId
-      });
-      
-      return { content: result, fromCache: false };
-    } catch (err) {
-      if (err.status === 429 || (err.message && err.message.includes('429'))) {
-        throw { status: 429 };
-      }
-      throw err;
-    }
-  };
+
 
   useEffect(() => {
     return () => {
@@ -343,13 +310,13 @@ export default function ArticleCard({ article }) {
 
     try {
       const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getAIContent(articleId, 'summary');
+      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_summary`, () => callGeminiAPI('summary'));
       setSummary(data.summary);
       setCacheStatusSummary(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
       if (err.status === 429) {
-        setErrorSummary("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setErrorSummary("⏳ High demand right now! Try again in 30 seconds.");
         setCountdownSummary(30);
       } else {
         setErrorSummary("Connection issue. Please check your internet and try again.");
@@ -374,13 +341,13 @@ export default function ArticleCard({ article }) {
 
     try {
       const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getAIContent(articleId, 'keypoints');
+      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_keypoints`, () => callGeminiAPI('keypoints'));
       setKeyPoints(data.keyPoints);
       setCacheStatusKeyPoints(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
       if (err.status === 429) {
-        setErrorKeyPoints("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setErrorKeyPoints("⏳ High demand right now! Try again in 30 seconds.");
         setCountdownKeyPoints(30);
       } else {
         setErrorKeyPoints("Connection issue. Please check your internet and try again.");
@@ -409,13 +376,13 @@ export default function ArticleCard({ article }) {
 
     try {
       const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getAIContent(articleId, 'fivepoints');
+      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_5points`, () => callGeminiAPI('fivepoints'));
       setFivePoints(data.points);
       setCacheStatusFivePoints(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
       if (err.status === 429) {
-        setErrorFivePoints("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setErrorFivePoints("⏳ High demand right now! Try again in 30 seconds.");
         setCountdownFivePoints(30);
       } else {
         setErrorFivePoints("Connection issue. Please check your internet and try again.");
@@ -444,13 +411,13 @@ export default function ArticleCard({ article }) {
 
     try {
       const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getAIContent(articleId, 'marketimpact');
+      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_marketimpact`, () => callGeminiAPI('marketimpact'));
       setMarketImpact(data);
       setCacheStatusMarketImpact(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
       if (err.status === 429) {
-        setErrorMarketImpact("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setErrorMarketImpact("⏳ High demand right now! Try again in 30 seconds.");
         setCountdownMarketImpact(30);
       } else {
         setErrorMarketImpact("Connection issue. Please check your internet and try again.");
@@ -467,13 +434,13 @@ export default function ArticleCard({ article }) {
 
     try {
       const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getAIContent(articleId, 'debate');
+      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_debate`, () => callGeminiAPI('debate'));
       setDebate(data.debate);
       setCacheStatusDebate(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
       if (err.status === 429) {
-        setErrorDebate("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setErrorDebate("⏳ High demand right now! Try again in 30 seconds.");
         setCountdownDebate(30);
       } else {
         setErrorDebate("Connection issue. Please check your internet and try again.");

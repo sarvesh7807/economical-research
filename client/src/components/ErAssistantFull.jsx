@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Chart from 'chart.js/auto';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
+import { getCachedOrFetchAI, hashText } from '../utils/aiCache';
 
 // Custom Markdown + Code block parser
 function parseMessageContent(text, onOpenArtifact) {
@@ -649,16 +650,17 @@ export default function ErAssistantFull() {
         geminiContents.push({ role: 'user', parts: [{ text: textToSend }] });
       }
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: geminiContents,
-            systemInstruction: {
-              parts: [{ 
-                text: `You are ER Assistant, a specialized AI editor for the Economical Research news platform (er-news-sarvesh.vercel.app).
+      const apiCall = async () => {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: geminiContents,
+              systemInstruction: {
+                parts: [{ 
+                  text: `You are ER Assistant, a specialized AI editor for the Economical Research news platform (er-news-sarvesh.vercel.app).
 
 You are an expert in:
 - Global economics, monetary policy, and market analysis
@@ -678,25 +680,85 @@ Year,Value,Country
 </erArtifact>
 
 Always be professional, analytical, and cite economic context. Format responses with clear markdown structure.`
-              }]
-            },
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1200
-            }
-          })
-        }
-      );
+                }]
+              },
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1200
+              }
+            })
+          }
+        );
 
-      if (!response.ok) {
         if (response.status === 429) {
+          throw { status: 429 };
+        }
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!replyText) {
+          throw new Error('Empty response from AI');
+        }
+        return replyText;
+      };
+
+      try {
+        const historyHash = hashText(JSON.stringify(geminiContents));
+        const cacheKey = `chat_${historyHash}`;
+        const { content: replyText, fromCache } = await getCachedOrFetchAI(cacheKey, apiCall);
+
+        const newBotMessage = {
+          sender: 'bot',
+          text: replyText,
+          fromCache: fromCache,
+          timestamp: new Date().toISOString()
+        };
+
+        const finalSessions = sessions.map(s => {
+          if (s.id === currentSessionId) {
+            return {
+              ...s,
+              messages: [...updatedHistory, newBotMessage]
+            };
+          }
+          return s;
+        });
+
+        saveSessions(finalSessions);
+
+        // Increment limit count and update state
+        await incrementMessageCount(user);
+        const newLimitCheck = await checkMessageLimit(user, subscription);
+        setUsageLimit(newLimitCheck);
+
+        // Auto-open artifacts panel if a new artifact is found inside the bot's response
+        const artifactRegex = /<erArtifact\s+type="([^"]+)"\s+title="([^"]+)"(?:\s+filename="([^"]+)")?>([\s\S]*?)<\/erArtifact>/;
+        const artifactMatch = replyText.match(artifactRegex);
+        if (artifactMatch) {
+          const parsedArtifact = {
+            type: artifactMatch[1],
+            title: artifactMatch[2],
+            filename: artifactMatch[3] || 'export.txt',
+            content: artifactMatch[4].trim()
+          };
+          setActiveArtifact(parsedArtifact);
+          setArtifactPanelOpen(true);
+        }
+      } catch (err) {
+        if (err.status === 429) {
           const finalSessions = sessions.map(s => {
             if (s.id === currentSessionId) {
               return {
                 ...s,
                 messages: [...updatedHistory, {
                   sender: 'bot',
-                  text: '⏳ Too many requests right now! Please wait a moment before sending another message.',
+                  text: '⏳ High demand right now! Try again in 30 seconds.',
                   timestamp: new Date().toISOString()
                 }]
               };
@@ -704,57 +766,10 @@ Always be professional, analytical, and cite economic context. Format responses 
             return s;
           });
           saveSessions(finalSessions);
-          setLoading(false);
-          return;
+        } else {
+          throw err;
         }
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
       }
-
-      const data = await response.json();
-      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!replyText) {
-        throw new Error('Empty response from AI');
-      }
-      
-      const newBotMessage = {
-        sender: 'bot',
-        text: replyText,
-        timestamp: new Date().toISOString()
-      };
-
-      const finalSessions = sessions.map(s => {
-        if (s.id === currentSessionId) {
-          return {
-            ...s,
-            messages: [...updatedHistory, newBotMessage]
-          };
-        }
-        return s;
-      });
-
-      saveSessions(finalSessions);
-
-      // Increment limit count and update state
-      await incrementMessageCount(user);
-      const newLimitCheck = await checkMessageLimit(user, subscription);
-      setUsageLimit(newLimitCheck);
-
-      // Auto-open artifacts panel if a new artifact is found inside the bot's response
-      const artifactRegex = /<erArtifact\s+type="([^"]+)"\s+title="([^"]+)"(?:\s+filename="([^"]+)")?>([\s\S]*?)<\/erArtifact>/;
-      const artifactMatch = replyText.match(artifactRegex);
-      if (artifactMatch) {
-        const parsedArtifact = {
-          type: artifactMatch[1],
-          title: artifactMatch[2],
-          filename: artifactMatch[3] || 'export.txt',
-          content: artifactMatch[4].trim()
-        };
-        setActiveArtifact(parsedArtifact);
-        setArtifactPanelOpen(true);
-      }
-
     } catch (err) {
       console.error('ER Assistant Full error:', err);
       setError(`Connection error: ${err.message}. Please try again.`);
@@ -899,7 +914,16 @@ Always be professional, analytical, and cite economic context. Format responses 
                       {isUser ? (
                         <p class="text-[13px] leading-relaxed font-sans font-medium whitespace-pre-line">{msg.text}</p>
                       ) : (
-                        parseMessageContent(msg.text, handleOpenArtifact)
+                        <div>
+                          {parseMessageContent(msg.text, handleOpenArtifact)}
+                          {msg.fromCache && (
+                            <div class="mt-1.5 flex justify-end">
+                              <span class="text-[7.5px] font-bold px-2 py-0.5 rounded bg-amber-550/10 text-amber-500 border border-amber-500/20 font-mono">
+                                ⚡ Instant
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
                       
                       {msg.isPaywall && (

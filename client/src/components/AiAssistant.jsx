@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, X, Send, Sparkles, AlertCircle, RefreshCw, Copy, Check, Minus } from 'lucide-react';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
+import { getCachedOrFetchAI, hashText } from '../utils/aiCache';
 
 // Custom lightweight inline parser for the drawer message bubbles
 function parseDrawerMessageContent(text) {
@@ -320,8 +321,9 @@ function DrawerFormattedText({ text }) {
         geminiContents.push({ role: 'user', parts: [{ text: textToSend }] });
       }
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
+      const apiCall = async () => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -344,46 +346,59 @@ Always be helpful, professional, and concise. Format responses clearly using mar
               maxOutputTokens: 600
             }
           })
-        }
-      );
+        });
 
-      if (!response.ok) {
         if (response.status === 429) {
+          throw { status: 429 };
+        }
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!replyText) {
+          throw new Error('Empty response from AI');
+        }
+        return replyText;
+      };
+
+      try {
+        const historyHash = hashText(JSON.stringify(geminiContents));
+        const cacheKey = `chat_${historyHash}`;
+        const { content: replyText, fromCache } = await getCachedOrFetchAI(cacheKey, apiCall);
+
+        saveHistory([
+          ...newHistory,
+          {
+            sender: 'bot',
+            text: replyText,
+            fromCache: fromCache,
+            timestamp: new Date().toISOString()
+          }
+        ]);
+
+        // Increment limit count and update state
+        await incrementMessageCount(user);
+        const newLimitCheck = await checkMessageLimit(user, subscription);
+        setUsageLimit(newLimitCheck);
+      } catch (err) {
+        if (err.status === 429) {
           saveHistory([
             ...newHistory,
             {
               sender: 'bot',
-              text: '⏳ Too many requests right now! Please wait a moment before sending another message.',
+              text: '⏳ High demand right now! Try again in 30 seconds.',
               timestamp: new Date().toISOString()
             }
           ]);
-          setLoading(false);
-          return;
+        } else {
+          throw err;
         }
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
       }
-
-      const data = await response.json();
-      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!replyText) {
-        throw new Error('Empty response from AI');
-      }
-      
-      saveHistory([
-        ...newHistory,
-        {
-          sender: 'bot',
-          text: replyText,
-          timestamp: new Date().toISOString()
-        }
-      ]);
-
-      // Increment limit count and update state
-      await incrementMessageCount(user);
-      const newLimitCheck = await checkMessageLimit(user, subscription);
-      setUsageLimit(newLimitCheck);
     } catch (err) {
       console.error('ER Assistant error:', err);
       saveHistory([
@@ -498,7 +513,16 @@ Always be helpful, professional, and concise. Format responses clearly using mar
                       {isUser ? (
                         <p class="whitespace-pre-line font-sans font-medium">{msg.text}</p>
                       ) : (
-                        parseDrawerMessageContent(msg.text)
+                        <div>
+                          {parseDrawerMessageContent(msg.text)}
+                          {msg.fromCache && (
+                            <div class="mt-1 flex justify-end">
+                              <span class="text-[7px] font-bold px-1.5 py-0.5 rounded bg-amber-550/10 text-amber-500 border border-amber-500/20 font-mono">
+                                ⚡ Instant
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
                       
                       {msg.isPaywall && (
