@@ -20,6 +20,7 @@ import BiasDetector from './components/BiasDetector';
 import WorldMap from './components/WorldMap';
 import OutcomeTracker from './components/OutcomeTracker';
 import OutcomeDetail from './components/OutcomeDetail';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -229,16 +230,18 @@ function AppContent() {
     <div class="min-h-screen flex flex-col bg-paper dark:bg-paper-dark text-navy dark:text-gray-100 transition-colors duration-200 relative max-w-full overflow-x-hidden">
       
       {/* Masthead Header */}
-      <Header 
-        theme={theme}
-        setTheme={handleThemeChange}
-        activeCategory={activeCategory}
-        onCategoryChange={handleCategoryChange}
-        onSearchSubmit={handleSearchSubmit}
-        openAuthModal={() => setAuthModalOpen(true)}
-        setView={setView}
-        view={view}
-      />
+      <ErrorBoundary>
+        <Header 
+          theme={theme}
+          setTheme={handleThemeChange}
+          activeCategory={activeCategory}
+          onCategoryChange={handleCategoryChange}
+          onSearchSubmit={handleSearchSubmit}
+          openAuthModal={() => setAuthModalOpen(true)}
+          setView={setView}
+          view={view}
+        />
+      </ErrorBoundary>
 
       {/* Transition loading spinner */}
       {viewLoading && (
@@ -256,11 +259,13 @@ function AppContent() {
       {/* Main Content Router */}
       <main class="flex-grow">
         {view === 'feed' ? (
-          <NewsFeed 
-            activeCategory={activeCategory}
-            searchQuery={searchQuery}
-            triggerRefresh={triggerRefresh}
-          />
+          <ErrorBoundary>
+            <NewsFeed 
+              activeCategory={activeCategory}
+              searchQuery={searchQuery}
+              triggerRefresh={triggerRefresh}
+            />
+          </ErrorBoundary>
         ) : view === 'assistant' ? (
           <ErAssistantFull />
         ) : view === 'fake-news' ? (
@@ -310,9 +315,11 @@ function AppContent() {
             setView={setView}
           />
         ) : view === 'livetv' ? (
-          <LiveTV 
-            setView={setView}
-          />
+          <ErrorBoundary>
+            <LiveTV 
+              setView={setView}
+            />
+          </ErrorBoundary>
         ) : ['about', 'contact', 'terms', 'privacy'].includes(view) ? (
           <LegalPages 
             setView={setView}
@@ -400,7 +407,11 @@ function AppContent() {
       )}
 
       {/* Floating AI Assistant Chatbot */}
-      {view !== 'assistant' && <AiAssistant />}
+      {view !== 'assistant' && (
+        <ErrorBoundary>
+          <AiAssistant />
+        </ErrorBoundary>
+      )}
 
       {/* Cookie Consent Popup */}
       <CookieConsent />

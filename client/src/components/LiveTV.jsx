@@ -65,10 +65,24 @@ const getChannelVideo = async (channelId, channelKey) => {
     return cached.data;
   }
   
+  const fallbackVideos = {
+    aljazeera: 'bB-vV2h_W-M',
+    bbc: 'gCNeDWCI0vo',
+    skynews: '9Auq9mYxFEE',
+    dw: 'v1eT_VntrS8',
+    ndtv: 'MN8p-Vrn6G0',
+    republic: 'Fqqh5N_w4C8'
+  };
+
   // STEP 1: Try to find LIVE video
   try {
     const liveUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=1&key=${apiKey}`;
     const liveRes = await fetch(liveUrl);
+    if (!liveRes.ok) {
+      const errorBody = await liveRes.json();
+      console.error('YouTube API Error (Live):', JSON.stringify(errorBody));
+      throw new Error('API Error');
+    }
     const liveData = await liveRes.json();
     
     if (liveData.items && liveData.items.length > 0) {
@@ -87,6 +101,11 @@ const getChannelVideo = async (channelId, channelKey) => {
   try {
     const recentUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=1&key=${apiKey}`;
     const recentRes = await fetch(recentUrl);
+    if (!recentRes.ok) {
+      const errorBody = await recentRes.json();
+      console.error('YouTube API Error (Recent):', JSON.stringify(errorBody));
+      throw new Error('API Error');
+    }
     const recentData = await recentRes.json();
     
     if (recentData.items && recentData.items.length > 0) {
@@ -101,7 +120,7 @@ const getChannelVideo = async (channelId, channelKey) => {
     console.error('Recent video search failed:', err);
   }
 
-  return { videoId: null, isLive: false };
+  return { videoId: fallbackVideos[channelKey] || 'bB-vV2h_W-M', isLive: false };
 };
 
 export default function LiveTV({ setView }) {

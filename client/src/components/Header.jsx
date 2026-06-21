@@ -150,12 +150,16 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     try {
       const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Weather fetch failed');
+      if (!res.ok) {
+        console.error('Weather API failed:', res.status);
+        setWeather(null);
+        return;
+      }
       const data = await res.json();
       updateWeatherState(data);
     } catch (err) {
-      console.error('Error fetching weather by coordinates:', err);
-      setWeather({ error: true });
+      console.error('Weather fetch error:', err);
+      setWeather(null);
     }
   };
 
@@ -163,13 +167,17 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     try {
       const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cityName)}&appid=${API_KEY}&units=metric`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Weather fetch by city failed');
+      if (!res.ok) {
+        console.error('Weather API failed:', res.status);
+        setWeather(null);
+        return;
+      }
       const data = await res.json();
       updateWeatherState(data);
       localStorage.setItem('er_weather_city_pref', data.name);
     } catch (err) {
-      console.error('Error fetching weather by city:', err);
-      setWeather({ error: true });
+      console.error('Weather fetch error:', err);
+      setWeather(null);
     }
   };
 
@@ -418,21 +426,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-navy dark:text-gold font-bold">LIVE:</span>
           <span>{formatDate(time)}</span>
-          {weather ? (
-            weather.error ? (
-              <>
-                <span class="text-gray-300 dark:text-gray-700">|</span>
-                <span 
-                  class="cursor-pointer text-red-500 hover:underline flex items-center gap-1 font-semibold" 
-                  onClick={handleCityChangePrompt}
-                  title="Click to enter preferred city or check API key"
-                >
-                  ⚠️ Weather Service Offline (click to edit)
-                </span>
-                <span class="text-gray-300 dark:text-gray-700">|</span>
-                <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
-              </>
-            ) : (
+          {weather && !weather.error ? (
               <>
                 <span class="text-gray-300 dark:text-gray-700">|</span>
                 <span class="flex items-center gap-2 flex-wrap font-semibold">
@@ -455,11 +449,10 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                   <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
                 </span>
               </>
-            )
           ) : (
             <>
               <span class="text-gray-300 dark:text-gray-700">|</span>
-              <span class="animate-pulse">Loading local weather...</span>
+              <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
             </>
           )}
         </div>
