@@ -170,7 +170,16 @@ export default function CommentsSection({ articleUrl }) {
             <div key={comm.id} class="space-y-2 border-b border-gray-550/30 dark:border-gray-800/30 pb-2">
               <div class="flex items-start justify-between">
                 <div class="flex items-center gap-1.5">
-                  <img src={comm.photoURL} alt="avatar" class="w-4.5 h-4.5 rounded-full object-cover border border-gold/40" />
+                  <img 
+                    src={comm.photoURL} 
+                    referrerPolicy="no-referrer"
+                    alt="avatar" 
+                    class="w-4.5 h-4.5 rounded-full object-cover border border-gold/40" 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
+                    }}
+                  />
                   <span class="font-bold text-navy dark:text-gray-250 uppercase text-[10px]">{comm.displayName}</span>
                   <span class="text-[9px] text-gray-400 font-mono">{new Date(comm.createdAt).toLocaleDateString()}</span>
                 </div>
@@ -229,7 +238,16 @@ export default function CommentsSection({ articleUrl }) {
                   <div class="flex-grow space-y-1 bg-gray-50/50 dark:bg-navy-light/5 p-2 rounded border border-gray-100 dark:border-gray-850">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-1.5">
-                        <img src={rep.photoURL} alt="avatar" class="w-4 h-4 rounded-full object-cover" />
+                        <img 
+                          src={rep.photoURL} 
+                          referrerPolicy="no-referrer"
+                          alt="avatar" 
+                          class="w-4 h-4 rounded-full object-cover" 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
+                          }}
+                        />
                         <span class="font-bold text-navy dark:text-gray-300 uppercase text-[9px]">{rep.displayName}</span>
                         <span class="text-[8px] text-gray-400 font-mono">{new Date(rep.createdAt).toLocaleDateString()}</span>
                       </div>

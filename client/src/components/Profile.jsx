@@ -180,9 +180,20 @@ export default function Profile({ setView, onSearchSubmit }) {
             {/* Avatar image */}
             <div class="w-24 h-24 rounded-full mx-auto overflow-hidden bg-gray-150 dark:bg-gray-800 border-2 border-gold/40 flex items-center justify-center mb-4">
               {photoURL ? (
-                <img src={photoURL} alt="Correspondent Avatar" class="w-full h-full object-cover filter saturate-[0.8] hover:saturate-100 transition-all duration-300" />
+                <img 
+                  src={photoURL} 
+                  referrerPolicy="no-referrer"
+                  alt="Correspondent Avatar" 
+                  class="w-full h-full object-cover filter saturate-[0.8] hover:saturate-100 transition-all duration-300" 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
+                  }}
+                />
               ) : (
-                <User size={36} class="text-gold/60" />
+                <div className="w-full h-full bg-gold text-navy flex items-center justify-center font-bold text-4xl">
+                  {user?.displayName?.[0] || user?.email?.[0] || 'U'}
+                </div>
               )}
             </div>
 

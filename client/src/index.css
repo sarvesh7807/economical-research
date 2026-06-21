@@ -145,3 +145,39 @@
     height: 100%;
   }
 }
+
+/* Profile Avatar Fix */
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 12px;
+  border-bottom: 1px solid #1A3A5C;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+.profile-section:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #F4A726;
+  display: block !important;
+  visibility: visible !important;
+}
+.profile-avatar-letter {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #F4A726;
+  color: #0A1628;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}

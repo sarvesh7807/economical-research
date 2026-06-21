@@ -680,9 +680,20 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                 class="flex items-center gap-1.5 hover:text-gold font-semibold text-navy dark:text-gray-200 transition-colors"
               >
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="Avatar" class="w-5 h-5 rounded-full object-cover border border-gold" />
+                  <img 
+                    src={user.photoURL}
+                    referrerPolicy="no-referrer"
+                    alt="Profile"
+                    className="w-6 h-6 rounded-full object-cover border border-gold"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
+                    }}
+                  />
                 ) : (
-                  <UserIcon size={14} class="text-gold" />
+                  <div className="w-6 h-6 rounded-full bg-gold text-navy flex items-center justify-center font-bold text-[10px]">
+                    {user.displayName?.[0] || user.email?.[0] || 'U'}
+                  </div>
                 )}
                 <span class="hidden sm:inline max-w-[120px] truncate">{user.displayName || user.email}</span>
                 {subscription?.tier === 'PRO' && (
@@ -979,7 +990,28 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <button class="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
             
             {user ? (
-              <button class="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile</button>
+              <>
+                <div className="profile-section" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>
+                  {user.photoURL ? (
+                    <img 
+                      src={user.photoURL}
+                      referrerPolicy="no-referrer"
+                      alt="Profile"
+                      className="profile-avatar"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
+                      }}
+                    />
+                  ) : (
+                    <div className="profile-avatar-letter">
+                      {user.displayName?.[0] || user.email?.[0] || 'U'}
+                    </div>
+                  )}
+                  <span>{user.displayName || user.email}</span>
+                </div>
+                <button class="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile Settings</button>
+              </>
             ) : (
               <button class="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
             )}
