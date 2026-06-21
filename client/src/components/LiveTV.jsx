@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tv, Maximize, ArrowLeft, Radio, AlertCircle } from 'lucide-react';
 
-const YOUTUBE_API_KEY = 'AIzaSyCkOqqu_RUCy_xWo6ksYCO5TUopgHNMaNU';
+const YOUTUBE_API_KEY = 'AIzaSyCkOqqu_RUcy_xWo6ksYCO5TUopgHNMaNU';
 
 const channels = [
   {
@@ -59,7 +59,7 @@ const videoCache = {};
 const getChannelVideo = async (channelId, channelKey) => {
   const cached = videoCache[channelKey];
   const now = Date.now();
-  const apiKey = "AIzaSyCkOqqu_RUCy_xWo6ksYCO5TUopgHNMaNU";
+  const apiKey = "AIzaSyCkOqqu_RUcy_xWo6ksYCO5TUopgHNMaNU";
   
   if (cached && (now - cached.timestamp) < 300000) {
     return cached.data;
