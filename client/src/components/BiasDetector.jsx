@@ -16,7 +16,7 @@ export default function BiasDetector() {
     setResult(null);
 
     try {
-      const apiKey = 'AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk';
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const prompt = `Analyze political bias in this news content:
 "${inputText.trim()}"
 

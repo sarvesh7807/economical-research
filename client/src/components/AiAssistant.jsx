@@ -272,7 +272,7 @@ function DrawerFormattedText({ text }) {
     setError(null);
 
     try {
-      const apiKey = 'AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk';
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
       // Build valid Gemini contents:
       // 1. Exclude paywall messages and system-only bot messages

@@ -5,11 +5,11 @@ const router = express.Router();
 
 // Initialize Gemini API
 const getGeminiApiKey = () => {
-  const envKey = process.env.GEMINI_API_KEY;
+  const envKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (envKey && envKey.trim() !== '' && !envKey.includes('YAHAN')) {
     return envKey;
   }
-  return 'AIzaSyBdIUZeel6FclteVnnxWbW3_fT24qqv7Nk';
+  return '';
 };
 
 const geminiApiKey = getGeminiApiKey();
