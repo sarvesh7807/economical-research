@@ -44,7 +44,17 @@ Provide the response strictly as a JSON object matching this schema:
         }
       );
 
-      if (!response.ok) throw new Error('API request failed');
+      if (response.status === 429) {
+        setError("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
+        setLoading(false);
+        return;
+      }
+
+      if (!response.ok) {
+        setError("Something went wrong. Please try again in a moment.");
+        setLoading(false);
+        return;
+      }
 
       const data = await response.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -54,7 +64,7 @@ Provide the response strictly as a JSON object matching this schema:
       setResult(parsed);
     } catch (err) {
       console.error(err);
-      setError('Bias detection failed. Please check your internet connection or try again later.');
+      setError("Connection issue. Please check your internet and try again.");
     } finally {
       setLoading(false);
     }
@@ -139,8 +149,19 @@ Provide the response strictly as a JSON object matching this schema:
 
       {/* Error display */}
       {error && (
-        <div className="mt-6 bg-red-500/10 border border-red-500/35 text-red-700 dark:text-red-300 text-xs font-semibold px-4 py-3 rounded-2xl flex items-center gap-2">
-          <span>⚠️ {error}</span>
+        <div className="mt-6 bg-red-500/10 border border-red-500/35 text-red-700 dark:text-red-300 text-xs font-semibold px-4 py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center gap-2">
+            <span>⚠️ {error}</span>
+          </div>
+          {error.includes("⏳") && (
+            <button 
+              onClick={(e) => handleDetect(e)}
+              disabled={loading}
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 px-4 py-1.5 rounded-full text-[10px] uppercase font-bold tracking-wider transition-colors disabled:opacity-50 shrink-0"
+            >
+              {loading ? 'Retrying...' : 'Retry Now'}
+            </button>
+          )}
         </div>
       )}
 

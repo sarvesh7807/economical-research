@@ -186,8 +186,8 @@ function DrawerFormattedText({ text }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [usageLimit, setUsageLimit] = useState({ allowed: true, remaining: 21 });
+  const [cooldown, setCooldown] = useState(0);
   const scrollRef = useRef(null);
-  const lastRequestTime = useRef(0);
 
   const isPro = subscription?.tier === 'PRO';
 
@@ -242,13 +242,18 @@ function DrawerFormattedText({ text }) {
     const textToSend = directText || message;
     if (!textToSend.trim()) return;
 
-    // Cooldown check (4 seconds)
-    const now = Date.now();
-    if (now - lastRequestTime.current < 4000) {
-      setError('Please wait a few seconds before sending another message.');
-      return;
-    }
-    lastRequestTime.current = now;
+    if (cooldown > 0) return;
+
+    setCooldown(5);
+    const timer = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     // Message limit check
     const limitCheck = await checkMessageLimit(user, subscription);
@@ -348,7 +353,7 @@ Always be helpful, professional, and concise. Format responses clearly using mar
             ...newHistory,
             {
               sender: 'bot',
-              text: '⏳ I am getting a lot of requests right now! Please wait a moment and try again.',
+              text: '⏳ Too many requests right now! Please wait a moment before sending another message.',
               timestamp: new Date().toISOString()
             }
           ]);
@@ -381,6 +386,14 @@ Always be helpful, professional, and concise. Format responses clearly using mar
       setUsageLimit(newLimitCheck);
     } catch (err) {
       console.error('ER Assistant error:', err);
+      saveHistory([
+        ...newHistory,
+        {
+          sender: 'bot',
+          text: 'Connection issue. Please check your internet and try again.',
+          timestamp: new Date().toISOString()
+        }
+      ]);
       setError(`Connection error: ${err.message}. Please try again.`);
     } finally {
       setLoading(false);
@@ -554,15 +567,15 @@ Always be helpful, professional, and concise. Format responses clearly using mar
               placeholder={isPro ? "Query research assistant..." : "Message ER Assistant..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              disabled={loading}
+              disabled={loading || cooldown > 0}
               class="flex-grow bg-gray-50 dark:bg-paper-dark border border-paper-border dark:border-paper-borderDark rounded px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-gold text-navy dark:text-white"
             />
             <button
               type="submit"
-              disabled={loading || !message.trim()}
-              class="bg-navy hover:bg-navy-light text-gold p-2 rounded transition-all disabled:opacity-50"
+              disabled={loading || cooldown > 0 || !message.trim()}
+              class="bg-navy hover:bg-navy-light text-gold p-2 rounded transition-all disabled:opacity-50 min-w-[36px] flex justify-center items-center"
             >
-              <Send size={12} />
+              {cooldown > 0 ? <span class="text-[9px] font-bold">Wait {cooldown}s</span> : <Send size={12} />}
             </button>
           </form>
         </div>

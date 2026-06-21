@@ -218,12 +218,22 @@ export default function ArticleCard({ article }) {
         body: JSON.stringify({ title, description, content, source: source?.name || 'Unknown Source' })
       });
 
-      if (!response.ok) throw new Error('Failed to generate summary');
+      if (response.status === 429) {
+        setErrorSummary("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
+        setLoadingSummary(false);
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorSummary("Something went wrong. Please try again in a moment.");
+        setLoadingSummary(false);
+        return;
+      }
       const data = await response.json();
       setSummary(data.summary);
     } catch (err) {
       console.error(err);
-      setErrorSummary('The AI analyst was unable to process this article. Please check your credentials.');
+      setErrorSummary("Connection issue. Please check your internet and try again.");
     } finally {
       setLoadingSummary(false);
     }
@@ -249,12 +259,22 @@ export default function ArticleCard({ article }) {
         body: JSON.stringify({ title, description, content, source: source?.name || 'Unknown Source' })
       });
 
-      if (!response.ok) throw new Error('Failed to generate key points');
+      if (response.status === 429) {
+        setErrorKeyPoints("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
+        setLoadingKeyPoints(false);
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorKeyPoints("Something went wrong. Please try again in a moment.");
+        setLoadingKeyPoints(false);
+        return;
+      }
       const data = await response.json();
       setKeyPoints(data.keyPoints);
     } catch (err) {
       console.error(err);
-      setErrorKeyPoints('The AI analyst was unable to extract key points. Please check your credentials.');
+      setErrorKeyPoints("Connection issue. Please check your internet and try again.");
     } finally {
       setLoadingKeyPoints(false);
     }
@@ -283,12 +303,23 @@ export default function ArticleCard({ article }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, description, content })
       });
-      if (!response.ok) throw new Error('Failed to generate 5-point summary');
+
+      if (response.status === 429) {
+        setErrorFivePoints("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
+        setLoadingFivePoints(false);
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorFivePoints("Something went wrong. Please try again in a moment.");
+        setLoadingFivePoints(false);
+        return;
+      }
       const data = await response.json();
       setFivePoints(data.points);
     } catch (err) {
       console.error(err);
-      setErrorFivePoints('Unable to generate 5-point summary. Please try again.');
+      setErrorFivePoints("Connection issue. Please check your internet and try again.");
     } finally {
       setLoadingFivePoints(false);
     }
@@ -317,12 +348,23 @@ export default function ArticleCard({ article }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, description, content })
       });
-      if (!response.ok) throw new Error('Failed to analyze market impact');
+
+      if (response.status === 429) {
+        setErrorMarketImpact("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
+        setLoadingMarketImpact(false);
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMarketImpact("Something went wrong. Please try again in a moment.");
+        setLoadingMarketImpact(false);
+        return;
+      }
       const data = await response.json();
       setMarketImpact(data);
     } catch (err) {
       console.error(err);
-      setErrorMarketImpact('Unable to analyze market impact. Please try again.');
+      setErrorMarketImpact("Connection issue. Please check your internet and try again.");
     } finally {
       setLoadingMarketImpact(false);
     }
@@ -714,9 +756,19 @@ export default function ArticleCard({ article }) {
                     <div class="h-2.5 rounded w-[75%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
                   </div>
                 ) : errorSummary ? (
-                  <div class="flex items-start gap-1.5 text-red-650 dark:text-red-400 text-[10px] font-medium py-1">
-                    <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                    <span>{errorSummary}</span>
+                  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
+                    <div class="flex items-start gap-1.5">
+                      <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                      <span>{errorSummary}</span>
+                    </div>
+                    {errorSummary.includes("⏳") && (
+                      <button 
+                        onClick={handleFetchSummary}
+                        class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
+                      >
+                        Retry
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <p class="text-xs text-navy/95 dark:text-gray-200 font-sans leading-relaxed">
@@ -741,9 +793,19 @@ export default function ArticleCard({ article }) {
                     <div class="h-2.5 rounded w-[95%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
                   </div>
                 ) : errorKeyPoints ? (
-                  <div class="flex items-start gap-1.5 text-red-650 dark:text-red-400 text-[10px] font-medium py-1">
-                    <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                    <span>{errorKeyPoints}</span>
+                  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
+                    <div class="flex items-start gap-1.5">
+                      <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                      <span>{errorKeyPoints}</span>
+                    </div>
+                    {errorKeyPoints.includes("⏳") && (
+                      <button 
+                        onClick={handleFetchKeyPoints}
+                        class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
+                      >
+                        Retry
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <ul class="space-y-1.5 text-xs text-navy/95 dark:text-gray-200 font-sans list-disc pl-4 leading-relaxed">
@@ -789,9 +851,19 @@ export default function ArticleCard({ article }) {
                 ))}
               </div>
             ) : errorFivePoints ? (
-              <div class="flex items-start gap-1.5 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
-                <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                <span>{errorFivePoints}</span>
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
+                <div class="flex items-start gap-1.5">
+                  <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                  <span>{errorFivePoints}</span>
+                </div>
+                {errorFivePoints.includes("⏳") && (
+                  <button 
+                    onClick={handleFivePoints}
+                    class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             ) : fivePoints ? (
               <ol class="space-y-2">
@@ -824,9 +896,19 @@ export default function ArticleCard({ article }) {
                 <div class="h-2.5 rounded w-[50%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
               </div>
             ) : errorMarketImpact ? (
-              <div class="flex items-start gap-1.5 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
-                <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                <span>{errorMarketImpact}</span>
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
+                <div class="flex items-start gap-1.5">
+                  <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                  <span>{errorMarketImpact}</span>
+                </div>
+                {errorMarketImpact.includes("⏳") && (
+                  <button 
+                    onClick={handleMarketImpact}
+                    class="bg-red-500/10 hover:bg-red-500/20 text-red-750 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             ) : marketImpact ? (
               <div class="space-y-3">

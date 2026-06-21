@@ -431,7 +431,7 @@ export default function ErAssistantFull() {
   const [usageLimit, setUsageLimit] = useState({ allowed: true, remaining: 21 });
 
   const scrollRef = useRef(null);
-  const lastRequestTime = useRef(0);
+  const [cooldown, setCooldown] = useState(0);
   const isPro = subscription?.tier === 'PRO';
 
   // Load chat sessions from local storage on mount
@@ -554,13 +554,18 @@ export default function ErAssistantFull() {
     const textToSend = directText || message;
     if (!textToSend.trim()) return;
 
-    // Cooldown check (4 seconds)
-    const now = Date.now();
-    if (now - lastRequestTime.current < 4000) {
-      setError('Please wait a few seconds before sending another message.');
-      return;
-    }
-    lastRequestTime.current = now;
+    if (cooldown > 0) return;
+
+    setCooldown(5);
+    const timer = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     // Message limit check
     const limitCheck = await checkMessageLimit(user, subscription);
@@ -691,7 +696,7 @@ Always be professional, analytical, and cite economic context. Format responses 
                 ...s,
                 messages: [...updatedHistory, {
                   sender: 'bot',
-                  text: '⏳ I am getting a lot of requests right now! Please wait a moment and try again.',
+                  text: '⏳ Too many requests right now! Please wait a moment before sending another message.',
                   timestamp: new Date().toISOString()
                 }]
               };
@@ -983,11 +988,11 @@ Always be professional, analytical, and cite economic context. Format responses 
             />
             <button
               type="submit"
-              disabled={loading || !message.trim()}
-              class="bg-navy hover:bg-navy-light text-gold p-3 rounded-lg transition-all disabled:opacity-40 hover:scale-105 border border-gold/10"
+              disabled={loading || cooldown > 0 || !message.trim()}
+              class="bg-navy hover:bg-navy-light text-gold p-3 rounded-lg transition-all disabled:opacity-40 hover:scale-105 border border-gold/10 min-w-[40px] flex justify-center items-center"
               title="Submit Inquiry"
             >
-              <Send size={14} />
+              {cooldown > 0 ? <span class="text-[9px] font-bold tracking-widest uppercase">Wait {cooldown}s</span> : <Send size={14} />}
             </button>
           </form>
         </div>

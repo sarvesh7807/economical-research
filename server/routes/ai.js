@@ -42,6 +42,9 @@ router.post('/summarize', async (req, res) => {
     res.json({ summary: result.response.text().trim() });
   } catch (err) {
     console.error('Summarize error:', err.message);
+    if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED') || err.status === 429)) {
+      return res.status(429).json({ error: "⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again." });
+    }
     res.json({
       summary: `This report details recent developments regarding "${title}" from ${source || 'wire reports'}. Initial briefs point to substantial shifts in regional logistics and fiscal adjustments. Stakeholders are monitoring supply schedules closely as market observers anticipate long-term structural changes.`
     });
@@ -79,6 +82,9 @@ router.post('/keypoints', async (req, res) => {
     res.json({ keyPoints });
   } catch (err) {
     console.error('Keypoints error:', err.message);
+    if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED') || err.status === 429)) {
+      return res.status(429).json({ error: "⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again." });
+    }
     res.json({
       keyPoints: [
         `Operational adjustments are being deployed immediately to stabilize current flows.`,
@@ -377,6 +383,9 @@ Content: ${content || ''}`;
     res.json({ points });
   } catch (err) {
     console.error('Five points error:', err.message);
+    if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED') || err.status === 429)) {
+      return res.status(429).json({ error: "⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again." });
+    }
     res.json({
       points: [
         `Key development: ${title?.substring(0, 60) || 'Breaking story'} is currently unfolding.`,
@@ -421,6 +430,9 @@ Content: ${content || ''}`;
     res.json(data);
   } catch (err) {
     console.error('Market impact error:', err.message);
+    if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED') || err.status === 429)) {
+      return res.status(429).json({ error: "⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again." });
+    }
     res.json({
       impactLevel: 'MEDIUM',
       direction: 'NEUTRAL',
