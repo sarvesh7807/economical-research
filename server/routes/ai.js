@@ -31,7 +31,7 @@ router.post('/summarize', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `You are a lead editor for "Economical Research". Summarize this article metadata in exactly 3 sentences. Write in a premium, objective journalism tone. Do not use bullet points.
     Title: ${title}
     Source: ${source}
@@ -63,7 +63,7 @@ router.post('/keypoints', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `You are a research analyst for "Economical Research". Extract exactly 3 key bullet points summarizing the main facts of this story. Formulate each as a single sentence starting with a dash (-).
     Title: ${title}
     Source: ${source}
@@ -117,7 +117,7 @@ router.post('/analyze', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `Analyze this news article metadata for two parameters:
     1. Sentiment: output exactly one word from (Positive, Negative, Neutral) followed by a 1-sentence reasoning on a new line.
     2. Truth Rating: output a confidence score from 0 to 100 representing factual consistency, followed by a 1-sentence verification summary on a new line.
@@ -160,7 +160,7 @@ router.post('/translate', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `Translate the following news text into ${targetLanguage}. Maintain a professional, news-quality grammar structure. Output ONLY the translated text. Do not add comments or quotes.
     Text: ${text}`;
 
@@ -222,7 +222,7 @@ router.post('/chat', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     
     // Format history for Gemini
     const historyPrompts = chatHistory.map(chat => 
@@ -304,7 +304,7 @@ This intelligence dispatch covers recent structural adjustments regarding "${top
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `You are the chief AI researcher at "Economical Research". Generate a highly detailed, world-class briefing report on the topic: "${topic}". 
     Format the report in clean markdown with the following sections:
     1. Title: ER DEEP INTELLIGENCE BRIEFING: [Topic]
@@ -356,7 +356,7 @@ router.post('/five-points', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `Summarize this news in exactly 5 short bullet points. Keep each point under 15 words. Be factual and concise. Output ONLY the 5 points, one per line, each starting with a dash (-).
 Title: ${title}
 Description: ${description || ''}
@@ -403,7 +403,7 @@ router.post('/market-impact', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `Analyze the likely stock market impact of this news. Respond ONLY with a valid JSON object in this exact format:
 {
   "impactLevel": "HIGH" or "MEDIUM" or "LOW",
@@ -448,7 +448,7 @@ router.post('/extract-promise', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
     const prompt = `You are an AI research assistant for "Economical Research". Analyze the following news article text to determine if it contains a government promise, policy announcement, new scheme, or target (e.g. "Govt announces 10 lakh jobs", "State targets zero carbon emissions by 2030", "Ministry launches health scheme").
 
 If yes, extract:
