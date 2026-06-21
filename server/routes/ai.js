@@ -442,6 +442,36 @@ Content: ${content || ''}`;
   }
 });
 
+// 9. AI DEBATE STARTER
+router.post('/debate', async (req, res) => {
+  const { title, description, content } = req.body;
+
+  if (!genAI) {
+    return res.json({
+      debate: `Is this development beneficial or detrimental to regional trade? Share your perspective below. Some observers suggest it could increase market competition, while others warn of potential supply bottlenecks.`
+    });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    const prompt = `You are a debate moderator for "Economical Research". Based on this news article, write a brief, neutral AI debate starter prompt (under 30 words) to encourage reader discussions. Present two opposing views or a critical question.
+    Title: ${title}
+    Description: ${description || ''}
+    Content: ${content || ''}`;
+
+    const result = await model.generateContent(prompt);
+    res.json({ debate: result.response.text().trim() });
+  } catch (err) {
+    console.error('Debate error:', err.message);
+    if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED') || err.status === 429)) {
+      return res.status(429).json({ error: "⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again." });
+    }
+    res.json({
+      debate: `Is this development beneficial or detrimental to regional trade? Share your perspective below. Some observers suggest it could increase market competition, while others warn of potential supply bottlenecks.`
+    });
+  }
+});
+
 // 5. EXTRACT PROMISE FOR OUTCOME TRACKER
 router.post('/extract-promise', async (req, res) => {
   const { text } = req.body;

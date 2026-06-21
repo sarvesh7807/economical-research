@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages, TrendingUp, FileText } from 'lucide-react';
 import CommentsSection from './CommentsSection';
+import { db } from '../lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function ArticleCard({ article }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
@@ -53,6 +55,134 @@ export default function ArticleCard({ article }) {
   const [loadingMarketImpact, setLoadingMarketImpact] = useState(false);
   const [errorMarketImpact, setErrorMarketImpact] = useState(null);
   const [showMarketImpact, setShowMarketImpact] = useState(false);
+
+  // AI Caching states
+  const [cacheStatusSummary, setCacheStatusSummary] = useState(null);
+  const [cacheStatusKeyPoints, setCacheStatusKeyPoints] = useState(null);
+  const [cacheStatusFivePoints, setCacheStatusFivePoints] = useState(null);
+  const [cacheStatusMarketImpact, setCacheStatusMarketImpact] = useState(null);
+  const [cacheStatusDebate, setCacheStatusDebate] = useState(null);
+
+  // AI Retry countdown states
+  const [countdownSummary, setCountdownSummary] = useState(0);
+  const [countdownKeyPoints, setCountdownKeyPoints] = useState(0);
+  const [countdownFivePoints, setCountdownFivePoints] = useState(0);
+  const [countdownMarketImpact, setCountdownMarketImpact] = useState(0);
+  const [countdownDebate, setCountdownDebate] = useState(0);
+
+  // AI Debate starter states
+  const [debate, setDebate] = useState(null);
+  const [loadingDebate, setLoadingDebate] = useState(false);
+  const [errorDebate, setErrorDebate] = useState(null);
+
+  // Countdown timer effects
+  useEffect(() => {
+    if (countdownSummary <= 0) return;
+    const timer = setTimeout(() => setCountdownSummary(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdownSummary]);
+
+  useEffect(() => {
+    if (countdownKeyPoints <= 0) return;
+    const timer = setTimeout(() => setCountdownKeyPoints(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdownKeyPoints]);
+
+  useEffect(() => {
+    if (countdownFivePoints <= 0) return;
+    const timer = setTimeout(() => setCountdownFivePoints(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdownFivePoints]);
+
+  useEffect(() => {
+    if (countdownMarketImpact <= 0) return;
+    const timer = setTimeout(() => setCountdownMarketImpact(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdownMarketImpact]);
+
+  useEffect(() => {
+    if (countdownDebate <= 0) return;
+    const timer = setTimeout(() => setCountdownDebate(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdownDebate]);
+
+  // Caching helpers
+  const getArticleId = (urlStr) => {
+    if (!urlStr) return 'unknown_article';
+    return urlStr.replace(/[^a-zA-Z0-9]/g, '_');
+  };
+
+  const callGeminiAPI = async (type) => {
+    let endpoint = '';
+    let body = {};
+    
+    if (type === 'summary') {
+      endpoint = '/api/ai/summarize';
+      body = { title, description, content, source: source?.name || 'Unknown Source' };
+    } else if (type === 'keypoints') {
+      endpoint = '/api/ai/keypoints';
+      body = { title, description, content, source: source?.name || 'Unknown Source' };
+    } else if (type === 'fivepoints') {
+      endpoint = '/api/ai/five-points';
+      body = { title, description, content };
+    } else if (type === 'marketimpact') {
+      endpoint = '/api/ai/market-impact';
+      body = { title, description, content };
+    } else if (type === 'debate') {
+      endpoint = '/api/ai/debate';
+      body = { title, description, content };
+    }
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    if (response.status === 429) {
+      throw { status: 429 };
+    }
+    
+    if (!response.ok) {
+      throw new Error('API failed');
+    }
+    
+    return await response.json();
+  };
+
+  const getAIContent = async (articleId, type) => {
+    const cacheKey = `${articleId}_${type}`;
+    const cacheRef = doc(db, 'ai_cache', cacheKey);
+    const cached = await getDoc(cacheRef);
+    
+    if (cached.exists()) {
+      const data = cached.data();
+      const ageInHours = (Date.now() - data.timestamp) / 3600000;
+      if (ageInHours < 24) {
+        return { content: data.content, fromCache: true };
+      }
+    }
+    
+    // Not cached or expired - call Gemini API
+    try {
+      const result = await callGeminiAPI(type);
+      
+      // Save to cache for next time
+      await setDoc(cacheRef, {
+        content: result,
+        timestamp: Date.now(),
+        type: type,
+        articleId: articleId
+      });
+      
+      return { content: result, fromCache: false };
+    } catch (err) {
+      if (err.status === 429 || (err.message && err.message.includes('429'))) {
+        throw { status: 429 };
+      }
+      throw err;
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -212,28 +342,18 @@ export default function ArticleCard({ article }) {
     setShowKeyPoints(false);
 
     try {
-      const response = await fetch('/api/ai/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, content, source: source?.name || 'Unknown Source' })
-      });
-
-      if (response.status === 429) {
-        setErrorSummary("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
-        setLoadingSummary(false);
-        return;
-      }
-
-      if (!response.ok) {
-        setErrorSummary("Something went wrong. Please try again in a moment.");
-        setLoadingSummary(false);
-        return;
-      }
-      const data = await response.json();
+      const articleId = getArticleId(url);
+      const { content: data, fromCache } = await getAIContent(articleId, 'summary');
       setSummary(data.summary);
+      setCacheStatusSummary(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
-      setErrorSummary("Connection issue. Please check your internet and try again.");
+      if (err.status === 429) {
+        setErrorSummary("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setCountdownSummary(30);
+      } else {
+        setErrorSummary("Connection issue. Please check your internet and try again.");
+      }
     } finally {
       setLoadingSummary(false);
     }
@@ -253,28 +373,18 @@ export default function ArticleCard({ article }) {
     setShowSummary(false);
 
     try {
-      const response = await fetch('/api/ai/keypoints', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, content, source: source?.name || 'Unknown Source' })
-      });
-
-      if (response.status === 429) {
-        setErrorKeyPoints("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
-        setLoadingKeyPoints(false);
-        return;
-      }
-
-      if (!response.ok) {
-        setErrorKeyPoints("Something went wrong. Please try again in a moment.");
-        setLoadingKeyPoints(false);
-        return;
-      }
-      const data = await response.json();
+      const articleId = getArticleId(url);
+      const { content: data, fromCache } = await getAIContent(articleId, 'keypoints');
       setKeyPoints(data.keyPoints);
+      setCacheStatusKeyPoints(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
-      setErrorKeyPoints("Connection issue. Please check your internet and try again.");
+      if (err.status === 429) {
+        setErrorKeyPoints("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setCountdownKeyPoints(30);
+      } else {
+        setErrorKeyPoints("Connection issue. Please check your internet and try again.");
+      }
     } finally {
       setLoadingKeyPoints(false);
     }
@@ -298,28 +408,18 @@ export default function ArticleCard({ article }) {
     setShowMarketImpact(false);
 
     try {
-      const response = await fetch('/api/ai/five-points', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, content })
-      });
-
-      if (response.status === 429) {
-        setErrorFivePoints("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
-        setLoadingFivePoints(false);
-        return;
-      }
-
-      if (!response.ok) {
-        setErrorFivePoints("Something went wrong. Please try again in a moment.");
-        setLoadingFivePoints(false);
-        return;
-      }
-      const data = await response.json();
+      const articleId = getArticleId(url);
+      const { content: data, fromCache } = await getAIContent(articleId, 'fivepoints');
       setFivePoints(data.points);
+      setCacheStatusFivePoints(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
-      setErrorFivePoints("Connection issue. Please check your internet and try again.");
+      if (err.status === 429) {
+        setErrorFivePoints("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setCountdownFivePoints(30);
+      } else {
+        setErrorFivePoints("Connection issue. Please check your internet and try again.");
+      }
     } finally {
       setLoadingFivePoints(false);
     }
@@ -343,31 +443,54 @@ export default function ArticleCard({ article }) {
     setShowFivePoints(false);
 
     try {
-      const response = await fetch('/api/ai/market-impact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, content })
-      });
-
-      if (response.status === 429) {
-        setErrorMarketImpact("⏳ I'm getting a lot of requests right now! Please wait 30 seconds and try again.");
-        setLoadingMarketImpact(false);
-        return;
-      }
-
-      if (!response.ok) {
-        setErrorMarketImpact("Something went wrong. Please try again in a moment.");
-        setLoadingMarketImpact(false);
-        return;
-      }
-      const data = await response.json();
+      const articleId = getArticleId(url);
+      const { content: data, fromCache } = await getAIContent(articleId, 'marketimpact');
       setMarketImpact(data);
+      setCacheStatusMarketImpact(fromCache ? 'instant' : 'fresh');
     } catch (err) {
       console.error(err);
-      setErrorMarketImpact("Connection issue. Please check your internet and try again.");
+      if (err.status === 429) {
+        setErrorMarketImpact("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setCountdownMarketImpact(30);
+      } else {
+        setErrorMarketImpact("Connection issue. Please check your internet and try again.");
+      }
     } finally {
       setLoadingMarketImpact(false);
     }
+  };
+
+  // Debate AI starter helper
+  const fetchDebateAI = async () => {
+    setLoadingDebate(true);
+    setErrorDebate(null);
+
+    try {
+      const articleId = getArticleId(url);
+      const { content: data, fromCache } = await getAIContent(articleId, 'debate');
+      setDebate(data.debate);
+      setCacheStatusDebate(fromCache ? 'instant' : 'fresh');
+    } catch (err) {
+      console.error(err);
+      if (err.status === 429) {
+        setErrorDebate("⏳ High demand right now! This content will be available in a moment. Try refreshing in 30 seconds.");
+        setCountdownDebate(30);
+      } else {
+        setErrorDebate("Connection issue. Please check your internet and try again.");
+      }
+    } finally {
+      setLoadingDebate(false);
+    }
+  };
+
+  // Debate AI starter handler
+  const handleFetchDebate = async () => {
+    setShowComments(!showComments);
+    if (showComments) return;
+
+    if (debate) return;
+
+    await fetchDebateAI();
   };
 
   // Translation handler
@@ -689,8 +812,10 @@ export default function ArticleCard({ article }) {
           </button>
 
           {/* Comments Toggle */}
+          {/* Comments Toggle */}
           <button
-            onClick={() => setShowComments(!showComments)}
+            onClick={handleFetchDebate}
+            disabled={loadingDebate}
             class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showComments
                 ? 'bg-navy text-accent-neon dark:bg-white/10 dark:text-accent-neon border-transparent'
@@ -744,9 +869,20 @@ export default function ArticleCard({ article }) {
             {/* AI Summary Content */}
             {showSummary && (
               <div>
-                <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest mb-1.5 font-mono">
-                  <ShieldCheck size={11} class="text-primary-glow" />
-                  <span>AI Editorial Summary</span>
+                <div class="flex items-center justify-between mb-1.5">
+                  <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest font-mono">
+                    <ShieldCheck size={11} class="text-primary-glow" />
+                    <span>AI Editorial Summary</span>
+                  </div>
+                  {cacheStatusSummary && (
+                    <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      cacheStatusSummary === 'instant' 
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
+                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
+                    }`}>
+                      {cacheStatusSummary === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
+                    </span>
+                  )}
                 </div>
                 
                 {loadingSummary ? (
@@ -761,14 +897,13 @@ export default function ArticleCard({ article }) {
                       <AlertCircle size={12} class="shrink-0 mt-0.5" />
                       <span>{errorSummary}</span>
                     </div>
-                    {errorSummary.includes("⏳") && (
-                      <button 
-                        onClick={handleFetchSummary}
-                        class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
-                      >
-                        Retry
-                      </button>
-                    )}
+                    <button 
+                      onClick={handleFetchSummary}
+                      disabled={countdownSummary > 0}
+                      class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      {countdownSummary > 0 ? `Retry in ${countdownSummary}s` : '🔄 Retry'}
+                    </button>
                   </div>
                 ) : (
                   <p class="text-xs text-navy/95 dark:text-gray-200 font-sans leading-relaxed">
@@ -781,9 +916,20 @@ export default function ArticleCard({ article }) {
             {/* Key Points Content */}
             {showKeyPoints && (
               <div>
-                <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest mb-2 font-mono">
-                  <ShieldCheck size={11} class="text-primary-glow" />
-                  <span>AI Structural Implications</span>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest font-mono">
+                    <ShieldCheck size={11} class="text-primary-glow" />
+                    <span>AI Structural Implications</span>
+                  </div>
+                  {cacheStatusKeyPoints && (
+                    <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      cacheStatusKeyPoints === 'instant' 
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
+                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
+                    }`}>
+                      {cacheStatusKeyPoints === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
+                    </span>
+                  )}
                 </div>
                 
                 {loadingKeyPoints ? (
@@ -798,14 +944,13 @@ export default function ArticleCard({ article }) {
                       <AlertCircle size={12} class="shrink-0 mt-0.5" />
                       <span>{errorKeyPoints}</span>
                     </div>
-                    {errorKeyPoints.includes("⏳") && (
-                      <button 
-                        onClick={handleFetchKeyPoints}
-                        class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
-                      >
-                        Retry
-                      </button>
-                    )}
+                    <button 
+                      onClick={handleFetchKeyPoints}
+                      disabled={countdownKeyPoints > 0}
+                      class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      {countdownKeyPoints > 0 ? `Retry in ${countdownKeyPoints}s` : '🔄 Retry'}
+                    </button>
                   </div>
                 ) : (
                   <ul class="space-y-1.5 text-xs text-navy/95 dark:text-gray-200 font-sans list-disc pl-4 leading-relaxed">
@@ -840,9 +985,20 @@ export default function ArticleCard({ article }) {
         {showFivePoints && (
           <div class="mt-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 relative overflow-hidden transition-all duration-300 shadow-inner">
             <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-orange-500"></div>
-            <div class="flex items-center gap-1.5 text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-3 font-mono">
-              <FileText size={11} />
-              <span>📝 News in 5 Points</span>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-1.5 text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest font-mono">
+                <FileText size={11} />
+                <span>📝 News in 5 Points</span>
+              </div>
+              {cacheStatusFivePoints && (
+                <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                  cacheStatusFivePoints === 'instant' 
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
+                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
+                }`}>
+                  {cacheStatusFivePoints === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
+                </span>
+              )}
             </div>
             {loadingFivePoints ? (
               <div class="space-y-2 py-1">
@@ -851,19 +1007,18 @@ export default function ArticleCard({ article }) {
                 ))}
               </div>
             ) : errorFivePoints ? (
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
                 <div class="flex items-start gap-1.5">
                   <AlertCircle size={12} class="shrink-0 mt-0.5" />
                   <span>{errorFivePoints}</span>
                 </div>
-                {errorFivePoints.includes("⏳") && (
-                  <button 
-                    onClick={handleFivePoints}
-                    class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
-                  >
-                    Retry
-                  </button>
-                )}
+                <button 
+                  onClick={handleFivePoints}
+                  disabled={countdownFivePoints > 0}
+                  class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
+                >
+                  {countdownFivePoints > 0 ? `Retry in ${countdownFivePoints}s` : '🔄 Retry'}
+                </button>
               </div>
             ) : fivePoints ? (
               <ol class="space-y-2">
@@ -885,9 +1040,20 @@ export default function ArticleCard({ article }) {
               marketImpact?.impactLevel === 'HIGH' ? 'bg-red-500' :
               marketImpact?.impactLevel === 'LOW' ? 'bg-green-500' : 'bg-yellow-500'
             }`}></div>
-            <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-emerald-400 uppercase tracking-widest mb-3 font-mono">
-              <TrendingUp size={11} />
-              <span>📊 Market Impact Analysis</span>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-emerald-400 uppercase tracking-widest font-mono">
+                <TrendingUp size={11} />
+                <span>📊 Market Impact Analysis</span>
+              </div>
+              {cacheStatusMarketImpact && (
+                <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                  cacheStatusMarketImpact === 'instant' 
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
+                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
+                }`}>
+                  {cacheStatusMarketImpact === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
+                </span>
+              )}
             </div>
             {loadingMarketImpact ? (
               <div class="space-y-2 py-1">
@@ -896,19 +1062,18 @@ export default function ArticleCard({ article }) {
                 <div class="h-2.5 rounded w-[50%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
               </div>
             ) : errorMarketImpact ? (
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-600 dark:text-red-400 text-[10px] font-medium py-1">
+              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
                 <div class="flex items-start gap-1.5">
                   <AlertCircle size={12} class="shrink-0 mt-0.5" />
                   <span>{errorMarketImpact}</span>
                 </div>
-                {errorMarketImpact.includes("⏳") && (
-                  <button 
-                    onClick={handleMarketImpact}
-                    class="bg-red-500/10 hover:bg-red-500/20 text-red-750 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0"
-                  >
-                    Retry
-                  </button>
-                )}
+                <button 
+                  onClick={handleMarketImpact}
+                  disabled={countdownMarketImpact > 0}
+                  class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
+                >
+                  {countdownMarketImpact > 0 ? `Retry in ${countdownMarketImpact}s` : '🔄 Retry'}
+                </button>
               </div>
             ) : marketImpact ? (
               <div class="space-y-3">
@@ -960,7 +1125,55 @@ export default function ArticleCard({ article }) {
 
         {/* COMMENTS SECTION LEDGER */}
         {showComments && (
-          <CommentsSection articleUrl={url} />
+          <div>
+            {/* AI Debate Starter Card */}
+            {(loadingDebate || debate || errorDebate) && (
+              <div class="mt-3 mb-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 relative overflow-hidden transition-all duration-300 shadow-inner text-xs">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-600"></div>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-1.5 text-[9px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-widest font-mono">
+                    <Sparkles size={11} class="text-indigo-500" />
+                    <span>AI Debate Catalyst</span>
+                  </div>
+                  {cacheStatusDebate && (
+                    <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                      cacheStatusDebate === 'instant' 
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
+                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
+                    }`}>
+                      {cacheStatusDebate === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
+                    </span>
+                  )}
+                </div>
+                
+                {loadingDebate ? (
+                  <div class="space-y-1.5 py-1">
+                    <div class="h-2.5 rounded bg-indigo-200/50 dark:bg-indigo-850 animate-pulse"></div>
+                    <div class="h-2.5 rounded w-[90%] bg-indigo-200/50 dark:bg-indigo-850 animate-pulse"></div>
+                  </div>
+                ) : errorDebate ? (
+                  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
+                    <div class="flex items-start gap-1.5">
+                      <AlertCircle size={12} class="shrink-0 mt-0.5" />
+                      <span>{errorDebate}</span>
+                    </div>
+                    <button 
+                      onClick={fetchDebateAI}
+                      disabled={countdownDebate > 0}
+                      class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      {countdownDebate > 0 ? `Retry in ${countdownDebate}s` : '🔄 Retry'}
+                    </button>
+                  </div>
+                ) : (
+                  <p class="text-xs text-navy/95 dark:text-gray-200 font-sans italic leading-relaxed">
+                    "{debate}"
+                  </p>
+                )}
+              </div>
+            )}
+            <CommentsSection articleUrl={url} />
+          </div>
         )}
 
         {/* Mock Ad Banner */}
