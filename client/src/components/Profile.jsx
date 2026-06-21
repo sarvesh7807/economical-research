@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut, Bell, Plus, BellRing } from 'lucide-react';
+import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut, Bell, Plus, BellRing, Receipt } from 'lucide-react';
 
 export default function Profile({ setView, onSearchSubmit }) {
   const { 
@@ -220,6 +220,15 @@ export default function Profile({ setView, onSearchSubmit }) {
               </div>
             </div>
 
+            {/* Billing & Receipts Button */}
+            <button
+              onClick={() => setView('billing-history')}
+              class="w-full mt-6 py-2 bg-navy hover:bg-navy-light text-gold border border-gold/20 rounded font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow"
+            >
+              <Receipt size={13} />
+              <span>Billing & Receipts</span>
+            </button>
+
             {/* Sign Out Button */}
             <button
               onClick={async () => {
@@ -230,7 +239,7 @@ export default function Profile({ setView, onSearchSubmit }) {
                   console.error('Logout error:', err);
                 }
               }}
-              class="w-full mt-6 py-2 bg-red-600/10 hover:bg-red-650 text-red-600 hover:text-white border border-red-600/20 rounded font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+              class="w-full mt-3 py-2 bg-red-600/10 hover:bg-red-650 text-red-600 hover:text-white border border-red-600/20 rounded font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
             >
               <LogOut size={13} />
               <span>Log Out Credentials</span>

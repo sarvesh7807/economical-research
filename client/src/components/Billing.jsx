@@ -4,17 +4,35 @@ import {
   ShieldCheck, CreditCard, Receipt, Lock, Check, 
   AlertCircle, Loader, ArrowLeft, ToggleLeft, ToggleRight, Sparkles 
 } from 'lucide-react';
-
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
+import confetti from 'canvas-confetti';
 export default function Billing({ setView }) {
   const { user, subscription, upgradeToPro, cancelSubscription } = useAuth();
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [error, setError] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   // Billing cycle state
   const [cycle, setCycle] = useState('monthly'); // 'monthly' or 'yearly'
+
+  useEffect(() => {
+    if (showSuccessPopup) {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+      const timer = setTimeout(() => {
+        setView('profile');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessPopup, setView]);
 
   // Razorpay config status from backend (uses isStripeConfigured legacy state)
   const [isRazorpayConfigured, setIsRazorpayConfigured] = useState(true);
@@ -68,6 +86,73 @@ export default function Billing({ setView }) {
         setLoadingInvoices(false);
       });
   }, [user, subscription]);
+
+  const handlePaymentSuccess = async (paymentId, orderId, planId, cycle) => {
+    // 1. Save Transaction to Firestore
+    try {
+      const selectedPlan = planList.find(p => p.id === planId) || planList.find(p => p.id === 'PRO');
+      const amount = cycle === 'yearly' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
+      const planName = `ER ${selectedPlan.name.replace('ER ', '')}`;
+
+      await addDoc(collection(db, 'transactions'), {
+        userId: user.uid,
+        userEmail: user.email,
+        userName: user.displayName || 'Subscriber',
+        plan: planName,
+        amount: amount,
+        currency: 'INR',
+        paymentId: paymentId,
+        orderId: orderId,
+        status: 'success',
+        date: new Date(),
+        billingCycle: cycle
+      });
+      console.log('Transaction saved to Firestore successfully.');
+    } catch (dbErr) {
+      console.error('Error saving transaction to Firestore:', dbErr);
+    }
+
+    // 2. Trigger Confetti and Success Popup
+    setShowSuccessPopup(true);
+
+    // 3. Send Email Receipt via EmailJS
+    try {
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_default';
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_default';
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'public_key_default';
+
+      const selectedPlan = planList.find(p => p.id === planId) || planList.find(p => p.id === 'PRO');
+      const amount = cycle === 'yearly' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
+      const planName = `ER ${selectedPlan.name.replace('ER ', '')}`;
+
+      // Email template params matching the request
+      const templateParams = {
+        to_email: user.email,
+        to_name: user.displayName || 'Subscriber',
+        plan_name: planName,
+        amount: `INR ${amount}`,
+        payment_id: paymentId,
+        date: new Date().toLocaleDateString(),
+        company_name: 'Economical Research'
+      };
+
+      // Send to customer
+      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+      console.log('Customer receipt email sent successfully.');
+
+      // Send copy to admin
+      const adminParams = {
+        ...templateParams,
+        to_email: 'sarveshdusane7807@gmail.com',
+        to_name: 'Admin',
+        admin_subject: `New PRO Subscription - ${user.displayName || 'Subscriber'}`
+      };
+      await emailjs.send(serviceId, templateId, adminParams, publicKey);
+      console.log('Admin notification email sent successfully.');
+    } catch (emailErr) {
+      console.error('EmailJS notification dispatch error:', emailErr);
+    }
+  };
 
   const handleCheckout = async (planId, forceSandbox = false) => {
     if (!user) {
@@ -138,9 +223,13 @@ export default function Billing({ setView }) {
             const verification = await verifyRes.json();
 
             if (verification.verified) {
-              upgradeToPro(planId, cycle);
-              setSuccessMessage(`Upgrade successful! Welcome to Economical Research ${planId.toUpperCase()} (${cycle}).`);
-              setTimeout(() => setSuccessMessage(null), 8000);
+              await upgradeToPro(planId, cycle);
+              await handlePaymentSuccess(
+                paymentRes.razorpay_payment_id,
+                paymentRes.razorpay_order_id,
+                planId,
+                cycle
+              );
             } else {
               setError('Payment verification failed.');
             }
@@ -148,9 +237,13 @@ export default function Billing({ setView }) {
             console.error('Verification error:', verifyErr);
             // Fallback for sandboxes
             if (order.mock) {
-              upgradeToPro(planId, cycle);
-              setSuccessMessage(`Sandbox upgrade completed successfully! Welcome to ER ${planId.toUpperCase()} (${cycle}).`);
-              setTimeout(() => setSuccessMessage(null), 8000);
+              await upgradeToPro(planId, cycle);
+              await handlePaymentSuccess(
+                paymentRes.razorpay_payment_id,
+                paymentRes.razorpay_order_id,
+                planId,
+                cycle
+              );
             } else {
               setError('Verification error. Payment was completed but signature check failed.');
             }
@@ -370,6 +463,14 @@ export default function Billing({ setView }) {
               ? 'You are on the standard ad-supported reading profile. Upgrade to remove limits.' 
               : `Renews via Razorpay on ${subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'Next Month'}. Billing cycle: ${subscription.plan || 'monthly'}.`}
           </p>
+          {user && (
+            <button 
+              onClick={() => setView('billing-history')}
+              class="mt-3 text-xs font-bold text-navy hover:text-navy-light dark:text-gold dark:hover:text-gold/80 flex items-center gap-1 uppercase tracking-wider font-mono bg-navy/5 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-navy/10 dark:border-white/10 transition-colors"
+            >
+              <Receipt size={12} /> View Billing & Receipt History
+            </button>
+          )}
         </div>
         {activeTier !== 'Basic' && (
           <button
@@ -682,6 +783,41 @@ export default function Billing({ setView }) {
           </div>
         )}
       </div>
+
+      {/* 8. INSTANT SUCCESS MODAL OVERLAY */}
+      {showSuccessPopup && (
+        <div class="fixed inset-0 z-50 bg-[#07111E]/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div class="glass-card max-w-md w-full p-8 rounded-3xl border border-gold/30 text-center relative overflow-hidden shadow-2xl bg-navy/80">
+            {/* Confetti effect is triggered on load */}
+            <div class="absolute -top-12 -left-12 w-24 h-24 bg-gold/10 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-12 -right-12 w-24 h-24 bg-primary/20 rounded-full blur-2xl"></div>
+            
+            <div class="w-16 h-16 bg-gold/10 text-gold rounded-full flex items-center justify-center mx-auto mb-4 border border-gold/30 shadow-md">
+              <Sparkles size={30} class="animate-pulse" />
+            </div>
+            
+            <h2 class="font-serif text-2xl font-black text-white uppercase tracking-wider mb-2">
+              🎉 Payment Successful!
+            </h2>
+            <h3 class="font-serif text-base font-bold text-gold uppercase tracking-widest mb-4">
+              Welcome to ER PRO
+            </h3>
+            
+            <p class="text-xs text-gray-350 leading-relaxed font-sans max-w-xs mx-auto mb-6">
+              Your premium subscription profile is now fully active. All reading limits and AI assistant paywalls have been lifted.
+            </p>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-3 mb-6 text-[10px] font-mono text-gray-400">
+              Receipt statement has been sent to your email.
+            </div>
+
+            <div class="flex items-center justify-center gap-2 text-xs font-bold text-gray-400 font-mono">
+              <span class="inline-block w-2 h-2 rounded-full bg-gold animate-ping"></span>
+              Redirecting to profile in a moment...
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

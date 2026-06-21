@@ -21,6 +21,7 @@ import WorldMap from './components/WorldMap';
 import OutcomeTracker from './components/OutcomeTracker';
 import OutcomeDetail from './components/OutcomeDetail';
 import ErrorBoundary from './components/ErrorBoundary';
+import BillingHistory from './components/BillingHistory';
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -106,6 +107,8 @@ function AppContent() {
       // Update history state URL path to provide pricing route and clean parameters
       if (newView === 'billing') {
         window.history.pushState({}, '', '/pricing');
+      } else if (newView === 'billing-history') {
+        window.history.pushState({}, '', '/billing-history');
       } else if (newView === 'feed') {
         window.history.pushState({}, '', '/');
       } else if (newView === 'fake-news') {
@@ -160,6 +163,8 @@ function AppContent() {
       setViewInternal(viewParam);
     } else if (path === '/pricing' || path === '/billing') {
       setViewInternal('billing');
+    } else if (path === '/billing-history') {
+      setViewInternal('billing-history');
     } else if (path === '/fake-news-checker') {
       setViewInternal('fake-news');
     } else if (path === '/bias-detector') {
@@ -306,6 +311,8 @@ function AppContent() {
           <Billing 
             setView={setView}
           />
+        ) : view === 'billing-history' ? (
+          <BillingHistory setView={setView} />
         ) : view === 'admin' ? (
           <AdminPanel 
             setView={setView}

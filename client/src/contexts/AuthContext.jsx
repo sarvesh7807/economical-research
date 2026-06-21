@@ -412,11 +412,14 @@ export const AuthProvider = ({ children }) => {
     const formattedTier = String(tierName || 'PRO').toUpperCase();
     const formattedCycle = String(planType || 'monthly').toLowerCase();
 
+    const expiresDate = new Date(Date.now() + (formattedCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000);
     const sub = {
       tier: formattedTier,
       plan: formattedCycle,
-      expiresAt: new Date(Date.now() + (formattedCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'Active'
+      expiresAt: expiresDate.toISOString(),
+      status: 'Active',
+      subscriptionStartDate: new Date().toISOString(),
+      subscriptionEndDate: expiresDate.toISOString()
     };
 
     // Dispatch billing confirmation email
@@ -444,7 +447,11 @@ export const AuthProvider = ({ children }) => {
 
     if (db) {
       try {
-        await setDoc(doc(db, 'users', user.uid), { subscription: sub }, { merge: true });
+        await setDoc(doc(db, 'users', user.uid), { 
+          subscription: sub,
+          subscriptionStartDate: new Date(),
+          subscriptionEndDate: expiresDate
+        }, { merge: true });
       } catch (e) {
         console.error('Error saving subscription to Firestore:', e);
       }
