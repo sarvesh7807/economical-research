@@ -381,7 +381,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const renderLiveTV = () => {
     return (
-      <div class="glass-card p-5 rounded-3xl">
+      <div class="hidden lg:block glass-card p-5 rounded-3xl">
         <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.7)]"></span>
