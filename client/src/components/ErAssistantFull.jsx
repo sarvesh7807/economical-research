@@ -948,7 +948,7 @@ Always be professional, analytical, and cite economic context. Format responses 
           <form onSubmit={(e) => handleSend(e)} class="p-3.5 border-t border-paper-border dark:border-paper-borderDark bg-white dark:bg-paper-cardDark shrink-0 flex items-center gap-2">
             <input
               type="text"
-              placeholder={isPro ? "Request economic report or trend chart..." : "3 daily queries max (Basic tier)..."}
+              placeholder={isPro ? "Request economic report or trend chart..." : "Message ER Assistant..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               disabled={loading}

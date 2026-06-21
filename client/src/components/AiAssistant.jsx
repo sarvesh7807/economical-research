@@ -530,7 +530,7 @@ Always be helpful, professional, and concise. Format responses clearly using mar
           <form onSubmit={(e) => handleSend(e)} class="p-3 border-t border-paper-border dark:border-paper-borderDark bg-white dark:bg-paper-cardDark shrink-0 flex items-center gap-2">
             <input
               type="text"
-              placeholder={isPro ? "Query research assistant..." : "3 daily queries max (Basic)..."}
+              placeholder={isPro ? "Query research assistant..." : "Message ER Assistant..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               disabled={loading}

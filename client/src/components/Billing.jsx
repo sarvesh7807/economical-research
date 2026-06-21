@@ -506,8 +506,8 @@ export default function Billing({ setView }) {
                   <td class="px-4 py-2.5">Ad Free</td>
                 </tr>
                 <tr>
-                  <td class="px-4 py-2.5 font-bold">Daily AI Summaries</td>
-                  <td class="px-4 py-2.5">3 Queries</td>
+                  <td class="px-4 py-2.5 font-bold">AI Chatbot Queries</td>
+                  <td class="px-4 py-2.5">21 Total (Lifetime)</td>
                   <td class="px-4 py-2.5 text-gold font-bold">Unlimited</td>
                   <td class="px-4 py-2.5 text-gold font-bold">Unlimited</td>
                   <td class="px-4 py-2.5 text-gold font-bold">Unlimited</td>
