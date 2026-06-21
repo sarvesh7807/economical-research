@@ -187,6 +187,7 @@ function DrawerFormattedText({ text }) {
   const [error, setError] = useState(null);
   const [usageLimit, setUsageLimit] = useState({ allowed: true, remaining: 21 });
   const scrollRef = useRef(null);
+  const lastRequestTime = useRef(0);
 
   const isPro = subscription?.tier === 'PRO';
 
@@ -240,6 +241,14 @@ function DrawerFormattedText({ text }) {
     if (e) e.preventDefault();
     const textToSend = directText || message;
     if (!textToSend.trim()) return;
+
+    // Cooldown check (4 seconds)
+    const now = Date.now();
+    if (now - lastRequestTime.current < 4000) {
+      setError('Please wait a few seconds before sending another message.');
+      return;
+    }
+    lastRequestTime.current = now;
 
     // Message limit check
     const limitCheck = await checkMessageLimit(user, subscription);
@@ -334,6 +343,18 @@ Always be helpful, professional, and concise. Format responses clearly using mar
       );
 
       if (!response.ok) {
+        if (response.status === 429) {
+          saveHistory([
+            ...newHistory,
+            {
+              sender: 'bot',
+              text: '⏳ I am getting a lot of requests right now! Please wait a moment and try again.',
+              timestamp: new Date().toISOString()
+            }
+          ]);
+          setLoading(false);
+          return;
+        }
         const errData = await response.json().catch(() => ({}));
         throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
       }
