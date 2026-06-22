@@ -257,26 +257,57 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
               <h2 class="font-serif text-2xl font-black text-navy dark:text-gold uppercase tracking-wide">
                 Privacy Policy Ledger
               </h2>
-              <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono mt-0.5">LAST REVISED: JUNE 7, 2026</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono mt-0.5">LAST REVISED: JUNE 22, 2026</p>
             </div>
 
             <p>
-              At Economical Research, we prioritize the confidentiality of our readers' wire history and credentials ledger. This Policy defines what data we collect and how we utilize it.
+              At <strong>Economical Research</strong>, we are committed to safeguarding the trust of our global readers. Our privacy framework aligns with the rigorous compliance and security standards established by leading news networks—such as the <strong>BBC, NDTV, and CNN</strong>. This Privacy Policy outlines the scope of data collections, cookie configurations, third-party integrations, and user control protocols.
             </p>
 
-            <h4 class="font-sans text-xs font-black text-navy dark:text-white uppercase tracking-wider pt-2">1. Data Collections & Local Storage</h4>
+            <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">1. Information We Collect (BBC & CNN Standards)</h4>
             <p>
-              We store session search history, article bookmarks, cookies consent parameters, and reading history lists in your browser's local storage database. This ensures your ledger remains private to you and is not synced to third-party advert trackers.
+              In order to provide personalized news bulletins and advanced AI tools, we collect the following categories of information:
             </p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>User Profile Data</strong>: When you register or upgrade to PRO, we sync your display name, email address, profile picture URL, and membership status.</li>
+              <li><strong>Usage & Navigation</strong>: We log your bookmark choices, read articles ledger, local search terms, and active category preferences.</li>
+              <li><strong>Workspace & AI Inputs</strong>: To support the <em>Deep Research Desk</em>, chat histories, compilation prompts, and generated files are saved locally on your browser.</li>
+              <li><strong>Technical Metadata</strong>: Includes IP address, browser type, device information, and geolocation coordinate checks (used strictly for compiling local weather data).</li>
+            </ul>
 
-            <h4 class="font-sans text-xs font-black text-navy dark:text-white uppercase tracking-wider pt-2">2. Firebase Syncing</h4>
+            <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">2. Cookies and Tracking (NDTV & BBC Standards)</h4>
             <p>
-              For users signing up with Google OAuth or email, profile monograms and basic email references are synchronized across Firebase Firestore to maintain active PRO status across browser relocations.
+              Consistent with NDTV's digital media guidelines and the BBC Cookie Policy, we utilize first-party cookies and browser local storage to enhance UI performance and load custom preferences:
             </p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Functional Cookies</strong>: Retain active UI state (dark/light theme toggle, language translations preference, and weather city).</li>
+              <li><strong>Session Cookies</strong>: Track your remaining free message limit counter for our AI assistant.</li>
+              <li><strong>External Outlinks</strong>: Our platform aggregates news wires from third-party networks (like BBC, Reuters, NDTV, and Al Jazeera). Once you click on an external link to read the full report, you are governed by that respective provider's tracking policy.</li>
+            </ul>
 
-            <h4 class="font-sans text-xs font-black text-navy dark:text-white uppercase tracking-wider pt-2">3. Chat Log Confidentiality</h4>
+            <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">3. Data Sharing & Third-Party Services</h4>
             <p>
-              Chat history with the ER Intelligence Assistant is saved locally to your device and is only transmitted to the AI endpoint for context building during active prompts. We do not sell or lease chat logs to training hubs.
+              We do not sell, trade, or lease your private search terms, reading history, or AI chat logs to advertisers or marketing hubs. We coordinate strictly with trusted cloud infrastructure providers to manage critical application utilities:
+            </p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>Firebase Firestore & Auth</strong>: To synchronize credentials and secure user profile logins across multiple devices.</li>
+              <li><strong>Stripe</strong>: Handles all premium PRO payment transactions via highly-encrypted tokenized gateways. We do not store or process raw financial billing details on our servers.</li>
+              <li><strong>AI Providers (Gemini / Claude APIs)</strong>: Transmit active prompts securely to compile dispatches. Prompt logs are not retained by our API partners for model training.</li>
+            </ul>
+
+            <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">4. International Disclosures & Regional Rights (GDPR, CCPA, DPDP)</h4>
+            <p>
+              We respect international data protection legislation. Depending on your region, you possess specific digital rights:
+            </p>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><strong>European Union (GDPR)</strong>: You have the right to request access to, correction of, or permanent deletion of your credentials, as well as the right to restrict processing.</li>
+              <li><strong>California (CCPA/CPRA)</strong>: You have the right to opt-out of data collections, access your data ledger, and request deletion without fear of service discrimination.</li>
+              <li><strong>India (DPDP Act)</strong>: We manage personal data identifiers in strict accordance with the Digital Personal Data Protection Act, providing clean mechanisms for consent revocation.</li>
+            </ul>
+
+            <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">5. Data Deletion & Contact</h4>
+            <p>
+              You can instantly purge all locally saved workspaces, chat sessions, and cookie configurations by selecting "Clear Search History" or "Sign Out" under settings. For persistent server-side account deletion requests, or if you have privacy inquiries, please contact our Editorial Privacy Desk at <code>privacy@economical-research.app</code>.
             </p>
           </div>
         )}
