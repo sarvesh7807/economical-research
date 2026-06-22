@@ -671,7 +671,10 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             {renderResearchDesk()}
             {isHomepage && <OutcomeTrackerWidget />}
             {renderSidePanel()}
-            <TrendingWidget />
+            <div class="sticky top-6 space-y-6">
+              <TrendingWidget />
+              <MarketSignalsWidget />
+            </div>
           </div>
         </div>
 
@@ -813,6 +816,45 @@ function TrendingWidget() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function MarketSignalsWidget() {
+  const signals = [
+    { name: 'S&P 500', value: '5,472.45', change: '+0.65%', isPositive: true },
+    { name: 'US Dollar Index (DXY)', value: '104.18', change: '-0.15%', isPositive: false },
+    { name: 'Gold Spot (oz)', value: '$2,364.80', change: '+1.45%', isPositive: true },
+    { name: 'Brent Crude', value: '$81.95', change: '-0.78%', isPositive: false },
+    { name: 'Bitcoin (BTC)', value: '$68,450', change: '+3.12%', isPositive: true },
+    { name: '10Y US Treasury', value: '4.22%', change: '+0.05%', isPositive: true }
+  ];
+
+  return (
+    <div class="glass-card p-5 rounded-3xl text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+          <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
+            Global Market Signals
+          </h3>
+        </div>
+        <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">REALTIME</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        {signals.map((sig, i) => (
+          <div key={i} class="bg-gray-50 dark:bg-white/5 p-3 rounded-2xl border border-white/5 hover:border-gold/30 dark:hover:border-gold/30 transition-all duration-300">
+            <span class="text-[8.5px] font-bold text-gray-400 uppercase tracking-wider block mb-1 truncate">{sig.name}</span>
+            <div class="flex justify-between items-baseline gap-1">
+              <span class="text-[11px] font-bold text-navy dark:text-white font-mono">{sig.value}</span>
+              <span class={`text-[8.5px] font-bold font-mono ${sig.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                {sig.change}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
