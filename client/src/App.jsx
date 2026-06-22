@@ -225,6 +225,7 @@ function AppContent() {
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
     setSearchQuery(''); // Clear search query when changing category
+    setView('feed');
   };
 
   const triggerRefresh = () => {
