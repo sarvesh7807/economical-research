@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages, TrendingUp, FileText } from 'lucide-react';
+import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages, TrendingUp, FileText, Share2 } from 'lucide-react';
 import CommentsSection from './CommentsSection';
 import { getCachedOrFetchAI } from '../utils/aiCache';
+import ShareModal from './ShareModal';
 
 export default function ArticleCard({ article }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
@@ -38,6 +39,8 @@ export default function ArticleCard({ article }) {
 
   // Comments drawer
   const [showComments, setShowComments] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const articleRef = useRef(null);
 
   // Voice Reader States
   const [isPlaying, setIsPlaying] = useState(false);
@@ -596,6 +599,7 @@ export default function ArticleCard({ article }) {
 
   return (
     <article 
+      ref={articleRef}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setReadProgress(0); }}
       class="glass-card p-5 flex flex-col justify-between relative group min-h-[350px] overflow-hidden rounded-3xl"
@@ -825,6 +829,15 @@ export default function ArticleCard({ article }) {
             <TrendingUp size={12} class={showMarketImpact ? 'text-white' : 'text-emerald-500'} />
             <span>📊 Market Impact</span>
             {showMarketImpact ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+
+          {/* Share Button */}
+          <button
+            onClick={() => setIsShareModalOpen(true)}
+            class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all bg-gray-100 dark:bg-white/5 border border-transparent hover:border-gold text-navy dark:text-gray-200"
+          >
+            <Share2 size={12} class="text-gold" />
+            <span>Share</span>
           </button>
         </div>
 
@@ -1146,6 +1159,15 @@ export default function ArticleCard({ article }) {
         {/* Mock Ad Banner */}
         {renderAdSlot()}
       </div>
+
+      <ShareModal
+        open={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={url}
+        shareTitle={`Check out this article on Economical Research: "${title}"`}
+        downloadFilename={`economical-research-report-${getArticleId(url)}`}
+        captureRef={articleRef}
+      />
     </article>
   );
 }
