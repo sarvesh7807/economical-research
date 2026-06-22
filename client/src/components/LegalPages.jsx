@@ -122,7 +122,7 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
                     <Mail size={14} class="text-gold shrink-0" />
                     <div>
                       <span class="text-[8px] text-gray-400 uppercase tracking-widest block font-mono">General Desk</span>
-                      <a href="mailto:desk@economicalresearch.com" class="hover:underline text-navy dark:text-gray-200">desk@economicalresearch.com</a>
+                      <a href="mailto:economicalresearch@gmail.com" class="hover:underline text-navy dark:text-gray-200">economicalresearch@gmail.com</a>
                     </div>
                   </div>
 
@@ -307,7 +307,7 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
 
             <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">5. Data Deletion & Contact</h4>
             <p>
-              You can instantly purge all locally saved workspaces, chat sessions, and cookie configurations by selecting "Clear Search History" or "Sign Out" under settings. For persistent server-side account deletion requests, or if you have privacy inquiries, please contact our Editorial Privacy Desk at <code>privacy@economical-research.app</code>.
+              You can instantly purge all locally saved workspaces, chat sessions, and cookie configurations by selecting "Clear Search History" or "Sign Out" under settings. For persistent server-side account deletion requests, or if you have privacy inquiries, please contact our Editorial Privacy Desk at <code>economicalresearch@gmail.com</code>.
             </p>
           </div>
         )}
