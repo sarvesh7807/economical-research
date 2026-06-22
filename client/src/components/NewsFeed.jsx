@@ -378,58 +378,78 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const renderLiveTV = () => {
     return (
-      <div class="hidden lg:block glass-card p-5 rounded-3xl">
-        <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.7)]"></span>
-            <h3 class="font-display text-sm font-black text-navy dark:text-primary-glow uppercase tracking-wider">
-              ER Sat Broadcasts
-            </h3>
-          </div>
-          <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">SAT FEED</span>
-        </div>
-        
-        <div class="video-container relative w-full aspect-video rounded overflow-hidden bg-black border border-gray-200 dark:border-gray-800">
-          {!isPlayingLive && (
-            <div 
-              class="absolute inset-0 flex items-center justify-center bg-black/50 z-10 cursor-pointer md:hidden"
-              onClick={() => setIsPlayingLive(true)}
-            >
-              <div class="bg-red-600 rounded-full p-4 hover:bg-red-700 transition-colors shadow-lg flex items-center justify-center">
-                <Play size={40} class="text-white ml-2" />
+      <div class="hidden lg:block glass-card p-5 rounded-3xl mb-8 border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+        <div class="flex flex-col md:flex-row gap-6 items-stretch">
+          {/* Player Container */}
+          <div class="w-full md:w-[280px] shrink-0 aspect-video rounded-2xl overflow-hidden bg-black border border-gray-200 dark:border-white/10 relative shadow-lg">
+            {!isPlayingLive && (
+              <div 
+                class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 cursor-pointer"
+                onClick={() => setIsPlayingLive(true)}
+              >
+                <div class="bg-red-655 hover:bg-red-700 rounded-full p-3 hover:scale-105 transition-all shadow-lg flex items-center justify-center">
+                  <Play size={24} class="text-white ml-0.5" />
+                </div>
               </div>
+            )}
+            <iframe 
+              src={activeStream && activeStream.startsWith('UC')
+                ? `https://www.youtube.com/embed/live_stream?channel=${activeStream}&autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
+                : `https://www.youtube.com/embed/${activeStream}?autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
+              }
+              title="Live Broadcast"
+              class="absolute top-0 left-0 w-full h-full border-0"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              muted={true}
+              loading="lazy"
+            ></iframe>
+          </div>
+
+          {/* Info & Selectors */}
+          <div class="flex-grow flex flex-col justify-between py-1 text-left">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <h4 class="font-display text-[10px] font-black uppercase text-red-500 tracking-wider">
+                  Live Satellite Broadcast Desk
+                </h4>
+                <span class="text-[8px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase">
+                  Sat Feed
+                </span>
+              </div>
+              
+              <h3 class="font-display text-base font-black text-navy dark:text-gold uppercase tracking-tight mb-1">
+                Now Monitoring: {liveChannels.find(c => c.id === activeStream)?.name || 'Live Broadcast'}
+              </h3>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-serif line-clamp-2 max-w-2xl">
+                Direct satellite feed compiled for macro intelligence monitoring. Switch channels below to monitor real-time broadcasts.
+              </p>
             </div>
-          )}
-          <iframe 
-            src={activeStream && activeStream.startsWith('UC')
-              ? `https://www.youtube.com/embed/live_stream?channel=${activeStream}&autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
-              : `https://www.youtube.com/embed/${activeStream}?autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
-            }
-            title="Live Broadcast"
-            class="absolute top-0 left-0 w-full h-full border-0"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            muted={true}
-            loading="lazy"
-            style={{ width: '100%', height: '100%' }}
-          ></iframe>
-        </div>
-        
-        <div class="grid grid-cols-3 gap-2 mt-4">
-          {liveChannels.map((stream) => (
-            <button
-              key={stream.channelId}
-              onClick={() => setActiveStream(stream.id)}
-              class={`py-2 px-1 rounded-xl text-[9px] font-bold uppercase tracking-wider text-center transition-all ${
-                activeStream === stream.id
-                  ? 'bg-primary text-white shadow-purple-glow'
-                  : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'
-              }`}
-            >
-              {stream.name.replace(' English', '')}
-            </button>
-          ))}
+
+            <div class="grid grid-cols-6 gap-2 mt-4">
+              {liveChannels.map((stream) => {
+                const isSelected = activeStream === stream.id;
+                return (
+                  <button
+                    key={stream.channelId}
+                    onClick={() => setActiveStream(stream.id)}
+                    class={`py-2 px-1.5 rounded-xl text-[9.5px] font-black uppercase tracking-wider text-center transition-all ${
+                      isSelected
+                        ? 'bg-primary text-white shadow-purple-glow scale-105 border border-primary-glow/30'
+                        : 'bg-gray-100 dark:bg-white/5 text-navy dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    {stream.name.replace(' English', '').replace(' Live', '')}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -607,6 +627,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
       {/* Main Grid Layout */}
       <div>
+        {isHomepage && renderLiveTV()}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Left/Middle: News Sections (Home) or Category Grid */}
           <div class="col-span-1 lg:col-span-2 space-y-6">
@@ -645,9 +666,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             )}
           </div>
 
-          {/* Right Side: Live Broadcast, Research Desk & Side Panel */}
+          {/* Right Side: Research Desk & Side Panel */}
           <div class="col-span-1 space-y-6">
-            {renderLiveTV()}
             {renderResearchDesk()}
             {isHomepage && <OutcomeTrackerWidget />}
             {renderSidePanel()}
