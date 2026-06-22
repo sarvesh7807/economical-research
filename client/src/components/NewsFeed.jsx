@@ -146,12 +146,12 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const [retrySeconds, setRetrySeconds] = useState(0);
 
   const INITIAL_CHANNELS = [
-    { name: 'Al Jazeera', channelId: 'UCcA31iA8h4b11fNn1X8G_xw', id: 'gCNeDWCI0vo' },
-    { name: 'BBC News', channelId: 'UC16niRr50-MSBwiO3YDb3RA', id: 'pZz4lG8K4H8' },
-    { name: 'Sky News', channelId: 'UCoMdktPbSTixAyNGWB-PUiA', id: '9Auq9mYxFEE' },
-    { name: 'DW News', channelId: 'UCknLrEdhRCp1aegoMqRaCZg', id: 'mGC74ktp0Zg' },
-    { name: 'NDTV 24x7', channelId: 'UCZFMm1mMw0F81Z37aaEzTUA', id: 'FPSzDkQkHdU' },
-    { name: 'Republic World', channelId: 'UCwvdjc8Q82DkP3_YvJm_Pug', id: 'jS1684B2l08' }
+    { name: 'Al Jazeera', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', id: 'UCNye-wNBqNL5ZzHSJj3l8Bg' },
+    { name: 'BBC News', channelId: 'UC16niRr50-MSBwiO3YDb3RA', id: 'UC16niRr50-MSBwiO3YDb3RA' },
+    { name: 'Sky News', channelId: 'UCoMdktPbSTixAyNGwb-UYkQ', id: 'UCoMdktPbSTixAyNGwb-UYkQ' },
+    { name: 'DW News', channelId: 'UCknLrEdhRCp1aegoMqRaCZg', id: 'UCknLrEdhRCp1aegoMqRaCZg' },
+    { name: 'NDTV 24x7', channelId: 'UCZFMm1mMw0F81Z37aaEzTUA', id: 'UCZFMm1mMw0F81Z37aaEzTUA' },
+    { name: 'Republic World', channelId: 'UCwqusr8YDwM-3mEYTDeJHzw', id: 'UCwqusr8YDwM-3mEYTDeJHzw' }
   ];
 
   const [liveChannels, setLiveChannels] = useState(INITIAL_CHANNELS);
@@ -161,11 +161,11 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   // Fetch Live YouTube Video IDs
   useEffect(() => {
     const fetchLiveStreams = async () => {
-      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyAO0jYPOGmRvyVDnszpORef_9lVNWSwLMY';
       if (!apiKey) return;
 
       try {
-        const cached = localStorage.getItem('er_youtube_live_streams');
+        const cached = localStorage.getItem('er_youtube_live_streams_v2');
         if (cached) {
           const parsed = JSON.parse(cached);
           if (Date.now() - parsed.timestamp < 3600 * 1000 * 6) { // 6 hours TTL
@@ -192,7 +192,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         setLiveChannels(updatedChannels);
         setActiveStream(updatedChannels[0].id);
         
-        localStorage.setItem('er_youtube_live_streams', JSON.stringify({
+        localStorage.setItem('er_youtube_live_streams_v2', JSON.stringify({
           timestamp: Date.now(),
           channels: updatedChannels
         }));
@@ -404,7 +404,10 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             </div>
           )}
           <iframe 
-            src={`https://www.youtube.com/embed/${activeStream}?autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`}
+            src={activeStream && activeStream.startsWith('UC')
+              ? `https://www.youtube.com/embed/live_stream?channel=${activeStream}&autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
+              : `https://www.youtube.com/embed/${activeStream}?autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
+            }
             title="Live Broadcast"
             class="absolute top-0 left-0 w-full h-full border-0"
             frameBorder="0"
