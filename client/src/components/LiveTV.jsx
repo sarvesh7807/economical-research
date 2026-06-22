@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Tv, Maximize, ArrowLeft, Radio, AlertCircle } from 'lucide-react';
 
-const YOUTUBE_API_KEY = 'AIzaSyAO0jYPOGmRvyVDnszpORef_9lVNWSwLMY';
-
 const channels = [
   {
     id: 'aljazeera',
@@ -59,56 +57,28 @@ const videoCache = {};
 const getChannelVideo = async (channelId, channelKey) => {
   const cached = videoCache[channelKey];
   const now = Date.now();
-  const apiKey = "AIzaSyAO0jYPOGmRvyVDnszpORef_9lVNWSwLMY";
   
   if (cached && (now - cached.timestamp) < 300000) {
     return cached.data;
   }
   
-  // STEP 1: Try to find LIVE video
   try {
-    const liveUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=1&key=${apiKey}`;
-    const liveRes = await fetch(liveUrl);
-    if (!liveRes.ok) {
-      const errorBody = await liveRes.json();
-      console.error('YouTube API Error (Live):', JSON.stringify(errorBody));
-      throw new Error('API Error');
-    }
-    const liveData = await liveRes.json();
+    const url = `/api/youtube-live?channelId=${channelId}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API Error');
+    const data = await res.json();
     
-    if (liveData.items && liveData.items.length > 0) {
+    if (data.videoId) {
+      const isLive = !data.isFallback;
       const result = {
-        videoId: liveData.items[0].id.videoId,
-        isLive: true
+        videoId: data.videoId,
+        isLive: isLive
       };
       videoCache[channelKey] = { data: result, timestamp: now };
       return result;
     }
   } catch (err) {
-    console.error('Live search failed:', err);
-  }
-
-  // STEP 2: No live found - get most recent upload
-  try {
-    const recentUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=1&key=${apiKey}`;
-    const recentRes = await fetch(recentUrl);
-    if (!recentRes.ok) {
-      const errorBody = await recentRes.json();
-      console.error('YouTube API Error (Recent):', JSON.stringify(errorBody));
-      throw new Error('API Error');
-    }
-    const recentData = await recentRes.json();
-    
-    if (recentData.items && recentData.items.length > 0) {
-      const result = {
-        videoId: recentData.items[0].id.videoId,
-        isLive: false
-      };
-      videoCache[channelKey] = { data: result, timestamp: now };
-      return result;
-    }
-  } catch (err) {
-    console.error('Recent video search failed:', err);
+    console.error('Failed to fetch live stream video ID:', err);
   }
 
   // Fallback: return the channel ID directly, which will be embedded as live_stream

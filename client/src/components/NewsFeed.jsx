@@ -161,9 +161,6 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   // Fetch Live YouTube Video IDs
   useEffect(() => {
     const fetchLiveStreams = async () => {
-      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyAO0jYPOGmRvyVDnszpORef_9lVNWSwLMY';
-      if (!apiKey) return;
-
       try {
         const cached = localStorage.getItem('er_youtube_live_streams_v2');
         if (cached) {
@@ -177,11 +174,11 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
         const updatedChannels = await Promise.all(INITIAL_CHANNELS.map(async (ch) => {
           try {
-            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.channelId}&eventType=live&type=video&key=${apiKey}`;
+            const url = `/api/youtube-live?channelId=${ch.channelId}`;
             const res = await fetch(url);
             const data = await res.json();
-            if (data.items && data.items.length > 0) {
-              return { ...ch, id: data.items[0].id.videoId };
+            if (data.videoId) {
+              return { ...ch, id: data.videoId };
             }
           } catch (err) {
             console.error('Failed to fetch live stream for', ch.name, err);

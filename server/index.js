@@ -28,6 +28,62 @@ app.use('/api/billing', billingRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/notifications', notificationsRouter);
 
+// YOUTUBE LIVE SCRAPER ENDPOINT WITH MEMORY CACHE
+const ytCache = {};
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+app.get('/api/youtube-live', async (req, res) => {
+  const { channelId } = req.query;
+  if (!channelId) {
+    return res.status(400).json({ error: 'channelId is required' });
+  }
+
+  const now = Date.now();
+  if (ytCache[channelId] && (now - ytCache[channelId].timestamp) < CACHE_TTL) {
+    return res.json({ videoId: ytCache[channelId].videoId });
+  }
+
+  try {
+    const url = `https://www.youtube.com/channel/${channelId}/live`;
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+      },
+      timeout: 8000
+    });
+
+    const html = response.data;
+    const canonicalMatch = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([^"]+)">/);
+    let videoId = null;
+    if (canonicalMatch) {
+      videoId = canonicalMatch[1];
+    } else {
+      const videoIdMatch = html.match(/"videoId":"([^"]+)"/);
+      if (videoIdMatch) {
+        videoId = videoIdMatch[1];
+      }
+    }
+
+    if (videoId) {
+      ytCache[channelId] = { videoId, timestamp: now };
+      return res.json({ videoId });
+    }
+
+    if (ytCache[channelId]) {
+      return res.json({ videoId: ytCache[channelId].videoId, stale: true });
+    }
+
+    return res.json({ videoId: channelId, isFallback: true });
+  } catch (err) {
+    console.error(`Error scraping live stream for ${channelId}:`, err.message);
+    if (ytCache[channelId]) {
+      return res.json({ videoId: ytCache[channelId].videoId, stale: true });
+    }
+    return res.json({ videoId: channelId, isFallback: true });
+  }
+});
+
 // 2. SEARCH SUGGESTIONS ENDPOINT (Maintained in core server)
 const NEWS_API_BASE = 'https://newsapi.org/v2';
 const getNewsApiKey = () => process.env.NEWS_API_KEY;
