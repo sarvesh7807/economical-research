@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Newspaper, Printer, Share2, Calendar, FileText, ArrowLeft, Loader, HelpCircle } from 'lucide-react';
+import { Newspaper, Share2, Calendar, ArrowLeft, Loader, HelpCircle } from 'lucide-react';
+import ShareModal from './ShareModal';
 
 export default function EPaper({ setView }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -8,7 +9,8 @@ export default function EPaper({ setView }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [shareSuccess, setShareSuccess] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const broadsheetRef = useRef(null);
 
   const tabs = ['Front Page', 'National', 'International', 'Business', 'Sports', 'Technology'];
 
@@ -46,17 +48,6 @@ export default function EPaper({ setView }) {
       });
   }, [activeTab, selectedDate]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}?view=epaper&date=${selectedDate}&tab=${activeTab}`;
-    navigator.clipboard.writeText(shareUrl);
-    setShareSuccess(true);
-    setTimeout(() => setShareSuccess(false), 2000);
-  };
-
   // Generate date archive list (last 7 days)
   const getArchiveDates = () => {
     const dates = [];
@@ -67,6 +58,9 @@ export default function EPaper({ setView }) {
     }
     return dates;
   };
+
+  const shareUrl = `${window.location.origin}?view=epaper&date=${selectedDate}&tab=${activeTab}`;
+  const shareTitle = `Read the Economical Research Digital Broadsheet E-Paper (${activeTab} Section) for ${new Date(selectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}!`;
 
   return (
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-8 print:p-0">
@@ -98,21 +92,13 @@ export default function EPaper({ setView }) {
             </select>
           </div>
 
-          {/* Action buttons */}
+          {/* 3D Glassmorphism Share Button */}
           <button
-            onClick={handlePrint}
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-navy text-gold hover:bg-navy-light text-xs font-bold uppercase tracking-wider rounded transition-all"
-          >
-            <Printer size={13} />
-            <span>Print / PDF</span>
-          </button>
-
-          <button
-            onClick={handleShare}
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-navy/20 dark:border-gold/30 hover:border-navy text-navy dark:text-gray-300 hover:bg-navy/5 text-xs font-bold uppercase tracking-wider rounded transition-all"
+            onClick={() => setIsShareModalOpen(true)}
+            class="share-inline-btn"
           >
             <Share2 size={13} />
-            <span>{shareSuccess ? 'Copied Link' : 'Share Edition'}</span>
+            <span>Share & Export</span>
           </button>
         </div>
       </div>
@@ -160,7 +146,7 @@ export default function EPaper({ setView }) {
         </div>
       ) : (
         /* Traditional Newspaper Columns Layout */
-        <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-6 sm:p-8 shadow-md rounded relative print:shadow-none print:border-0 print:bg-white print:text-black">
+        <div ref={broadsheetRef} class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-6 sm:p-8 shadow-md rounded relative print:shadow-none print:border-0 print:bg-white print:text-black">
           {/* Broadsheet Corner lines */}
           <div class="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-navy/30 dark:border-gold/30 print:hidden"></div>
           <div class="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-navy/30 dark:border-gold/30 print:hidden"></div>
@@ -232,6 +218,16 @@ export default function EPaper({ setView }) {
           </div>
         </div>
       )}
+
+      {/* ShareModal */}
+      <ShareModal
+        open={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={shareUrl}
+        shareTitle={shareTitle}
+        downloadFilename={`economical-research-epaper-${selectedDate}-${activeTab.toLowerCase().replace(/\s+/g, '-')}`}
+        captureRef={broadsheetRef}
+      />
 
       {/* 5. PRINT SPECIFIC STYLESHEET */}
       <style>{`

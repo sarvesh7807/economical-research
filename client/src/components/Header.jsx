@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles, ClipboardList } from 'lucide-react';
+import ProfileAvatar from './ProfileAvatar';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -677,25 +678,18 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
 
               <button 
                 onClick={() => setView('profile')} 
-                class="flex items-center gap-1.5 hover:text-gold font-semibold text-navy dark:text-gray-200 transition-colors"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
               >
-                {user.photoURL ? (
-                  <img 
-                    src={user.photoURL}
-                    referrerPolicy="no-referrer"
-                    alt="Profile"
-                    className="w-6 h-6 rounded-full object-cover border border-gold"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
-                    }}
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-gold text-navy flex items-center justify-center font-bold text-[10px]">
-                    {user.displayName?.[0] || user.email?.[0] || 'U'}
-                  </div>
-                )}
-                <span class="hidden sm:inline max-w-[120px] truncate">{user.displayName || user.email}</span>
+                <ProfileAvatar user={user} size={38} />
+                <span class="hidden sm:inline max-w-[120px] truncate text-navy dark:text-gray-200 font-semibold hover:text-gold transition-colors">{user.displayName || user.email}</span>
                 {subscription?.tier === 'PRO' && (
                   <span class="bg-gold/20 text-gold-dark text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider scale-95 border border-gold/10 ml-1">PRO</span>
                 )}
@@ -991,24 +985,36 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             
             {user ? (
               <>
-                <div className="profile-section" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>
-                  {user.photoURL ? (
-                    <img 
-                      src={user.photoURL}
-                      referrerPolicy="no-referrer"
-                      alt="Profile"
-                      className="profile-avatar"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
-                      }}
-                    />
-                  ) : (
-                    <div className="profile-avatar-letter">
-                      {user.displayName?.[0] || user.email?.[0] || 'U'}
+                <div onClick={() => { setView('profile'); setIsMenuOpen(false); }} style={{ cursor: 'pointer' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: 'rgba(244,167,38,0.1)',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(244,167,38,0.3)',
+                    marginBottom: '16px'
+                  }}>
+                    <ProfileAvatar user={user} size={48} />
+                    <div>
+                      <p style={{
+                        color: '#F4A726',
+                        fontWeight: '700',
+                        fontSize: '15px',
+                        margin: 0
+                      }}>
+                        {user.displayName || 'User'}
+                      </p>
+                      <p style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '12px',
+                        margin: 0
+                      }}>
+                        {user.email}
+                      </p>
                     </div>
-                  )}
-                  <span>{user.displayName || user.email}</span>
+                  </div>
                 </div>
                 <button class="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile Settings</button>
               </>
@@ -1032,6 +1038,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           animation: slideRight 0.25s ease-out forwards;
         }
       `}</style>
+      <div className="header-border w-full"></div>
     </header>
   );
 }

@@ -217,7 +217,7 @@ export default function BillingHistory({ setView }) {
                     <td class="p-4 text-center whitespace-nowrap">
                       <button
                         onClick={() => downloadReceiptPDF(tx)}
-                        class="bg-navy hover:bg-navy-light text-gold px-3 py-1.5 rounded-lg font-sans font-black text-[9px] uppercase tracking-wider flex items-center gap-1.5 mx-auto border border-gold/20 shadow-sm"
+                        class="share-inline-btn mx-auto"
                         title="Download Invoice PDF"
                       >
                         <Download size={10} /> PDF

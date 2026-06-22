@@ -364,14 +364,14 @@ function EconomicFileViewer({ artifact }) {
         <div class="flex items-center gap-2">
           <button 
             onClick={handleCopy}
-            class="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-navy border border-paper-border dark:border-paper-borderDark text-[10px] font-bold text-gray-500 dark:text-gray-300 hover:text-gold rounded transition-all uppercase tracking-wider shadow-sm"
+            class="share-inline-btn"
           >
             {copied ? <Check size={11} class="text-green-500" /> : <Copy size={11} />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
           <button 
             onClick={handleDownload}
-            class="flex items-center gap-1 px-2.5 py-1 bg-navy text-gold hover:bg-navy-light border border-gold/15 text-[10px] font-bold rounded transition-all uppercase tracking-wider shadow-sm"
+            class="share-inline-btn"
           >
             <Download size={11} />
             <span>Download</span>
