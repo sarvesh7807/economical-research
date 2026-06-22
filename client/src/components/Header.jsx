@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles, ClipboardList } from 'lucide-react';
+import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles, ClipboardList, Instagram } from 'lucide-react';
 import ProfileAvatar from './ProfileAvatar';
 
 const languages = [
@@ -533,6 +533,17 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <SettingsIcon size={15} />
           </button>
 
+          {/* Instagram Follow Icon */}
+          <a
+            href="https://www.instagram.com/economical.research?igsh=MXlxNXppdXpjb2Vv"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[#E1306C] hover:text-[#ff4783] transition-all flex items-center justify-center"
+            title="Follow us on Instagram"
+          >
+            <Instagram size={15} />
+          </a>
+
           {/* Notifications In-App Bell Dropdown */}
           {user && (
             <div ref={notifRef} class="relative">
@@ -1021,6 +1032,43 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             ) : (
               <button class="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
             )}
+
+            {/* Instagram Social Follow bar */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '20px 12px 10px',
+              borderTop: '1px solid #1A3A5C',
+              marginTop: '20px'
+            }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', fontWeight: 'bold', uppercase: true, letterSpacing: '0.08em' }}>
+                Follow our official channel
+              </span>
+              <a
+                href="https://www.instagram.com/economical.research?igsh=MXlxNXppdXpjb2Vv"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #F4A726, #D4A843)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#0A1628',
+                  boxShadow: '0 4px 12px rgba(244,167,38,0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                title="Follow us on Instagram"
+              >
+                <Instagram size={20} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
