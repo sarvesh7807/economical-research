@@ -24,7 +24,7 @@ const channels = [
     id: 'skynews',
     name: 'Sky News Live',
     source: 'YouTube Live',
-    channelId: 'UByTSdyZrjSi1aHmd0wkSQGw',
+    channelId: 'UCoMdktPbSTixAyNGwb-UYkQ',
     description: 'First for breaking news, video, headlines, analysis and top stories from the UK and around the world.',
     region: 'United Kingdom / Global'
   },
@@ -48,7 +48,7 @@ const channels = [
     id: 'republic',
     name: 'Republic World',
     source: 'YouTube Live',
-    channelId: 'UCwqusr8YDwOLcN8gNCRrShQ',
+    channelId: 'UCwqusr8YDwM-3mEYTDeJHzw',
     description: 'India\'s fastest-growing English news channel covering national and international updates.',
     region: 'India / Asia-Pacific'
   }
@@ -65,15 +65,6 @@ const getChannelVideo = async (channelId, channelKey) => {
     return cached.data;
   }
   
-  const fallbackVideos = {
-    aljazeera: 'bB-vV2h_W-M',
-    bbc: 'gCNeDWCI0vo',
-    skynews: '9Auq9mYxFEE',
-    dw: 'v1eT_VntrS8',
-    ndtv: 'MN8p-Vrn6G0',
-    republic: 'Fqqh5N_w4C8'
-  };
-
   // STEP 1: Try to find LIVE video
   try {
     const liveUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&maxResults=1&key=${apiKey}`;
@@ -120,7 +111,8 @@ const getChannelVideo = async (channelId, channelKey) => {
     console.error('Recent video search failed:', err);
   }
 
-  return { videoId: fallbackVideos[channelKey] || 'bB-vV2h_W-M', isLive: false };
+  // Fallback: return the channel ID directly, which will be embedded as live_stream
+  return { videoId: channelId, isLive: true };
 };
 
 export default function LiveTV({ setView }) {
@@ -149,6 +141,9 @@ export default function LiveTV({ setView }) {
   }, []);
 
   const getEmbedUrl = () => {
+    if (videoId && videoId.startsWith('UC')) {
+      return `https://www.youtube.com/embed/live_stream?channel=${videoId}&autoplay=1&mute=1&playsinline=1&rel=0`;
+    }
     return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&rel=0`;
   };
 
