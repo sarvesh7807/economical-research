@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   Send, Sparkles, AlertCircle, RefreshCw, Plus, Trash2, 
   MessageSquare, ChevronRight, Download, BarChart2, FileText, 
-  X, Maximize2, Minimize2, Copy, Check 
+  X, Maximize2, Minimize2, Copy, Check, Menu 
 } from 'lucide-react';
 import Chart from 'chart.js/auto';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
@@ -429,6 +429,7 @@ export default function ErAssistantFull() {
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
   const [fullscreenArtifact, setFullscreenArtifact] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [usageLimit, setUsageLimit] = useState({ allowed: true, remaining: 21 });
 
   const scrollRef = useRef(null);
@@ -493,6 +494,7 @@ export default function ErAssistantFull() {
     setActiveArtifact(null);
     setArtifactPanelOpen(false);
     setError(null);
+    setSidebarOpen(false);
   };
 
   // Create new session
@@ -515,6 +517,7 @@ export default function ErAssistantFull() {
     setActiveArtifact(null);
     setArtifactPanelOpen(false);
     setError(null);
+    setSidebarOpen(false);
   };
 
   // Delete session
@@ -790,13 +793,33 @@ Always be professional, analytical, and cite economic context. Format responses 
   ];
 
   return (
-    <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 h-[calc(100vh-140px)] min-h-[550px] flex gap-4 overflow-hidden font-sans select-none">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 h-[calc(100vh-140px)] min-h-[550px] flex gap-4 overflow-hidden font-sans select-none relative">
       
+      {/* Sidebar Backdrop Overlay on Mobile */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)} 
+          class="fixed inset-0 bg-black/60 z-20 md:hidden" 
+        />
+      )}
+
       {/* 1. LEFT SIDEBAR: CHAT SESSIONS LEDGER */}
-      <div class="w-64 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded-lg flex flex-col shrink-0 overflow-hidden shadow-md">
+      <div class={`w-64 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded-lg flex flex-col shrink-0 overflow-hidden shadow-md absolute md:relative top-0 left-0 md:top-auto md:left-auto z-30 h-full md:h-auto transition-transform duration-300 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
         {/* Sidebar Header */}
         <div class="p-3 border-b border-paper-border dark:border-paper-borderDark flex items-center justify-between bg-gray-50/50 dark:bg-navy-light/10">
-          <span class="text-[9px] font-black uppercase tracking-widest text-navy dark:text-gold font-mono"> brief workspaces</span>
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              class="md:hidden p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded hover:bg-gray-100 dark:hover:bg-navy-light/10 transition-colors"
+              title="Close Workspaces"
+            >
+              <X size={14} />
+            </button>
+            <span class="text-[9px] font-black uppercase tracking-widest text-navy dark:text-gold font-mono"> brief workspaces</span>
+          </div>
           <button 
             onClick={createNewSession}
             class="p-1 rounded bg-navy dark:bg-gold text-gold dark:text-navy hover:scale-105 transition-all shadow-sm border border-gold/10"
@@ -854,6 +877,14 @@ Always be professional, analytical, and cite economic context. Format responses 
           <div class="px-4 py-3 bg-navy text-white flex flex-col gap-2 border-b border-gold/20 shrink-0">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  class="md:hidden p-1 -ml-1 text-gold hover:text-white rounded hover:bg-white/5 transition-colors"
+                  title="Open Workspaces"
+                >
+                  <Menu size={16} />
+                </button>
                 <Sparkles size={15} class="text-gold" />
                 <span class="font-serif text-[11px] font-black uppercase tracking-wider text-gold">ER Claude Assistant</span>
               </div>
@@ -1027,7 +1058,7 @@ Always be professional, analytical, and cite economic context. Format responses 
             class={`bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded-lg shadow-xl flex flex-col overflow-hidden transition-all duration-300 z-20 min-w-0 ${
               fullscreenArtifact 
                 ? 'absolute inset-0' 
-                : 'w-full lg:w-[480px] shrink-0'
+                : 'absolute inset-0 lg:relative lg:inset-auto lg:w-[480px] lg:shrink-0'
             }`}
           >
             {/* Panel Header */}
