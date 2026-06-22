@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FaXTwitter,
   FaFacebookF,
@@ -130,7 +131,7 @@ export default function ShareModal({
     if (e.target === e.currentTarget) onClose();
   };
 
-  return (
+  return createPortal(
     <div className="share-modal-backdrop" onClick={handleBackdrop}>
       <div className="share-modal" role="dialog" aria-modal="true" aria-label="Share">
 
@@ -254,6 +255,7 @@ export default function ShareModal({
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
