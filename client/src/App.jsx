@@ -151,6 +151,13 @@ function AppContent() {
 
   // Query and Path-based routing recovery on mount
   useEffect(() => {
+    const isMobile = window.innerWidth < 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (isMobile) {
+      setViewInternal('feed');
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get('view');
     const sessionId = params.get('session_id');
