@@ -65,7 +65,7 @@ function parseDrawerMessageContent(text) {
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('change-view', { detail: 'assistant' }));
               }}
-              class="w-full flex items-center justify-between p-2 bg-gray-55 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded hover:border-gold dark:hover:border-gold transition-all text-left"
+              class="w-full flex items-center justify-between p-2 bg-gray-100 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded hover:border-gold dark:hover:border-gold transition-all text-left"
             >
               <div class="min-w-0">
                 <span class="text-[10px] font-bold text-navy dark:text-gray-200 block truncate">{art.title}</span>
@@ -102,7 +102,7 @@ function DrawerCodeBlock({ lang, code }) {
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre class="p-2.5 bg-gray-55 dark:bg-[#040A12] text-navy dark:text-gray-250 overflow-x-auto leading-normal scrollbar-none">
+      <pre class="p-2.5 bg-gray-100 dark:bg-[#040A12] text-navy dark:text-gray-300 overflow-x-auto leading-normal scrollbar-none">
         <code>{code.trim()}</code>
       </pre>
     </div>
@@ -571,7 +571,7 @@ Always be helpful, professional, and concise. Format responses clearly using mar
           </div>
 
           {/* Quick Replies Row */}
-          <div class="px-3 py-2 border-t border-paper-border dark:border-paper-borderDark bg-gray-55 dark:bg-paper-dark/50 flex gap-2 overflow-x-auto scrollbar-none shrink-0 select-none">
+          <div class="px-3 py-2 border-t border-paper-border dark:border-paper-borderDark bg-gray-100 dark:bg-paper-dark/50 flex gap-2 overflow-x-auto scrollbar-none shrink-0 select-none">
             {quickReplies.map((qr, idx) => (
               <button
                 key={idx}

@@ -75,7 +75,7 @@ export default function Settings({ setView }) {
     return (
       <div class="max-w-md mx-auto px-4 py-16 text-center">
         <h3 class="font-serif text-2xl font-bold text-navy dark:text-white mb-2">Access Restricted</h3>
-        <p class="text-xs text-gray-550 dark:text-gray-400 mb-6">You must be authenticated to access editorial configuration parameters.</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">You must be authenticated to access editorial configuration parameters.</p>
         <button 
           onClick={() => setView('feed')}
           class="px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-bold text-xs uppercase"
@@ -277,7 +277,7 @@ export default function Settings({ setView }) {
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <Clock size={15} class="text-gold" />
-                  <h4 class="font-bold text-navy dark:text-gray-250">Quiet Hours Schedule</h4>
+                  <h4 class="font-bold text-navy dark:text-gray-300">Quiet Hours Schedule</h4>
                 </div>
                 <button
                   onClick={handleQuietHoursToggle}
@@ -288,7 +288,7 @@ export default function Settings({ setView }) {
                   <div class={`w-4 h-4 rounded-full bg-white shadow transform transition-all ${settings.quietHours?.enabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
                 </button>
               </div>
-              <p class="text-[9.5px] text-gray-450 dark:text-gray-400 font-medium leading-relaxed">
+              <p class="text-[9.5px] text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
                 When enabled, browser push alerts will remain silent between selected hours to ensure focus.
               </p>
 

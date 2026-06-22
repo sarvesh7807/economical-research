@@ -186,7 +186,7 @@ export default function EPaper({ setView }) {
                   )}
 
                   {/* Multi-column dropcap text for print broadsheet feel */}
-                  <div class="columns-1 sm:columns-2 gap-6 text-xs text-navy/95 dark:text-gray-250 leading-relaxed font-serif text-justify print:text-black">
+                  <div class="columns-1 sm:columns-2 gap-6 text-xs text-navy/95 dark:text-gray-300 leading-relaxed font-serif text-justify print:text-black">
                     <span class="float-left text-4xl font-serif font-black mr-2 mt-1 line-height-1 text-gold">
                       {articles[0].title.charAt(0)}
                     </span>

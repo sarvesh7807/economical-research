@@ -117,7 +117,7 @@ function CodeBlock({ lang, code }) {
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre class="p-4 bg-gray-50 dark:bg-[#040A12] text-navy dark:text-gray-250 overflow-x-auto leading-relaxed scrollbar-thin">
+      <pre class="p-4 bg-gray-50 dark:bg-[#040A12] text-navy dark:text-gray-300 overflow-x-auto leading-relaxed scrollbar-thin">
         <code>{code.trim()}</code>
       </pre>
     </div>
@@ -406,7 +406,7 @@ function EconomicFileViewer({ artifact }) {
       ) : (
         /* Standard plain text preview */
         <div class="border border-paper-border dark:border-paper-borderDark rounded-lg overflow-hidden font-mono text-xs">
-          <pre class="p-4 bg-gray-50 dark:bg-[#040A12] text-navy dark:text-gray-250 overflow-x-auto max-h-[320px] scrollbar-thin leading-relaxed">
+          <pre class="p-4 bg-gray-50 dark:bg-[#040A12] text-navy dark:text-gray-300 overflow-x-auto max-h-[320px] scrollbar-thin leading-relaxed">
             {artifact.content}
           </pre>
         </div>
@@ -840,7 +840,7 @@ Always be professional, analytical, and cite economic context. Format responses 
                 class={`w-full text-left p-2.5 rounded text-[11px] font-bold transition-all flex items-center justify-between group border ${
                   isActive 
                     ? 'bg-navy dark:bg-gold text-gold dark:text-navy border-gold/20' 
-                    : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-navy-light/10 text-gray-550 dark:text-gray-300'
+                    : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-navy-light/10 text-gray-500 dark:text-gray-300'
                 }`}
               >
                 <div class="flex items-center gap-1.5 min-w-0 flex-grow">
@@ -1095,7 +1095,7 @@ Always be professional, analytical, and cite economic context. Format responses 
             <div class="flex-grow overflow-y-auto p-4 scrollbar-thin bg-paper dark:bg-paper-dark">
               {activeArtifact.type === 'chart' ? (
                 <div class="space-y-4">
-                  <div class="p-3 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded-lg text-[11px] leading-relaxed text-gray-550 dark:text-gray-350 font-serif">
+                  <div class="p-3 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded-lg text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 font-serif">
                     💡 <strong>Economic Intelligence Visualization</strong>: The chart below plots the requested data points dynamically. Hover over nodes to inspect specific dates and numeric values.
                   </div>
                   <EconomicChart artifact={activeArtifact} />

@@ -311,7 +311,7 @@ export default function LiveTV({ setView }) {
               })}
             </div>
 
-            <div class="mt-4 p-2.5 bg-gold/5 border border-gold/15 rounded flex gap-2 text-[10px] text-gray-550 dark:text-gray-400 leading-normal">
+            <div class="mt-4 p-2.5 bg-gold/5 border border-gold/15 rounded flex gap-2 text-[10px] text-gray-500 dark:text-gray-400 leading-normal">
               <AlertCircle size={14} class="text-gold shrink-0 mt-0.5" />
               <span>Streams are aggregated from public channels. Resolution and load latency may vary depending on local connection throughput.</span>
             </div>

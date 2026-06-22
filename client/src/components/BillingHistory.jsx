@@ -184,7 +184,7 @@ export default function BillingHistory({ setView }) {
         <div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10 shadow-md">
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="bg-gray-100 dark:bg-navy/40 border-b border-gray-200 dark:border-white/10 text-gray-550 dark:text-gray-400 uppercase tracking-widest font-mono text-[9px]">
+              <tr class="bg-gray-100 dark:bg-navy/40 border-b border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 uppercase tracking-widest font-mono text-[9px]">
                 <th class="p-4 font-bold">Date</th>
                 <th class="p-4 font-bold">Plan</th>
                 <th class="p-4 font-bold">Amount</th>

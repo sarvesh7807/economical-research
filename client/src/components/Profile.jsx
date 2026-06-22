@@ -205,7 +205,7 @@ export default function Profile({ setView, onSearchSubmit }) {
               Press ID Ledger
             </p>
 
-            <div class="space-y-3 text-[11px] text-gray-550 dark:text-gray-400 border-t border-dashed border-gray-200 dark:border-gray-800 pt-4 font-mono text-left">
+            <div class="space-y-3 text-[11px] text-gray-500 dark:text-gray-400 border-t border-dashed border-gray-200 dark:border-gray-800 pt-4 font-mono text-left">
               <div class="flex items-center gap-2">
                 <Mail size={12} class="text-gold shrink-0" />
                 <span class="truncate" title={user.email}>{user.email}</span>

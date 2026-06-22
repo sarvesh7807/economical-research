@@ -423,7 +423,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       </div>
 
       {/* 2. SUB HEADER (CLOCK & WEATHER & AUTH & THEME & LANGUAGE & BELL) */}
-      <div class="max-w-7xl mx-auto px-4 md:px-6 py-2 flex justify-between items-center text-xs font-medium text-gray-550 dark:text-gray-400 border-b border-paper-border dark:border-paper-borderDark">
+      <div class="max-w-7xl mx-auto px-4 md:px-6 py-2 flex justify-between items-center text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-paper-border dark:border-paper-borderDark">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-navy dark:text-gold font-bold">LIVE:</span>
           <span>{formatDate(time)}</span>
@@ -621,7 +621,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                           
                           <div class="min-w-0 flex-grow text-[11px] leading-relaxed">
                             <div class="flex justify-between items-start gap-1.5">
-                              <h4 class="text-navy dark:text-gray-250 truncate font-bold text-[10.5px] leading-tight">{notif.title}</h4>
+                              <h4 class="text-navy dark:text-gray-300 truncate font-bold text-[10.5px] leading-tight">{notif.title}</h4>
                               {!notif.read && (
                                 <span class="w-1.5 h-1.5 shrink-0 rounded-full bg-red-655 mt-1"></span>
                               )}

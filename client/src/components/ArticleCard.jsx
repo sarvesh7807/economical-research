@@ -675,7 +675,7 @@ export default function ArticleCard({ article }) {
               {!isPlaying ? (
                 <button
                   onClick={handleListen}
-                  class="flex items-center gap-1 text-gray-550 hover:text-gold transition-colors focus:outline-none font-bold"
+                  class="flex items-center gap-1 text-gray-500 hover:text-gold transition-colors focus:outline-none font-bold"
                   title="Listen to Article"
                 >
                   <span>🔊</span> Listen
@@ -684,7 +684,7 @@ export default function ArticleCard({ article }) {
                 <div class="flex items-center gap-1.5 font-bold">
                   <button
                     onClick={handlePause}
-                    class="text-gray-550 hover:text-gold transition-colors focus:outline-none flex items-center gap-0.5"
+                    class="text-gray-500 hover:text-gold transition-colors focus:outline-none flex items-center gap-0.5"
                     title={isPaused ? "Resume Speech" : "Pause Speech"}
                   >
                     <span>{isPaused ? '▶️' : '⏸️'}</span>

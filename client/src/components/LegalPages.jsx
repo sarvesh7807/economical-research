@@ -48,7 +48,7 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
               class={`px-5 py-4 text-xs font-bold uppercase tracking-wider border-r border-paper-border dark:border-paper-borderDark whitespace-nowrap flex items-center gap-2 transition-colors ${
                 activeTab === tab.id
                   ? 'bg-white dark:bg-paper-cardDark text-gold border-b-2 border-b-gold font-black'
-                  : 'text-gray-550 dark:text-gray-400 hover:text-navy'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-navy'
               }`}
             >
               <Icon size={13} />
@@ -78,14 +78,14 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
               <div class="p-4 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded">
                 <h4 class="text-xs font-black text-navy dark:text-gold uppercase tracking-wider mb-2">Our Mission</h4>
-                <p class="text-[11px] text-gray-550 dark:text-gray-400 leading-relaxed font-serif">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-serif">
                   To filter out clickbait noise and deliver comprehensive, objective, and well-researched news wire briefs directly to global stakeholders.
                 </p>
               </div>
 
               <div class="p-4 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded">
                 <h4 class="text-xs font-black text-navy dark:text-gold uppercase tracking-wider mb-2">AI-Driven Editorial</h4>
-                <p class="text-[11px] text-gray-550 dark:text-gray-400 leading-relaxed font-serif">
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-serif">
                   Leveraging cutting-edge language processing (Gemini models) to translate foreign dispatches, outline core key points, and summarize complex market documents.
                 </p>
               </div>

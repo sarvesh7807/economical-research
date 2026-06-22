@@ -167,7 +167,7 @@ export default function CommentsSection({ articleUrl }) {
           <p class="text-[10px] text-gray-400 italic text-center py-2">No statements recorded on this wire briefing.</p>
         ) : (
           parentComments.map((comm) => (
-            <div key={comm.id} class="space-y-2 border-b border-gray-550/30 dark:border-gray-800/30 pb-2">
+            <div key={comm.id} class="space-y-2 border-b border-gray-500/30 dark:border-gray-800/30 pb-2">
               <div class="flex items-start justify-between">
                 <div class="flex items-center gap-1.5">
                   <img 
@@ -180,7 +180,7 @@ export default function CommentsSection({ articleUrl }) {
                       e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=fallback';
                     }}
                   />
-                  <span class="font-bold text-navy dark:text-gray-250 uppercase text-[10px]">{comm.displayName}</span>
+                  <span class="font-bold text-navy dark:text-gray-300 uppercase text-[10px]">{comm.displayName}</span>
                   <span class="text-[9px] text-gray-400 font-mono">{new Date(comm.createdAt).toLocaleDateString()}</span>
                 </div>
                 

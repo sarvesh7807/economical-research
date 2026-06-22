@@ -162,7 +162,7 @@ export default function ResearchMode({ topic, onClose }) {
               </div>
 
               {/* Markdown Render Container */}
-              <div class="prose dark:prose-invert max-w-none text-navy dark:text-gray-250 leading-relaxed text-sm p-6 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded shadow-sm">
+              <div class="prose dark:prose-invert max-w-none text-navy dark:text-gray-300 leading-relaxed text-sm p-6 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded shadow-sm">
                 <div class="border-double-bottom-navy pb-3 mb-6 text-center">
                   <span class="text-[9px] font-mono font-bold text-gold uppercase tracking-widest">
                     ✦ ECONOMICAL RESEARCH PLATFORM DISPATCH ✦
