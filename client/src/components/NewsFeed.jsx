@@ -671,6 +671,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             {renderResearchDesk()}
             {isHomepage && <OutcomeTrackerWidget />}
             {renderSidePanel()}
+            <TrendingWidget />
           </div>
         </div>
 
@@ -715,6 +716,102 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       
       {isResearchOpen && (
         <ResearchMode topic={activeResearchTopic} onClose={() => setIsResearchOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function TrendingWidget() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        const res = await fetch(`/api/news?category=world&pageSize=8`);
+        if (!res.ok) throw new Error('Fetch failed');
+        const data = await res.json();
+        const raw = data.articles || [];
+        const filtered = raw
+          .filter((a, index, self) => 
+            a.title && 
+            a.urlToImage && 
+            index === self.findIndex(item => item.title === a.title)
+          )
+          .slice(0, 5);
+        setArticles(filtered);
+      } catch (err) {
+        console.error('Error fetching trending news:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTrending();
+  }, []);
+
+  return (
+    <div class="glass-card p-5 rounded-3xl text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+          <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
+            Trending Dispatch Wire
+          </h3>
+        </div>
+        <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">HOT</span>
+      </div>
+
+      {loading ? (
+        <div class="space-y-3.5">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} class="flex gap-3 items-center">
+              <div class="w-12 h-12 rounded-xl bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
+              <div class="flex-grow space-y-2">
+                <div class="h-3 w-5/6 rounded bg-gray-205 dark:bg-gray-800 animate-shimmer"></div>
+                <div class="h-2 w-1/3 rounded bg-gray-250 dark:bg-gray-800 animate-shimmer"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : articles.length === 0 ? (
+        <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No trending news available right now.</p>
+      ) : (
+        <div class="space-y-3.5">
+          {articles.map((article, index) => {
+            const timeAgo = article.publishedAt
+              ? `${Math.max(1, Math.round((Date.now() - new Date(article.publishedAt).getTime()) / 3600000))}h ago`
+              : 'Recent';
+            
+            return (
+              <a
+                key={`${article.url}-${index}`}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex gap-3 items-center group/item hover:bg-gray-50 dark:hover:bg-white/5 p-1.5 -m-1.5 rounded-2xl transition-all"
+              >
+                <img
+                  src={article.urlToImage}
+                  alt=""
+                  class="w-12 h-12 rounded-xl object-cover shrink-0 border border-gray-100 dark:border-white/5 group-hover/item:scale-105 transition-transform"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <div class="min-w-0 flex-grow">
+                  <h4 class="text-navy dark:text-white text-[11.5px] font-bold leading-snug group-hover/item:text-primary dark:group-hover/item:text-gold transition-colors line-clamp-2">
+                    {article.title}
+                  </h4>
+                  <div class="flex items-center gap-1.5 mt-1 text-[8.5px] font-mono text-gray-400 uppercase font-semibold">
+                    <span class="truncate">{article.source?.name || 'Wire'}</span>
+                    <span>•</span>
+                    <span>{timeAgo}</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
       )}
     </div>
   );
