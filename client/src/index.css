@@ -24,12 +24,12 @@
   }
 }
 
-/* Glassmorphism Utilities */
+/* Glassmorphism Utilities (performance-optimized) */
 .glass {
-  @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10;
+  @apply bg-white/95 dark:bg-[#0b1624]/95 border border-white/20 dark:border-white/10;
 }
 .glass-card {
-  @apply bg-white/60 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-3d-light dark:shadow-3d-dark transition-all duration-500 hover:-translate-y-2 hover:shadow-float-light dark:hover:shadow-float-dark;
+  @apply bg-white/95 dark:bg-[#0b1624]/95 border border-white/30 dark:border-white/10 shadow-3d-light dark:shadow-3d-dark transition-all duration-300 hover:-translate-y-1 hover:shadow-float-light dark:hover:shadow-float-dark;
 }
 
 /* Custom newspaper elements (repurposed for GenZ masonry) */

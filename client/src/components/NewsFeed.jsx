@@ -6,7 +6,7 @@ import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, C
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
-function NewsSection({ title, fetchUrl, autoScroll = true }) {
+function NewsSection({ title, fetchUrl, autoScroll = false }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -636,17 +636,17 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 {detectedCountry && (
                   <NewsSection 
                     title="News from Your Region" 
-                    fetchUrl={`/api/news?country=${detectedCountry}${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
+                    fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
                   />
                 )}
-                <NewsSection title="World News" fetchUrl={`/api/news?category=world${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="India News" fetchUrl={`/api/news?category=india${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Business News" fetchUrl={`/api/news?category=business${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Technology News" fetchUrl={`/api/news?category=tech${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Sports News" fetchUrl={`/api/news?category=sports${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Health News" fetchUrl={`/api/news?category=health${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Science News" fetchUrl={`/api/news?category=science${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Entertainment News" fetchUrl={`/api/news?category=entertainment${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="World News" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="India News" fetchUrl={`/api/news?category=india&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Business News" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Technology News" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Sports News" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Health News" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Science News" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Entertainment News" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
               </div>
             ) : articles.length === 0 ? (
               <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">

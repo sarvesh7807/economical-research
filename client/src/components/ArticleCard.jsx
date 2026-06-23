@@ -207,8 +207,11 @@ export default function ArticleCard({ article }) {
 
   const bookmarked = isBookmarked(url);
 
-  // Fetch Sentiment and Trust score on mount
+  // Fetch Sentiment and Trust score on hover or interaction
   useEffect(() => {
+    if (!hovered && !showSummary && !showKeyPoints && !showFivePoints && !showMarketImpact && !showComments) return;
+    if (analysis || loadingAnalysis) return;
+
     setLoadingAnalysis(true);
     fetch('/api/ai/analyze', {
       method: 'POST',
@@ -224,7 +227,7 @@ export default function ArticleCard({ article }) {
         console.error('Analysis error:', err);
         setLoadingAnalysis(false);
       });
-  }, [title]);
+  }, [title, hovered, showSummary, showKeyPoints, showFivePoints, showMarketImpact, showComments, analysis, loadingAnalysis]);
 
   // Progressive Reading attention bar simulation
   useEffect(() => {
