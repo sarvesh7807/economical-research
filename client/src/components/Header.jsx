@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings as SettingsIcon, Menu, Tv, Newspaper, Bell, BellRing, Sparkles, ClipboardList, Instagram } from 'lucide-react';
 import ProfileAvatar from './ProfileAvatar';
+import SocialLinks from './SocialLinks';
+import { FaXTwitter, FaInstagram } from 'react-icons/fa6';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -533,15 +535,26 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <SettingsIcon size={15} />
           </button>
 
+          {/* X (Twitter) Follow Icon */}
+          <a
+            href="https://x.com/ERNewsDesk"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-white transition-all flex items-center justify-center"
+            title="Follow us on X (Twitter)"
+          >
+            <FaXTwitter size={15} />
+          </a>
+
           {/* Instagram Follow Icon */}
           <a
-            href="https://www.instagram.com/economical.research?igsh=MXlxNXppdXpjb2Vv"
+            href="https://www.instagram.com/economical.research"
             target="_blank"
             rel="noopener noreferrer"
             class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[#E1306C] hover:text-[#ff4783] transition-all flex items-center justify-center"
             title="Follow us on Instagram"
           >
-            <Instagram size={15} />
+            <FaInstagram size={15} />
           </a>
 
           {/* Notifications In-App Bell Dropdown */}
@@ -1033,41 +1046,21 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
               <button class="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
             )}
 
-            {/* Instagram Social Follow bar */}
             <div style={{
+              borderTop: '1px solid rgba(255,255,255,0.1)',
+              paddingTop: '16px',
+              marginTop: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '8px',
-              padding: '20px 12px 10px',
-              borderTop: '1px solid #1A3A5C',
-              marginTop: '20px'
+              gap: '12px'
             }}>
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', fontWeight: 'bold', uppercase: true, letterSpacing: '0.08em' }}>
-                Follow our official channel
-              </span>
-              <a
-                href="https://www.instagram.com/economical.research?igsh=MXlxNXppdXpjb2Vv"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #F4A726, #D4A843)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#0A1628',
-                  boxShadow: '0 4px 12px rgba(244,167,38,0.3)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                title="Follow us on Instagram"
-              >
-                <Instagram size={20} />
-              </a>
+              <p style={{
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: '12px',
+                margin: 0
+              }}>Follow Us</p>
+              <SocialLinks />
             </div>
           </div>
         </div>

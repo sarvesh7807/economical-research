@@ -22,6 +22,7 @@ import OutcomeTracker from './components/OutcomeTracker';
 import OutcomeDetail from './components/OutcomeDetail';
 import ErrorBoundary from './components/ErrorBoundary';
 import BillingHistory from './components/BillingHistory';
+import SocialLinks from './components/SocialLinks';
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent } = useAuth();
@@ -394,6 +395,32 @@ function AppContent() {
                 Proxy Server Status: <span class="text-green-400 font-bold">ONLINE</span>
               </p>
             </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '24px 0',
+            borderTop: '1px solid rgba(244,167,38,0.3)'
+          }}>
+            <p style={{
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '13px',
+              margin: 0
+            }}>
+              Follow us on social media
+            </p>
+            <SocialLinks />
+            <p style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: '12px',
+              margin: 0
+            }}>
+              © 2026 Economical Research. 
+              All rights reserved.
+            </p>
           </div>
 
           <div class="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] text-gray-400 gap-2 font-semibold uppercase tracking-wider font-sans">

@@ -30,7 +30,7 @@ function socialHref(platform, url, text) {
 /* ─── Social button config ─────────────────────────────────────── */
 const SOCIALS = [
   { key: 'twitter',   Icon: FaXTwitter,     label: 'X (Twitter)',  color: '#000000', bg: 'rgba(0,0,0,0.85)' },
-  { key: 'instagram', Icon: FaInstagram,    label: 'Instagram',    color: '#E1306C', bg: 'rgba(225,48,108,0.15)', isLink: true, href: 'https://www.instagram.com/economical.research?igsh=MXlxNXppdXpjb2Vv' },
+  { key: 'instagram', Icon: FaInstagram,    label: 'Instagram',    color: '#E1306C', bg: 'rgba(225,48,108,0.15)', isLink: true, href: 'https://www.instagram.com/economical.research' },
   { key: 'whatsapp',  Icon: FaWhatsapp,     label: 'WhatsApp',     color: '#25D366', bg: 'rgba(37,211,102,0.15)' },
   { key: 'facebook',  Icon: FaFacebookF,    label: 'Facebook',     color: '#1877F2', bg: 'rgba(24,119,242,0.15)' },
   { key: 'linkedin',  Icon: FaLinkedinIn,   label: 'LinkedIn',     color: '#0A66C2', bg: 'rgba(10,102,194,0.15)' },
