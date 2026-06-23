@@ -253,6 +253,14 @@ export const isGenericPlaceholder = (url) => {
   return genericPlaceholderSignatures.some(sig => url.includes(sig));
 };
 
+export const generateAiImage = (title = '', description = '') => {
+  const cleanTitle = title.replace(/[^\w\s\-,.!?]/g, '').trim();
+  const cleanDesc = (description || '').replace(/[^\w\s\-,.!?]/g, '').trim().substring(0, 120);
+  const promptText = `${cleanTitle}. ${cleanDesc}`.trim();
+  const fullPrompt = `${promptText}, professional editorial illustration, dark premium style, navy blue and gold accents, highly detailed, realistic, 8k resolution, cinematic lighting`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=800&height=450&nologo=true&private=true`;
+};
+
 export const getPremiumArticleImage = (article) => {
   const { title = '', description = '', content = '', category = '', url = '', urlToImage } = article;
 
@@ -419,6 +427,7 @@ export const getPremiumArticleImage = (article) => {
     return selectUniqueFromPool(imagePools.entertainment, url, title);
   }
 
-  // --- 4. DEFAULT NEWS IMAGE (Hierarchy: Generic news image) ---
-  return selectUniqueFromPool(imagePools.default, url, title);
+  // --- 4. DEFAULT NEWS IMAGE (Hierarchy: Generic news image -> AI generated image) ---
+  // If no relevant image matches the category/entity/topic, generate a unique AI image based on headline and description
+  return generateAiImage(title, description);
 };
