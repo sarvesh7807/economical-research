@@ -130,10 +130,40 @@ const imagePools = {
     'https://images.unsplash.com/photo-1608905978123-558c415998e8?w=800&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop'
   ],
-  football: [
-    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop',
+  football_messi: [
+    'https://images.unsplash.com/photo-1627916607164-7b20241db935?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1614632537190-23e414d7a3d3?w=800&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1518063319789-7217e6706b04?w=800&auto=format&fit=crop'
+  ],
+  football_ronaldo: [
+    'https://images.unsplash.com/photo-1626248801379-71a58de086f0?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1549741871-344521c4b0f9?w=800&auto=format&fit=crop'
+  ],
+  football_neymar: [
+    'https://images.unsplash.com/photo-1568194157720-8ece7b1fc030?w=800&auto=format&fit=crop'
+  ],
+  football_mbappe: [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop'
+  ],
+  football_fifa: [
+    'https://images.unsplash.com/photo-1568194157720-8ece7b1fc030?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1518063319789-7217e6706b04?w=800&auto=format&fit=crop'
+  ],
+  football_general: [
+    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1518063319789-7217e6706b04?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1524015368236-bbf6f72545b6?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1431324155629-1a6edd1d1315?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1556056504-517173f4aa07?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1510566337590-2fc1f21d0faa?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1516208422321-ece161e6466a?w=800&auto=format&fit=crop'
+  ],
+  football_popular: [
+    'https://images.unsplash.com/photo-1627916607164-7b20241db935?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1626248801379-71a58de086f0?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=800&auto=format&fit=crop'
   ],
   combat_sports: [
     'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&auto=format&fit=crop',
@@ -383,8 +413,46 @@ export const getPremiumArticleImage = (article) => {
   if (text.includes('cricket') || text.includes('kohli') || text.includes('dhoni') || text.includes('ipl ') || text.includes('t20') || text.includes('test match')) {
     return selectUniqueFromPool(imagePools.cricket, url, title);
   }
-  if (text.includes('football') || text.includes('soccer') || text.includes('messi') || text.includes('ronaldo') || text.includes('fifa') || text.includes('premier league') || text.includes('champions league')) {
-    return selectUniqueFromPool(imagePools.football, url, title);
+  if (text.includes('football') || text.includes('soccer') || text.includes('fifa') || text.includes('uefa') || text.includes('champions league') || text.includes('premier league') || text.includes('la liga') || text.includes('messi') || text.includes('ronaldo') || text.includes('neymar') || text.includes('mbappe') || text.includes('cr7')) {
+    const mentionsRonaldo = text.includes('ronaldo') || text.includes('cr7') || text.includes('cristiano');
+    const mentionsMessi = text.includes('messi') || text.includes('lionel');
+    const mentionsNeymar = text.includes('neymar');
+    const mentionsMbappe = text.includes('mbappe') || text.includes('kylian');
+    
+    // Check if other players, coaches, clubs, or specific match events are mentioned
+    const mentionsDifferentPlayerOrTeam = 
+      text.includes('haaland') || text.includes('bellingham') || text.includes('vinicius') || text.includes('kane') || 
+      text.includes('saka') || text.includes('salah') || text.includes('guardiola') || text.includes('klopp') || 
+      text.includes('ten hag') || text.includes('arteta') || text.includes('liverpool') || text.includes('arsenal') || 
+      text.includes('manchester united') || text.includes('man united') || text.includes('man city') || text.includes('chelsea') || 
+      text.includes('tottenham') || text.includes('bayern') || text.includes('dortmund') || text.includes('juventus') || 
+      text.includes('inter milan') || text.includes('ac milan') || text.includes('barcelona') || text.includes('real madrid') ||
+      text.includes('psg') || text.includes('transfer') || text.includes('clash') || text.includes('defeat') || text.includes('victory') ||
+      text.includes('draw') || text.includes('cup') || text.includes('fixture') || text.includes('league');
+
+    // Rule: Never show Ronaldo, Messi, Neymar, or Mbappé images when the article is about a different player, team, coach, or football event
+    if (mentionsDifferentPlayerOrTeam) {
+      return selectUniqueFromPool(imagePools.football_general, url, title);
+    }
+
+    if (mentionsRonaldo) {
+      return selectUniqueFromPool(imagePools.football_ronaldo, url, title);
+    }
+    if (mentionsMessi) {
+      return selectUniqueFromPool(imagePools.football_messi, url, title);
+    }
+    if (mentionsNeymar) {
+      return selectUniqueFromPool(imagePools.football_neymar, url, title);
+    }
+    if (mentionsMbappe) {
+      return selectUniqueFromPool(imagePools.football_mbappe, url, title);
+    }
+    if (text.includes('fifa') || text.includes('world cup')) {
+      return selectUniqueFromPool(imagePools.football_fifa, url, title);
+    }
+
+    // Fallback: general football news with no specific players/teams mentioned
+    return selectUniqueFromPool(imagePools.football_popular, url, title);
   }
   if (text.includes('mma') || text.includes('ufc') || text.includes('boxing') || text.includes('fight') || text.includes('knockout') || text.includes('championship')) {
     return selectUniqueFromPool(imagePools.combat_sports, url, title);
