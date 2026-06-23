@@ -706,8 +706,8 @@ export const AuthProvider = ({ children }) => {
       url
     };
 
-    // Trigger Browser Push if allowed and not in quiet hours
-    if (settings.pushAlerts && Notification.permission === 'granted' && !isQuietHours()) {
+    // Trigger Browser Push if allowed
+    if (Notification.permission === 'granted') {
       try {
         new Notification(title, { body: text, icon: '/favicon.ico' });
       } catch (e) {
@@ -820,28 +820,9 @@ export const AuthProvider = ({ children }) => {
               let changed = false;
 
               data.forEach(broadcast => {
-                // If topic match, filter by favorites
-                if (broadcast.type === 'topic' && settings?.favTopicAlerts) {
-                  const favs = settings.favorites || [];
-                  const matches = favs.some(fav => broadcast.category === fav.toLowerCase());
-                  if (!matches) return;
-                }
-
                 const exists = updated.some(n => n.id === broadcast.id || (n.title === broadcast.title && n.text === broadcast.text));
                 if (!exists) {
-                  const isQuietHours = () => {
-                    if (!settings?.quietHours?.enabled) return false;
-                    const now = new Date();
-                    const currentStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    const { start, end } = settings.quietHours;
-                    if (start <= end) {
-                      return currentStr >= start && currentStr <= end;
-                    } else {
-                      return currentStr >= start || currentStr <= end;
-                    }
-                  };
-
-                  if (settings?.pushAlerts && Notification.permission === 'granted' && !isQuietHours()) {
+                  if (Notification.permission === 'granted') {
                     try {
                       new Notification(broadcast.title, { body: broadcast.text, icon: '/favicon.ico' });
                     } catch (e) {

@@ -322,7 +322,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
 
   // Request HTML5 Push Notification permissions on visit
   useEffect(() => {
-    if (settings?.pushAlerts && 'Notification' in window && Notification.permission === 'default') {
+    if ('Notification' in window && Notification.permission === 'default') {
       const timer = setTimeout(() => {
         Notification.requestPermission().then(permission => {
           console.log(`Browser push notifications authorization status: ${permission}`);
@@ -330,7 +330,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       }, 3500);
       return () => clearTimeout(timer);
     }
-  }, [settings?.pushAlerts]);
+  }, []);
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
