@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { auth } from './lib/firebase';
+import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import Header from './components/Header';
 import NewsFeed from './components/NewsFeed';
 import Profile from './components/Profile';
@@ -159,18 +160,52 @@ function AppContent() {
     };
   }, []);
 
-  // First visit check: show interest selector popup if they don't have topics set up
+  // First visit check: show interest selector popup only once per user
   useEffect(() => {
-    if (!loading) {
-      const hasPrefs = userPreferences?.selectedTopics && userPreferences.selectedTopics.length > 0;
-      const hasLocalPrefs = localStorage.getItem('userTopics');
-      
-      if (!hasPrefs && !hasLocalPrefs) {
-        setIsInterestUpdate(false);
-        setInterestModalOpen(true);
+    const checkPreferences = async () => {
+      if (user) {
+        // LOGGED IN USER - check if already completed setup in localStorage
+        if (localStorage.getItem('interestSetupDone')) {
+          setInterestModalOpen(false);
+          return;
+        }
+        
+        // Check Firestore
+        try {
+          const prefRef = doc(db, 'user_preferences', user.uid);
+          const prefDoc = await getDoc(prefRef);
+          
+          if (!prefDoc.exists() || 
+              !prefDoc.data()?.selectedTopics?.length ||
+              !prefDoc.data()?.setupCompleted) {
+            // No preferences saved - show popup
+            setIsInterestUpdate(false);
+            setInterestModalOpen(true);
+          } else {
+            // Already has preferences - NEVER show popup
+            localStorage.setItem('interestSetupDone', 'true');
+            setInterestModalOpen(false);
+          }
+        } catch (e) {
+          console.error('Error checking preferences:', e);
+        }
+      } else {
+        // NOT LOGGED IN - check localStorage
+        const savedTopics = localStorage.getItem('userTopics');
+        
+        if (savedTopics) {
+          // Already selected - NEVER show again
+          setInterestModalOpen(false);
+        } else {
+          // Guest - DON'T show popup automatically
+          // Only show if they click "Personalize"
+          setInterestModalOpen(false);
+        }
       }
-    }
-  }, [loading, userPreferences]);
+    };
+    
+    checkPreferences();
+  }, [user]); // Re-run only when user login status changes
 
   // Query and Path-based routing recovery on mount
   useEffect(() => {
@@ -260,6 +295,13 @@ function AppContent() {
 
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const shouldShowPopup = () => {
+    if (isInterestUpdate) return interestModalOpen;
+    if (!user) return false;
+    if (localStorage.getItem('interestSetupDone')) return false;
+    return interestModalOpen;
   };
 
   return (
@@ -488,7 +530,7 @@ function AppContent() {
 
       {/* Interest Selector Modal */}
       <InterestSelectorModal
-        isOpen={interestModalOpen}
+        isOpen={shouldShowPopup()}
         onClose={() => setInterestModalOpen(false)}
         isUpdate={isInterestUpdate}
       />

@@ -679,8 +679,11 @@ export const AuthProvider = ({ children }) => {
     await setDoc(prefRef, {
       selectedTopics,
       topicScores,
+      setupCompleted: true,
       lastUpdated: new Date()
     }, { merge: true });
+
+    localStorage.setItem('interestSetupDone', 'true');
 
     if (!user) {
       localStorage.setItem('userTopics', JSON.stringify(selectedTopics));

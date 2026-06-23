@@ -128,6 +128,21 @@ export default function InterestSelectorModal({ isOpen, onClose, isUpdate = fals
             <p className="text-[10px] text-gray-400 uppercase font-semibold font-mono">
               Please choose at least 3 topics to build your recommendation profile
             </p>
+            <button 
+              onClick={() => {
+                localStorage.setItem('interestSetupDone', 'true');
+                onClose();
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255,255,255,0.5)',
+                cursor: 'pointer',
+                fontSize: '13px',
+                marginTop: '12px'
+              }}>
+              Skip for now
+            </button>
           </div>
         </div>
       </div>
