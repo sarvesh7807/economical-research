@@ -4,6 +4,7 @@ import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCh
 import CommentsSection from './CommentsSection';
 import { getCachedOrFetchAI } from '../utils/aiCache';
 import ShareModal from './ShareModal';
+import { getPremiumArticleImage } from '../utils/imageSystem';
 
 export default function ArticleCard({ article }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
@@ -653,7 +654,7 @@ export default function ArticleCard({ article }) {
         <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden" style={{ background: '#1A3A5C', minHeight: '200px' }}>
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
           <img 
-            src={imgError || !urlToImage ? getCategoryFallback(article.category, title) : urlToImage} 
+            src={getPremiumArticleImage(imgError ? { ...article, urlToImage: null } : article)} 
             alt={title} 
             loading="lazy"
             class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
