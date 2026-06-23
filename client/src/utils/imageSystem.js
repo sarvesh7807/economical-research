@@ -125,10 +125,69 @@ const imagePools = {
     'https://images.unsplash.com/photo-1579567761406-468a78d1a594?w=800&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&auto=format&fit=crop'
   ],
-  cricket: [
+  cricket_kohli: [
     'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1608905978123-558c415998e8?w=800&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop'
+  ],
+  cricket_rohit: [
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_dhoni: [
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1608905978123-558c415998e8?w=800&auto=format&fit=crop'
+  ],
+  cricket_tendulkar: [
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop'
+  ],
+  cricket_bumrah: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1608905978123-558c415998e8?w=800&auto=format&fit=crop'
+  ],
+  cricket_gill: [
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop'
+  ],
+  cricket_babar: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop'
+  ],
+  cricket_stokes: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_cummins: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_smith: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_williamson: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_head: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_rashid: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_buttler: [
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_icc_tournament: [
+    'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop'
+  ],
+  cricket_general: [
+    'https://images.unsplash.com/photo-1608905978123-558c415998e8?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop'
+  ],
+  cricket_popular: [
+    'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1593341604078-0998467d0c71?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1540747737956-37872f7656db?w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1608905978123-558c415998e8?w=800&auto=format&fit=crop'
   ],
   football_messi: [
     'https://images.unsplash.com/photo-1627916607164-7b20241db935?w=800&auto=format&fit=crop',
@@ -410,8 +469,61 @@ export const getPremiumArticleImage = (article) => {
   if (text.includes('war ') || text.includes('missile') || text.includes('strike') || text.includes('military') || text.includes('conflict') || text.includes('bombing') || text.includes('shelling') || text.includes('soldier') || text.includes('army') || text.includes('nato')) {
     return selectUniqueFromPool(imagePools.conflict_war, url, title);
   }
-  if (text.includes('cricket') || text.includes('kohli') || text.includes('dhoni') || text.includes('ipl ') || text.includes('t20') || text.includes('test match')) {
-    return selectUniqueFromPool(imagePools.cricket, url, title);
+  if (text.includes('cricket') || text.includes('kohli') || text.includes('dhoni') || text.includes('rohit') || text.includes('tendulkar') || text.includes('bumrah') || text.includes('gill') || text.includes('babar') || text.includes('stokes') || text.includes('root') || text.includes('cummins') || text.includes('smith') || text.includes('williamson') || text.includes('head') || text.includes('rashid') || text.includes('buttler') || text.includes('ipl') || text.includes('t20') || text.includes('ashes') || text.includes('world cup')) {
+    const mentionsKohli = text.includes('kohli') || text.includes('virat');
+    const mentionsRohit = text.includes('rohit') || text.includes('sharma');
+    const mentionsDhoni = text.includes('dhoni') || text.includes('msd');
+    const mentionsTendulkar = text.includes('tendulkar') || text.includes('sachin');
+    const mentionsBumrah = text.includes('bumrah') || text.includes('jasprit');
+    const mentionsGill = text.includes('gill') || text.includes('shubman');
+    const mentionsBabar = text.includes('babar') || text.includes('azam');
+    const mentionsStokes = text.includes('stokes') || text.includes('ben');
+    const mentionsRoot = text.includes('root') || text.includes('joe');
+    const mentionsCummins = text.includes('cummins') || text.includes('pat');
+    const mentionsSmith = text.includes('smith') || text.includes('steve');
+    const mentionsWilliamson = text.includes('williamson') || text.includes('kane');
+    const mentionsHead = text.includes('head') || text.includes('travis');
+    const mentionsRashid = text.includes('rashid') || text.includes('khan');
+    const mentionsButtler = text.includes('buttler') || text.includes('jos');
+
+    const mentionsIPL = text.includes('ipl') || text.includes('indian premier league') || text.includes('bbl') || text.includes('psl') || text.includes('ashes') || text.includes('world cup') || text.includes('champions trophy') || text.includes('t20 world cup');
+
+    // Check if other players, coaches, or teams not in our specific pools are the focus
+    const mentionsOtherFocus = 
+      text.includes('pant') || text.includes('pandya') || text.includes('rahul') || text.includes('brook') || 
+      text.includes('wood') || text.includes('starc') || text.includes('hazlewood') || text.includes('warner') || 
+      text.includes('green') || text.includes('marsh') || text.includes('shami') || text.includes('siraj') || 
+      text.includes('iyer') || text.includes('jaiswal') || text.includes('rinku') || text.includes('sanju') || 
+      text.includes('coach') || text.includes('dravid') || text.includes('gambhir') || text.includes('ponting');
+
+    // Prioritize specific player pools if mentioned
+    if (mentionsKohli) return selectUniqueFromPool(imagePools.cricket_kohli, url, title);
+    if (mentionsRohit) return selectUniqueFromPool(imagePools.cricket_rohit, url, title);
+    if (mentionsDhoni) return selectUniqueFromPool(imagePools.cricket_dhoni, url, title);
+    if (mentionsTendulkar) return selectUniqueFromPool(imagePools.cricket_tendulkar, url, title);
+    if (mentionsBumrah) return selectUniqueFromPool(imagePools.cricket_bumrah, url, title);
+    if (mentionsGill) return selectUniqueFromPool(imagePools.cricket_gill, url, title);
+    if (mentionsBabar) return selectUniqueFromPool(imagePools.cricket_babar, url, title);
+    if (mentionsStokes) return selectUniqueFromPool(imagePools.cricket_stokes, url, title);
+    if (mentionsCummins) return selectUniqueFromPool(imagePools.cricket_cummins, url, title);
+    if (mentionsSmith) return selectUniqueFromPool(imagePools.cricket_smith, url, title);
+    if (mentionsWilliamson) return selectUniqueFromPool(imagePools.cricket_williamson, url, title);
+    if (mentionsHead) return selectUniqueFromPool(imagePools.cricket_head, url, title);
+    if (mentionsRashid) return selectUniqueFromPool(imagePools.cricket_rashid, url, title);
+    if (mentionsButtler) return selectUniqueFromPool(imagePools.cricket_buttler, url, title);
+
+    if (mentionsIPL) {
+      return selectUniqueFromPool(imagePools.cricket_icc_tournament, url, title);
+    }
+
+    // If there is another player/coach focus, use generic cricket instead of celebrity fallbacks
+    if (mentionsOtherFocus) {
+      return selectUniqueFromPool(imagePools.cricket_general, url, title);
+    }
+
+    // Fallback: general cricket news with no specific player mentioned:
+    // Prioritize globally recognized cricket players & major cricket events
+    return selectUniqueFromPool(imagePools.cricket_popular, url, title);
   }
   if (text.includes('football') || text.includes('soccer') || text.includes('fifa') || text.includes('uefa') || text.includes('champions league') || text.includes('premier league') || text.includes('la liga') || text.includes('messi') || text.includes('ronaldo') || text.includes('neymar') || text.includes('mbappe') || text.includes('cr7')) {
     const mentionsRonaldo = text.includes('ronaldo') || text.includes('cr7') || text.includes('cristiano');
