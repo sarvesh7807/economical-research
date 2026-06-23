@@ -4,7 +4,7 @@ import ResearchMode from './ResearchMode';
 import { useAuth } from '../contexts/AuthContext';
 import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, ClipboardList, ArrowRight } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 
 function NewsSection({ title, fetchUrl, autoScroll = false }) {
   const [articles, setArticles] = useState([]);
@@ -134,7 +134,9 @@ function NewsSection({ title, fetchUrl, autoScroll = false }) {
 }
 
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
-  const { user, subscription } = useAuth();
+  const { user, subscription, guestId, userPreferences, addNotification } = useAuth();
+  const [personalizedNews, setPersonalizedNews] = useState([]);
+  const [loadingPersonalized, setLoadingPersonalized] = useState(false);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -204,6 +206,139 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const [researchInput, setResearchInput] = useState('');
   const [activeResearchTopic, setActiveResearchTopic] = useState(null);
   const [isResearchOpen, setIsResearchOpen] = useState(false);
+
+  const fetchPersonalizedFeed = async () => {
+    const currentId = user ? user.uid : localStorage.getItem('guestId');
+    if (!currentId) return;
+
+    setLoadingPersonalized(true);
+    try {
+      const prefDoc = await getDoc(doc(db, 'user_preferences', currentId));
+      if (!prefDoc.exists()) {
+        setPersonalizedNews([]);
+        setLoadingPersonalized(false);
+        return;
+      }
+
+      const scores = prefDoc.data().topicScores || {};
+      if (Object.keys(scores).length === 0) {
+        setPersonalizedNews([]);
+        setLoadingPersonalized(false);
+        return;
+      }
+
+      // Sort topics by score (most read first)
+      const topTopics = Object.entries(scores)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([topic]) => topic);
+
+      const getNewsApiUrlForTopic = (topic, apiKey) => {
+        const supportedCategories = ['business', 'entertainment', 'health', 'science', 'sports', 'technology'];
+        if (supportedCategories.includes(topic)) {
+          return `https://newsapi.org/v2/top-headlines?category=${topic}&apiKey=${apiKey}`;
+        }
+        
+        // Custom mappings for others
+        if (topic === 'world') {
+          return `https://newsapi.org/v2/top-headlines?category=general&apiKey=${apiKey}`;
+        }
+        if (topic === 'politics') {
+          return `https://newsapi.org/v2/top-headlines?q=politics&apiKey=${apiKey}`;
+        }
+        if (topic === 'finance') {
+          return `https://newsapi.org/v2/top-headlines?category=business&q=finance&apiKey=${apiKey}`;
+        }
+        if (topic === 'cricket') {
+          return `https://newsapi.org/v2/top-headlines?category=sports&q=cricket&apiKey=${apiKey}`;
+        }
+        if (topic === 'football') {
+          return `https://newsapi.org/v2/top-headlines?category=sports&q=football&apiKey=${apiKey}`;
+        }
+        if (topic === 'mma') {
+          return `https://newsapi.org/v2/top-headlines?category=sports&q=mma&apiKey=${apiKey}`;
+        }
+        
+        return `https://newsapi.org/v2/top-headlines?q=${topic}&apiKey=${apiKey}`;
+      };
+
+      const apiKey = '6f075b0f9ff24eff9cebc5eb569e4731';
+      const results = await Promise.all(
+        topTopics.map(topic => 
+          fetch(getNewsApiUrlForTopic(topic, apiKey))
+            .then(r => r.json())
+            .then(d => {
+              const rawArticles = d.articles || [];
+              return rawArticles
+                .filter(art => art.title && art.urlToImage)
+                .slice(0, 3)
+                .map(art => ({
+                  ...art,
+                  category: topic
+                }));
+            })
+            .catch(err => {
+              console.error(`Error fetching recommendations for ${topic}:`, err);
+              return [];
+            })
+        )
+      );
+
+      const combined = results.flat();
+      const unique = combined.filter((art, index, self) =>
+        art.title && index === self.findIndex(a => a.title === art.title)
+      );
+
+      setPersonalizedNews(unique);
+
+      // Smart Topic Breaking News check (Step 8)
+      if (unique.length > 0 && topTopics.length > 0) {
+        const topTopic = topTopics[0];
+        // Fetch fresh breaking news for favorite topic
+        const url = getNewsApiUrlForTopic(topTopic, apiKey);
+        fetch(url)
+          .then(r => r.json())
+          .then(data => {
+            const latestArticle = data.articles?.[0];
+            if (latestArticle) {
+              const storageKey = `last_notified_${currentId}_${topTopic}`;
+              const lastNotifiedUrl = localStorage.getItem(storageKey);
+              if (lastNotifiedUrl !== latestArticle.url) {
+                localStorage.setItem(storageKey, latestArticle.url);
+                const categoriesList = [
+                  { id: 'business', label: 'Business' },
+                  { id: 'technology', label: 'Technology' },
+                  { id: 'sports', label: 'Sports' },
+                  { id: 'politics', label: 'Politics' },
+                  { id: 'health', label: 'Health' },
+                  { id: 'science', label: 'Science' },
+                  { id: 'entertainment', label: 'Entertainment' },
+                  { id: 'world', label: 'World News' },
+                  { id: 'finance', label: 'Finance' },
+                  { id: 'cricket', label: 'Cricket' },
+                  { id: 'football', label: 'Football' },
+                  { id: 'mma', label: 'MMA' }
+                ];
+                const topicLabel = categoriesList.find(c => c.id === topTopic)?.label || topTopic;
+                addNotification('breaking', `🔴 Breaking: New [${topicLabel}] news for you!`, latestArticle.title, latestArticle.url);
+              }
+            }
+          })
+          .catch(e => console.error('Error fetching breaking alert:', e));
+      }
+
+    } catch (e) {
+      console.error('Error getting personalized feed:', e);
+    } finally {
+      setLoadingPersonalized(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeCategory === 'world' || activeCategory === 'foryou') {
+      fetchPersonalizedFeed();
+    }
+  }, [user, userPreferences, activeCategory]);
 
   const loaderRef = useRef(null);
 
@@ -356,6 +491,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       return `SEARCH ARCHIVE: "${searchQuery}"`;
     }
     const catTitles = {
+      foryou: 'RECOMMENDED FOR YOU',
       world: 'WORLD BULLETIN',
       india: 'INDIA CORRESPONDENCE',
       politics: 'POLITICAL DESK',
@@ -631,8 +767,50 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Left/Middle: News Sections (Home) or Category Grid */}
           <div class="col-span-1 lg:col-span-2 space-y-6">
-            {isHomepage ? (
+            {activeCategory === 'foryou' ? (
+              personalizedNews.length === 0 ? (
+                <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
+                  <Sparkles size={40} class="mx-auto text-gold mb-3 animate-pulse" />
+                  <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1 uppercase">Recommendation Profile Empty</h3>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Choose your favorite topics to compile your personalized intelligence wire.</p>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-interest-modal'))}
+                    class="px-5 py-2.5 bg-gold text-[#0A1628] hover:scale-105 transition-all text-xs font-black uppercase tracking-wider rounded-full shadow"
+                  >
+                    Select Interests
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <ArticleCard article={personalizedNews[0]} isLead={true} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {personalizedNews.slice(1).map((article, idx) => (
+                      <ArticleCard key={`${article.url}-${idx}`} article={article} />
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : isHomepage ? (
               <div class="space-y-2">
+                {/* Homepage Personalized Section (Step 4) */}
+                {personalizedNews.length > 0 && (
+                  <section className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-gold/10 via-[#0A1628]/10 to-gold/5 border border-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.05)] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gold/5 blur-2xl pointer-events-none"></div>
+                    <h2 className="font-display text-xl md:text-2xl font-black tracking-tight text-gold uppercase mb-1 flex items-center gap-2">
+                      ⭐ Your Personalized Feed
+                    </h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-6">
+                      Based on your reading history
+                    </p>
+                    <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth">
+                      {personalizedNews.map((article, i) => (
+                        <div key={i} className="w-[340px] shrink-0">
+                          <ArticleCard article={article} />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
                 {detectedCountry && (
                   <NewsSection 
                     title="News from Your Region" 

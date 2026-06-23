@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut, Bell, Plus, BellRing, Receipt } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Profile({ setView, onSearchSubmit }) {
   const { 
@@ -30,6 +32,41 @@ export default function Profile({ setView, onSearchSubmit }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newAlertTopic, setNewAlertTopic] = useState('');
   const [alertAddError, setAlertAddError] = useState('');
+  const [preferences, setPreferences] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchPrefs = async () => {
+      try {
+        const prefDoc = await getDoc(doc(db, 'user_preferences', user.uid));
+        if (prefDoc.exists()) {
+          setPreferences(prefDoc.data());
+        }
+      } catch (err) {
+        console.error('Error fetching preferences in Profile:', err);
+      }
+    };
+    fetchPrefs();
+  }, [user]);
+
+  const topicScores = preferences?.topicScores || {};
+  const sortedInterests = Object.entries(topicScores)
+    .sort(([, a], [, b]) => b - a);
+
+  const interestCategories = [
+    { id: 'business', label: 'Business', icon: '💼' },
+    { id: 'technology', label: 'Technology', icon: '💻' },
+    { id: 'sports', label: 'Sports', icon: '⚽' },
+    { id: 'politics', label: 'Politics', icon: '🏛️' },
+    { id: 'health', label: 'Health', icon: '❤️' },
+    { id: 'science', label: 'Science', icon: '🔬' },
+    { id: 'entertainment', label: 'Entertainment', icon: '🎬' },
+    { id: 'world', label: 'World News', icon: '🌍' },
+    { id: 'finance', label: 'Finance', icon: '📈' },
+    { id: 'cricket', label: 'Cricket', icon: '🏏' },
+    { id: 'football', label: 'Football', icon: '⚽' },
+    { id: 'mma', label: 'MMA', icon: '🥊' }
+  ];
 
   useEffect(() => {
     if (user) {
@@ -259,6 +296,37 @@ export default function Profile({ setView, onSearchSubmit }) {
                 <span class="text-[8px] text-gray-450 dark:text-gray-500 uppercase tracking-wider block font-bold">Bookmarked</span>
               </div>
             </div>
+          </div>
+
+          {/* Your Top Interests Panel (Step 9) */}
+          <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark p-5 rounded shadow-sm mt-4">
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-4">Your Top Interests</span>
+            {sortedInterests.length === 0 ? (
+              <p class="text-xs text-gray-400 italic">No interest data registered yet.</p>
+            ) : (
+              <div class="space-y-3">
+                {sortedInterests.slice(0, 5).map(([topic, score]) => {
+                  const cat = interestCategories.find(c => c.id === topic);
+                  return (
+                    <div key={topic} class="flex items-center justify-between text-xs font-semibold text-navy dark:text-gray-300">
+                      <span class="flex items-center gap-2">
+                        <span class="text-base">{cat?.icon || '📰'}</span>
+                        <span>{cat?.label || topic}</span>
+                      </span>
+                      <span class="font-mono text-gold bg-gold/5 dark:bg-gold/10 px-2.5 py-0.5 rounded-full border border-gold/15 text-[10px] font-bold">{score} articles read</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Update Interests Button (Step 7) */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-interest-modal'))}
+              class="w-full mt-6 py-2 bg-gradient-to-r from-gold to-yellow-500 hover:from-yellow-450 hover:to-gold text-[#0A1628] rounded font-bold text-xs uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow flex items-center justify-center gap-1.5"
+            >
+              <span>⚙️</span> Update My Interests
+            </button>
           </div>
         </div>
 

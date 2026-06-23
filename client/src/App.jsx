@@ -23,10 +23,13 @@ import OutcomeDetail from './components/OutcomeDetail';
 import ErrorBoundary from './components/ErrorBoundary';
 import BillingHistory from './components/BillingHistory';
 import SocialLinks from './components/SocialLinks';
+import InterestSelectorModal from './components/InterestSelectorModal';
 
 function AppContent() {
-  const { settings, updateSettings, incrementTimeSpent } = useAuth();
+  const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
   const [user, setUser] = useState(null);
+  const [interestModalOpen, setInterestModalOpen] = useState(false);
+  const [isInterestUpdate, setIsInterestUpdate] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -140,15 +143,34 @@ function AppContent() {
     const handleOpenAuth = () => {
       setAuthModalOpen(true);
     };
+    const handleOpenInterest = () => {
+      setIsInterestUpdate(true);
+      setInterestModalOpen(true);
+    };
     window.addEventListener('change-view', handleViewChange);
     window.addEventListener('change-view-detail', handleViewDetailChange);
     window.addEventListener('open-auth-modal', handleOpenAuth);
+    window.addEventListener('open-interest-modal', handleOpenInterest);
     return () => {
       window.removeEventListener('change-view', handleViewChange);
       window.removeEventListener('change-view-detail', handleViewDetailChange);
       window.removeEventListener('open-auth-modal', handleOpenAuth);
+      window.removeEventListener('open-interest-modal', handleOpenInterest);
     };
   }, []);
+
+  // First visit check: show interest selector popup if they don't have topics set up
+  useEffect(() => {
+    if (!loading) {
+      const hasPrefs = userPreferences?.selectedTopics && userPreferences.selectedTopics.length > 0;
+      const hasLocalPrefs = localStorage.getItem('userTopics');
+      
+      if (!hasPrefs && !hasLocalPrefs) {
+        setIsInterestUpdate(false);
+        setInterestModalOpen(true);
+      }
+    }
+  }, [loading, userPreferences]);
 
   // Query and Path-based routing recovery on mount
   useEffect(() => {
@@ -462,6 +484,13 @@ function AppContent() {
       <AuthModal 
         isOpen={authModalOpen} 
         onClose={() => setAuthModalOpen(false)} 
+      />
+
+      {/* Interest Selector Modal */}
+      <InterestSelectorModal
+        isOpen={interestModalOpen}
+        onClose={() => setInterestModalOpen(false)}
+        isUpdate={isInterestUpdate}
       />
     </div>
   );

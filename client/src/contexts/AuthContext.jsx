@@ -29,7 +29,8 @@ import {
   getDoc,
   writeBatch,
   serverTimestamp,
-  where
+  where,
+  updateDoc
 } from 'firebase/firestore';
 
 const AuthContext = createContext();
@@ -52,6 +53,15 @@ const getDocId = (url) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [guestId, setGuestId] = useState(() => {
+    let id = localStorage.getItem('guestId');
+    if (!id) {
+      id = `guest_${Date.now()}`;
+      localStorage.setItem('guestId', id);
+    }
+    return id;
+  });
+  const [userPreferences, setUserPreferences] = useState(null);
   const [searchHistory, setSearchHistory] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [readingHistory, setReadingHistory] = useState([]);
@@ -89,9 +99,20 @@ export const AuthProvider = ({ children }) => {
     let unsubscribeHistory = () => {};
     let unsubscribeNotifications = () => {};
     let unsubscribeAlerts = () => {};
-
+    let unsubscribePreferences = () => {};
+ 
     if (user) {
       if (db) {
+        // Sync User Preferences
+        const prefRef = doc(db, 'user_preferences', user.uid);
+        unsubscribePreferences = onSnapshot(prefRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserPreferences(docSnap.data());
+          } else {
+            setUserPreferences(null);
+          }
+        }, (err) => console.error('Error fetching preferences:', err));
+
         // Sync Settings, Stats & Subscriptions
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeSettings = onSnapshot(userDocRef, (docSnap) => {
@@ -105,7 +126,7 @@ export const AuthProvider = ({ children }) => {
             setDoc(userDocRef, { settings, stats: readingStats, subscription }, { merge: true });
           }
         }, (err) => console.error('Error fetching user document:', err));
-
+ 
         // Sync Bookmarks
         const bookmarksRef = collection(db, 'users', user.uid, 'bookmarks');
         unsubscribeBookmarks = onSnapshot(bookmarksRef, (snap) => {
@@ -113,7 +134,7 @@ export const AuthProvider = ({ children }) => {
           snap.forEach((doc) => loaded.push(doc.data()));
           setBookmarks(loaded);
         }, (err) => console.error('Error fetching bookmarks:', err));
-
+ 
         // Sync Reading History
         const historyRef = collection(db, 'users', user.uid, 'history');
         const historyQuery = query(historyRef, orderBy('readAt', 'desc'), limit(100));
@@ -122,7 +143,7 @@ export const AuthProvider = ({ children }) => {
           snap.forEach((doc) => loaded.push({ id: doc.id, ...doc.data() }));
           setReadingHistory(loaded);
         }, (err) => console.error('Error fetching history:', err));
-
+ 
         // Sync Notifications
         const notificationsRef = collection(db, 'users', user.uid, 'notifications');
         const notificationsQuery = query(notificationsRef, orderBy('timestamp', 'desc'), limit(30));
@@ -131,7 +152,7 @@ export const AuthProvider = ({ children }) => {
           snap.forEach((doc) => loaded.push({ id: doc.id, ...doc.data() }));
           setNotifications(loaded);
         }, (err) => console.error('Error fetching notifications:', err));
-
+ 
         // Feature 2: Sync Smart Topic Alerts
         const alertsRef = collection(db, 'user_alerts');
         const alertsQuery = query(alertsRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
@@ -141,12 +162,12 @@ export const AuthProvider = ({ children }) => {
           setUserAlerts(loaded);
         }, (err) => console.error('Error fetching user alerts:', err));
       }
-
+ 
       // Load Search Ledger
       const searchKey = `search_history_${user.uid}`;
       const savedSearch = localStorage.getItem(searchKey);
       setSearchHistory(savedSearch ? JSON.parse(savedSearch) : []);
-
+ 
     } else {
       // Guest state defaults
       setBookmarks([]);
@@ -170,16 +191,29 @@ export const AuthProvider = ({ children }) => {
         quietHours: { enabled: false, start: "22:00", end: "07:00" },
         alertFrequency: "Instant"
       });
-    }
 
+      // Sync guest preferences
+      if (db && guestId) {
+        const prefRef = doc(db, 'user_preferences', guestId);
+        unsubscribePreferences = onSnapshot(prefRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserPreferences(docSnap.data());
+          } else {
+            setUserPreferences(null);
+          }
+        }, (err) => console.error('Error fetching guest preferences:', err));
+      }
+    }
+ 
     return () => {
       unsubscribeSettings();
       unsubscribeBookmarks();
       unsubscribeHistory();
       unsubscribeNotifications();
       unsubscribeAlerts();
+      unsubscribePreferences();
     };
-  }, [user]);
+  }, [user, guestId]);
 
   // Auth Observer
   useEffect(() => {
@@ -193,6 +227,30 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  // On login/auth change, migrate guest preferences to user profile if user has none
+  useEffect(() => {
+    if (user && guestId && db) {
+      const migratePreferences = async () => {
+        try {
+          const userPrefRef = doc(db, 'user_preferences', user.uid);
+          const userPrefDoc = await getDoc(userPrefRef);
+          
+          if (!userPrefDoc.exists()) {
+            const guestPrefRef = doc(db, 'user_preferences', guestId);
+            const guestPrefDoc = await getDoc(guestPrefRef);
+            
+            if (guestPrefDoc.exists()) {
+              await setDoc(userPrefRef, guestPrefDoc.data());
+            }
+          }
+        } catch (e) {
+          console.error('Error migrating guest preferences:', e);
+        }
+      };
+      migratePreferences();
+    }
+  }, [user, guestId]);
 
   const signup = async (email, password, displayName) => {
     // Welcome Notification template
@@ -608,6 +666,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const saveUserPreferences = async (selectedTopics) => {
+    const currentId = user ? user.uid : guestId;
+    if (!currentId || !db) return;
+
+    const topicScores = selectedTopics.reduce((acc, topic) => {
+      acc[topic] = 10;
+      return acc;
+    }, {});
+
+    const prefRef = doc(db, 'user_preferences', currentId);
+    await setDoc(prefRef, {
+      selectedTopics,
+      topicScores,
+      lastUpdated: new Date()
+    }, { merge: true });
+
+    if (!user) {
+      localStorage.setItem('userTopics', JSON.stringify(selectedTopics));
+    }
+  };
+
+  const trackArticleRead = async (category, points = 1) => {
+    const currentId = user ? user.uid : guestId;
+    if (!currentId || !db || !category) return;
+
+    try {
+      const prefRef = doc(db, 'user_preferences', currentId);
+      const prefDoc = await getDoc(prefRef);
+      
+      if (prefDoc.exists()) {
+        const scores = prefDoc.data().topicScores || {};
+        scores[category] = (scores[category] || 0) + points;
+        
+        await updateDoc(prefRef, {
+          topicScores: scores,
+          lastUpdated: new Date()
+        });
+      }
+    } catch (e) {
+      console.error('Error tracking article read:', e);
+    }
+  };
+
   const saveSearchQuery = (query) => {
     if (!query || query.trim() === '') return;
     const clean = query.trim();
@@ -898,7 +999,12 @@ export const AuthProvider = ({ children }) => {
     userAlerts,
     addAlert,
     deleteAlert,
-    alertsMatchNews
+    alertsMatchNews,
+    // AI Personalized Feed
+    guestId,
+    userPreferences,
+    saveUserPreferences,
+    trackArticleRead
   };
 
   return (

@@ -7,7 +7,7 @@ import ShareModal from './ShareModal';
 
 export default function ArticleCard({ article }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
-  const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription } = useAuth();
+  const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
   
   // Translation states
   const [translatedTitle, setTranslatedTitle] = useState(null);
@@ -254,6 +254,37 @@ export default function ArticleCard({ article }) {
     return Math.max(1, Math.ceil(words / 200));
   };
 
+  const getArticleTopic = () => {
+    const cat = (article.category || 'world').toLowerCase();
+    const text = ((title || '') + ' ' + (description || '') + ' ' + (content || '')).toLowerCase();
+    
+    if (text.includes('cricket')) return 'cricket';
+    if (text.includes('football') || text.includes('soccer')) return 'football';
+    if (text.includes('mma') || text.includes('ufc') || text.includes('martial arts') || text.includes('boxing')) return 'mma';
+    
+    if (cat === 'tech' || cat === 'technology' || cat === 'tech & ai') return 'technology';
+    if (cat === 'sports') return 'sports';
+    if (cat === 'world') return 'world';
+    if (cat === 'business') return 'business';
+    if (cat === 'finance') return 'finance';
+    if (cat === 'politics') return 'politics';
+    if (cat === 'health') return 'health';
+    if (cat === 'science') return 'science';
+    if (cat === 'entertainment') return 'entertainment';
+    
+    return cat;
+  };
+
+  // Track continuous reading (> 30 seconds) on hover
+  useEffect(() => {
+    if (!hovered) return;
+    const timer = setTimeout(() => {
+      const topic = getArticleTopic();
+      trackArticleRead(topic, 2);
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [hovered]);
+
   const checkPaywallLimit = (type) => {
     if (subscription?.tier === 'PRO') return { blocked: false };
     
@@ -298,6 +329,8 @@ export default function ArticleCard({ article }) {
       return;
     }
     logReadingEvent(article);
+    const topic = getArticleTopic();
+    trackArticleRead(topic, 1);
     incrementPaywallCount('reads');
   };
 
@@ -319,6 +352,8 @@ export default function ArticleCard({ article }) {
       const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_summary`, () => callGeminiAPI('summary'));
       setSummary(data.summary);
       setCacheStatusSummary(fromCache ? 'instant' : 'fresh');
+      const topic = getArticleTopic();
+      trackArticleRead(topic, 2);
     } catch (err) {
       console.error(err);
       if (err.status === 429) {
@@ -836,7 +871,11 @@ export default function ArticleCard({ article }) {
 
           {/* Share Button */}
           <button
-            onClick={() => setIsShareModalOpen(true)}
+            onClick={() => {
+              setIsShareModalOpen(true);
+              const topic = getArticleTopic();
+              trackArticleRead(topic, 3);
+            }}
             class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all bg-gray-100 dark:bg-white/5 border border-transparent hover:border-gold text-navy dark:text-gray-200"
           >
             <Share2 size={12} class="text-gold" />

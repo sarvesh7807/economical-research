@@ -369,6 +369,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
   };
 
   const categories = [
+    { id: 'foryou', name: 'For You ⭐' },
     { id: 'world', name: 'World' },
     { id: 'india', name: 'India' },
     { id: 'politics', name: 'Politics' },
@@ -980,6 +981,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <button class="mobile-menu-close" onClick={() => setIsMenuOpen(false)}>✕</button>
           </div>
           <div style={{ paddingBottom: '40px' }}>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('foryou'); setView('feed'); setIsMenuOpen(false); }}>For You ⭐</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Home</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>World News</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('india'); setView('feed'); setIsMenuOpen(false); }}>India News</button>
