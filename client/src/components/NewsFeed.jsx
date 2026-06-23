@@ -6,7 +6,128 @@ import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, C
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 
-function NewsSection({ title, fetchUrl, autoScroll = false }) {
+// Category verification logic
+function verifyArticleCategory(article, category) {
+  if (!category) return true;
+  const cat = category.toLowerCase();
+  
+  if (['world', 'india', 'foryou', 'general'].includes(cat)) {
+    return true;
+  }
+  
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.description || '').toLowerCase();
+  const content = (article.content || '').toLowerCase();
+  const fullText = `${title} ${desc} ${content}`;
+
+  const keywords = {
+    sports: {
+      inc: ['sport', 'sports', 'athlete', 'game', 'match', 'tournament', 'cup', 'trophy', 'league', 'team', 'player', 'coach', 'stadium', 'championship', 'victory', 'score', 'arena', 'gold medal', 'olympics', 'fifa', 'ufc', 'nba', 'nfl', 'ipl', 'icc', 'cricket', 'football', 'soccer', 'tennis', 'basketball', 'mma', 'baseball', 'rugby', 'golf', 'wicket', 'striker', 'defender', 'goalkeeper', 'pitch', 'race', 'grand prix', 'messi', 'ronaldo', 'mbappe', 'neymar', 'kohli', 'dhoni', 'tendulkar', 'formula 1', 'f1', 'batsman', 'bowler'],
+      exc: ['inflation', 'gdp', 'stock market', 'venture capital', 'central bank', 'fiscal', 'macroeconomic', 'quantum computing', 'semiconductor', 'parliament', 'legislative', 'senate', 'election', 'clinical trial', 'vaccine', 'fusion reactor', 'exoplanet']
+    },
+    cricket: {
+      inc: ['cricket', 'kohli', 'rohit', 'dhoni', 'tendulkar', 'bumrah', 'gill', 'babar', 'stokes', 'root', 'cummins', 'smith', 'williamson', 'head', 'khan', 'buttler', 'ipl', 'bbl', 'psl', 'sa20', 'cpl', 'icc', 't20', 'odi', 'test match', 'wicket', 'run', 'runs', 'bowler', 'batsman', 'all-rounder', 'crease', 'umpire'],
+      exc: ['football', 'soccer', 'nba', 'ufc', 'mma', 'gdp', 'inflation', 'stock market']
+    },
+    football: {
+      inc: ['football', 'soccer', 'messi', 'ronaldo', 'mbappe', 'neymar', 'fifa', 'premier league', 'la liga', 'serie a', 'bundesliga', 'champions league', 'world cup', 'striker', 'midfielder', 'defender', 'goalkeeper', 'pitch', 'referee', 'goal', 'goals', 'transfer'],
+      exc: ['cricket', 'wicket', 'baseball', 'nba', 'gdp', 'inflation', 'stock market']
+    },
+    mma: {
+      inc: ['mma', 'ufc', 'fight', 'fighter', 'knockout', 'ko', 'tko', 'submission', 'octagon', 'champion', 'heavyweight', 'featherweight', 'lightweight', 'welterweight'],
+      exc: ['cricket', 'football', 'soccer', 'gdp', 'inflation']
+    },
+    politics: {
+      inc: ['politics', 'political', 'election', 'elections', 'parliament', 'senate', 'congress', 'legislative', 'legislation', 'government', 'diplomat', 'diplomacy', 'summit', 'treaty', 'minister', 'president', 'governor', 'mayor', 'bill passed', 'white house', 'kremlin', 'downing street', 'prime minister', 'coalition', 'voters', 'vote', 'voting', 'ballot', 'policy', 'candidate', 'debate'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'semiconductor', 'quantum computing', 'box office', 'movie', 'album', 'clinical trial', 'vaccine']
+    },
+    tech: {
+      inc: ['tech', 'technology', 'technologies', 'software', 'hardware', 'ai', 'artificial intelligence', 'robot', 'robotics', 'app', 'apps', 'algorithm', 'cyber', 'cybersecurity', 'quantum computing', 'semiconductor', 'microchip', 'chip', 'startup', 'saas', 'smartphone', 'cloud computing', 'database', 'coding', 'programming'],
+      exc: ['sports', 'match', 'championship', 'wicket', 'goal', 'parliament', 'senate', 'election', 'inflation', 'gdp', 'fiscal', 'clinical trial', 'vaccine']
+    },
+    business: {
+      inc: ['business', 'corporate', 'company', 'companies', 'acquisition', 'merger', 'industry', 'industries', 'startup', 'venture capital', 'executive', 'ceo', 'coo', 'cfo', 'revenue', 'earnings', 'profit', 'quarterly', 'sales', 'trade', 'retail', 'manufacturing', 'logistics', 'supply chain'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'clinical trial', 'vaccine']
+    },
+    finance: {
+      inc: ['finance', 'financial', 'stock market', 'stocks', 'wall street', 'dow jones', 'nasdaq', 'currency', 'trading', 'inflation', 'economy', 'economic', 'gdp', 'central bank', 'federal reserve', 'fed', 'interest rate', 'rates', 'yield', 'bonds', 'investment', 'investors', 'banking', 'banks', 'fiscal', 'monetary', 'macroeconomic'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'clinical trial', 'vaccine']
+    },
+    entertainment: {
+      inc: ['entertainment', 'movie', 'movies', 'film', 'films', 'cinema', 'actor', 'actress', 'celebrity', 'celebrities', 'hollywood', 'bollywood', 'album', 'song', 'music', 'concert', 'artist', 'singer', 'band', 'box office', 'theater', 'television', 'series', 'streaming', 'show', 'oscar', 'oscars', 'grammy', 'grammys', 'festival'],
+      exc: ['inflation', 'gdp', 'stock market', 'monetary', 'venture capital', 'semiconductor', 'quantum computing', 'clinical trial', 'vaccine', 'parliament', 'senate', 'election']
+    },
+    science: {
+      inc: ['science', 'scientific', 'astronomy', 'planet', 'planets', 'exoplanet', 'telescope', 'nasa', 'space', 'galaxy', 'physics', 'chemistry', 'biology', 'fusion', 'reactor', 'archaeology', 'fossil', 'paleontologist', 'scientist', 'researchers', 'discovery', 'breakthrough'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'parliament', 'senate', 'election', 'inflation', 'gdp', 'stock market']
+    },
+    research: {
+      inc: ['research', 'academic', 'study', 'studies', 'journal', 'publisher', 'breakthroughs', 'innovation', 'findings', 'thesis', 'scientist', 'scientists', 'university', 'research institute', 'laboratory', 'lab', 'data', 'experiment', 'peer-reviewed'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'parliament', 'senate', 'election']
+    },
+    environment: {
+      inc: ['environment', 'environmental', 'climate', 'green energy', 'renewable', 'solar', 'wind power', 'recycling', 'emissions', 'conservation', 'wildlife', 'forest', 'ocean', 'oceans', 'carbon', 'warming', 'pollution', 'species', 'ecology'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'stock market', 'gdp', 'inflation']
+    },
+    health: {
+      inc: ['health', 'hygiene', 'medical', 'medicine', 'clinical trial', 'vaccine', 'vaccines', 'virus', 'pandemic', 'disease', 'doctor', 'hospital', 'patient', 'therapy', 'nutrition', 'diet', 'fitness', 'mental health'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'stock market', 'gdp', 'inflation', 'parliament', 'senate', 'election']
+    },
+    education: {
+      inc: ['education', 'educational', 'school', 'schools', 'university', 'college', 'student', 'students', 'teacher', 'teachers', 'learning', 'study', 'curriculum', 'academy', 'academic', 'degree', 'tuition'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'stock market', 'gdp', 'inflation']
+    },
+    travel: {
+      inc: ['travel', 'tourism', 'tourist', 'flight', 'flights', 'airline', 'airlines', 'hotel', 'hotels', 'resort', 'destination', 'wanderlust', 'cruise', 'trip', 'vacation', 'baggage'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'stock market', 'gdp', 'inflation', 'parliament', 'senate', 'election']
+    },
+    lifestyle: {
+      inc: ['lifestyle', 'fashion', 'food', 'decor', 'home', 'recipe', 'recipes', 'cuisine', 'design', 'styling', 'trends', 'beauty', 'wellness'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'stock market', 'gdp', 'inflation', 'parliament', 'senate', 'election']
+    },
+    law: {
+      inc: ['law', 'legal', 'court', 'judge', 'trial', 'attorney', 'lawyer', 'crime', 'criminal', 'police', 'arrest', 'prison', 'jail', 'supreme court', 'lawsuit', 'prosecute', 'prosecution', 'custody'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'science', 'planet']
+    }
+  };
+
+  let targetCat = cat;
+  if (cat === 'tech & ai') targetCat = 'tech';
+  if (cat === 'law & crime') targetCat = 'law';
+
+  if (cat === 'sports') {
+    const matchSports = verifyProfile(fullText, keywords.sports);
+    const matchCricket = verifyProfile(fullText, keywords.cricket);
+    const matchFootball = verifyProfile(fullText, keywords.football);
+    const matchMma = verifyProfile(fullText, keywords.mma);
+    return matchSports || matchCricket || matchFootball || matchMma;
+  }
+
+  const profile = keywords[targetCat];
+  if (!profile) return true;
+
+  return verifyProfile(fullText, profile);
+}
+
+function verifyProfile(text, profile) {
+  let incCount = 0;
+  for (const word of profile.inc) {
+    if (text.includes(word)) {
+      incCount++;
+    }
+  }
+
+  let excCount = 0;
+  for (const word of profile.exc) {
+    if (text.includes(word)) {
+      excCount++;
+    }
+  }
+
+  return incCount >= 1 && (excCount < 2 || excCount < incCount);
+}
+
+function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,10 +144,12 @@ function NewsSection({ title, fetchUrl, autoScroll = false }) {
       const data = await res.json();
       
       const raw = data.articles || [];
-      // Filter duplicate articles by title
-      const unique = raw.filter((article, index, self) =>
-        article.title && index === self.findIndex(a => a.title === article.title)
-      );
+      // Filter duplicate articles by title and verify category
+      const unique = raw
+        .filter((article, index, self) =>
+          article.title && index === self.findIndex(a => a.title === article.title)
+        )
+        .filter(article => verifyArticleCategory(article, category || 'world'));
       
       setArticles(unique);
       setLoading(false);
@@ -113,7 +236,9 @@ function NewsSection({ title, fetchUrl, autoScroll = false }) {
 
       {articles.length === 0 && !loading ? (
         <div class="py-8 text-center border border-dashed border-paper-border dark:border-paper-borderDark rounded-2xl bg-white/50 dark:bg-black/10">
-          <p class="text-xs text-gray-400">No wire articles available for this section.</p>
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">
+            {category && category.toLowerCase() === 'sports' ? 'No Sports Articles Available' : 'No wire articles available for this section.'}
+          </p>
         </div>
       ) : (
         <div 
@@ -378,6 +503,11 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         // Filter out articles without images
         fetched = fetched.filter(article => article.urlToImage && article.urlToImage.startsWith('http'));
         
+        // Category verification filtering
+        if (!searchQuery) {
+          fetched = fetched.filter(article => verifyArticleCategory(article, activeCategory));
+        }
+
         // Inject category for fallback routing in ArticleCard
         fetched = fetched.map(article => ({
           ...article,
@@ -814,23 +944,30 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 {detectedCountry && (
                   <NewsSection 
                     title="News from Your Region" 
+                    category="world"
                     fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
                   />
                 )}
-                <NewsSection title="World News" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="India News" fetchUrl={`/api/news?category=india&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Business News" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Technology News" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Sports News" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Health News" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Science News" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Entertainment News" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="World News" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="India News" category="india" fetchUrl={`/api/news?category=india&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Business News" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Technology News" category="tech" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Sports News" category="sports" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Health News" category="health" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Science News" category="science" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                <NewsSection title="Entertainment News" category="entertainment" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
               </div>
             ) : articles.length === 0 ? (
               <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
                 <Newspaper size={40} class="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1">Archive Clean</h3>
-                <p class="text-xs text-gray-400 dark:text-gray-500">No wire articles match the current filter parameters.</p>
+                <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1">
+                  {activeCategory && activeCategory.toLowerCase() === 'sports' ? 'No Sports Articles Available' : 'Archive Clean'}
+                </h3>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                  {activeCategory && activeCategory.toLowerCase() === 'sports' 
+                    ? 'No sports-related articles are currently available in the editorial desk.' 
+                    : 'No wire articles match the current filter parameters.'}
+                </p>
               </div>
             ) : (
               <>

@@ -267,18 +267,26 @@ router.get('/', async (req, res) => {
 
     let rawMerged = [...newsApiArticles, ...rssArticles];
     
-    // Fallback to mock data ONLY if everything else fails
-    if (rawMerged.length === 0) {
-      rawMerged = getMockArticles(country ? 'world' : category, q);
-    }
-
+    let cleaned = [];
     const seenUrls = new Set();
-    const cleaned = rawMerged.filter(article => {
-      if (!article.title || article.title === '[Removed]') return false;
-      if (seenUrls.has(article.url)) return false;
-      seenUrls.add(article.url);
-      return true;
-    });
+
+    const filterAndClean = (list) => {
+      return list.filter(article => {
+        if (!article.title || article.title === '[Removed]') return false;
+        if (seenUrls.has(article.url)) return false;
+        if (!verifyArticleCategory(article, country ? 'world' : category)) return false;
+        seenUrls.add(article.url);
+        return true;
+      });
+    };
+
+    cleaned = filterAndClean(rawMerged);
+
+    // Fallback to mock data ONLY if everything else fails or is filtered out
+    if (cleaned.length === 0) {
+      const mocks = getMockArticles(country ? 'world' : category, q);
+      cleaned = filterAndClean(mocks);
+    }
 
     cleaned.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
     aggregatedArticles = cleaned;
@@ -297,61 +305,321 @@ router.get('/', async (req, res) => {
   });
 });
 
-// Helper for Mock Articles
-function getMockArticles(category, query) {
-  const baseArticles = [
-    {
-      title: "Global Inflation Cools down as Supply Chains Rebalance",
-      description: "Economists project a stabilizing market in the next fiscal quarter as supply pressures ease globally.",
-      content: "Central banks around the world have indicated a potential freeze on interest rate hikes...",
-      source: { name: "Financial Times" },
-      author: "Helena Rostova",
-      url: "https://example.com/inflation-cools",
-      urlToImage: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=600",
-      publishedAt: new Date().toISOString()
-    },
-    {
-      title: "Venture Capital Shifts Focus to Hard Science and Space Technologies",
-      description: "A major shift is occurring in private equity investments, moving away from consumer SaaS towards deep tech.",
-      content: "Silicon Valley investors are raising multi-billion dollar funds specifically earmarked for deep tech...",
-      source: { name: "TechCrunch" },
-      author: "Marcus Vance",
-      url: "https://example.com/deeptech-vc",
-      urlToImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600",
-      publishedAt: new Date(Date.now() - 3600000).toISOString()
-    },
-    {
-      title: "India Sets Ambitious 8.2% GDP Target for Next Fiscal Year",
-      description: "Finance ministry sources outline bold spending targets and infrastructure projects.",
-      content: "New Delhi is planning to roll out significant capital expenditure initiatives, focusing on highway networks...",
-      source: { name: "The Economic Times" },
-      author: "Rohan Sharma",
-      url: "https://example.com/india-gdp",
-      urlToImage: "https://images.unsplash.com/photo-1532375811409-90d165c859d0?q=80&w=600",
-      publishedAt: new Date(Date.now() - 7200000).toISOString()
-    },
-    {
-      title: "Renewable Energy Capacity Surpasses Coal for the First Time in EU",
-      description: "A landmark report confirms wind and solar generated more than 40% of the European continent's electricity.",
-      content: "The energy transition has hit an inflection point in Western Europe...",
-      source: { name: "Reuters" },
-      author: "Sarah Jenkins",
-      url: "https://example.com/renewable-coal",
-      urlToImage: "https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600",
-      publishedAt: new Date(Date.now() - 10800000).toISOString()
-    }
-  ];
+// Category verification logic
+function verifyArticleCategory(article, category) {
+  if (!category) return true;
+  const cat = category.toLowerCase();
+  
+  if (['world', 'india', 'foryou', 'general'].includes(cat)) {
+    return true;
+  }
+  
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.description || '').toLowerCase();
+  const content = (article.content || '').toLowerCase();
+  const fullText = `${title} ${desc} ${content}`;
 
-  let filtered = baseArticles;
-  if (query) {
-    const qLower = query.toLowerCase();
-    filtered = baseArticles.filter(art => art.title.toLowerCase().includes(qLower) || art.description.toLowerCase().includes(qLower));
+  const keywords = {
+    sports: {
+      inc: ['sport', 'sports', 'athlete', 'game', 'match', 'tournament', 'cup', 'trophy', 'league', 'team', 'player', 'coach', 'stadium', 'championship', 'victory', 'score', 'arena', 'gold medal', 'olympics', 'fifa', 'ufc', 'nba', 'nfl', 'ipl', 'icc', 'cricket', 'football', 'soccer', 'tennis', 'basketball', 'mma', 'baseball', 'rugby', 'golf', 'wicket', 'striker', 'defender', 'goalkeeper', 'pitch', 'race', 'grand prix', 'messi', 'ronaldo', 'mbappe', 'neymar', 'kohli', 'dhoni', 'tendulkar', 'formula 1', 'f1', 'batsman', 'bowler'],
+      exc: ['inflation', 'gdp', 'stock market', 'venture capital', 'central bank', 'fiscal', 'macroeconomic', 'quantum computing', 'semiconductor', 'parliament', 'legislative', 'senate', 'election', 'clinical trial', 'vaccine', 'fusion reactor', 'exoplanet']
+    },
+    cricket: {
+      inc: ['cricket', 'kohli', 'rohit', 'dhoni', 'tendulkar', 'bumrah', 'gill', 'babar', 'stokes', 'root', 'cummins', 'smith', 'williamson', 'head', 'khan', 'buttler', 'ipl', 'bbl', 'psl', 'sa20', 'cpl', 'icc', 't20', 'odi', 'test match', 'wicket', 'run', 'runs', 'bowler', 'batsman', 'all-rounder', 'crease', 'umpire'],
+      exc: ['football', 'soccer', 'nba', 'ufc', 'mma', 'gdp', 'inflation', 'stock market']
+    },
+    football: {
+      inc: ['football', 'soccer', 'messi', 'ronaldo', 'mbappe', 'neymar', 'fifa', 'premier league', 'la liga', 'serie a', 'bundesliga', 'champions league', 'world cup', 'striker', 'midfielder', 'defender', 'goalkeeper', 'pitch', 'referee', 'goal', 'goals', 'transfer'],
+      exc: ['cricket', 'wicket', 'baseball', 'nba', 'gdp', 'inflation', 'stock market']
+    },
+    mma: {
+      inc: ['mma', 'ufc', 'fight', 'fighter', 'knockout', 'ko', 'tko', 'submission', 'octagon', 'champion', 'heavyweight', 'featherweight', 'lightweight', 'welterweight'],
+      exc: ['cricket', 'football', 'soccer', 'gdp', 'inflation']
+    },
+    politics: {
+      inc: ['politics', 'political', 'election', 'elections', 'parliament', 'senate', 'congress', 'legislative', 'legislation', 'government', 'diplomat', 'diplomacy', 'summit', 'treaty', 'minister', 'president', 'governor', 'mayor', 'bill passed', 'white house', 'kremlin', 'downing street', 'prime minister', 'coalition', 'voters', 'vote', 'voting', 'ballot', 'policy', 'candidate', 'debate'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'semiconductor', 'quantum computing', 'box office', 'movie', 'album', 'clinical trial', 'vaccine']
+    },
+    tech: {
+      inc: ['tech', 'technology', 'technologies', 'software', 'hardware', 'ai', 'artificial intelligence', 'robot', 'robotics', 'app', 'apps', 'algorithm', 'cyber', 'cybersecurity', 'quantum computing', 'semiconductor', 'microchip', 'chip', 'startup', 'saas', 'smartphone', 'cloud computing', 'database', 'coding', 'programming'],
+      exc: ['sports', 'match', 'championship', 'wicket', 'goal', 'parliament', 'senate', 'election', 'inflation', 'gdp', 'fiscal', 'clinical trial', 'vaccine']
+    },
+    business: {
+      inc: ['business', 'corporate', 'company', 'companies', 'acquisition', 'merger', 'industry', 'industries', 'startup', 'venture capital', 'executive', 'ceo', 'coo', 'cfo', 'revenue', 'earnings', 'profit', 'quarterly', 'sales', 'trade', 'retail', 'manufacturing', 'logistics', 'supply chain'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'clinical trial', 'vaccine']
+    },
+    finance: {
+      inc: ['finance', 'financial', 'stock market', 'stocks', 'wall street', 'dow jones', 'nasdaq', 'currency', 'trading', 'inflation', 'economy', 'economic', 'gdp', 'central bank', 'federal reserve', 'fed', 'interest rate', 'rates', 'yield', 'bonds', 'investment', 'investors', 'banking', 'banks', 'fiscal', 'monetary', 'macroeconomic'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'clinical trial', 'vaccine']
+    },
+    entertainment: {
+      inc: ['entertainment', 'movie', 'movies', 'film', 'films', 'cinema', 'actor', 'actress', 'celebrity', 'celebrities', 'hollywood', 'bollywood', 'album', 'song', 'music', 'concert', 'artist', 'singer', 'band', 'box office', 'theater', 'television', 'series', 'streaming', 'show', 'oscar', 'oscars', 'grammy', 'grammys', 'festival'],
+      exc: ['inflation', 'gdp', 'stock market', 'monetary', 'venture capital', 'semiconductor', 'quantum computing', 'clinical trial', 'vaccine', 'parliament', 'senate', 'election']
+    },
+    science: {
+      inc: ['science', 'scientific', 'astronomy', 'planet', 'planets', 'exoplanet', 'telescope', 'nasa', 'space', 'galaxy', 'physics', 'chemistry', 'biology', 'fusion', 'reactor', 'archaeology', 'fossil', 'paleontologist', 'scientist', 'researchers', 'discovery', 'breakthrough'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'parliament', 'senate', 'election', 'inflation', 'gdp', 'stock market']
+    },
+    research: {
+      inc: ['research', 'academic', 'study', 'studies', 'journal', 'publisher', 'breakthroughs', 'innovation', 'findings', 'thesis', 'scientist', 'scientists', 'university', 'research institute', 'laboratory', 'lab', 'data', 'experiment', 'peer-reviewed'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'parliament', 'senate', 'election']
+    },
+    environment: {
+      inc: ['environment', 'environmental', 'climate', 'green energy', 'renewable', 'solar', 'wind power', 'recycling', 'emissions', 'conservation', 'wildlife', 'forest', 'ocean', 'oceans', 'carbon', 'warming', 'pollution', 'species', 'ecology'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'stock market', 'gdp', 'inflation']
+    },
+    health: {
+      inc: ['health', 'hygiene', 'medical', 'medicine', 'clinical trial', 'vaccine', 'vaccines', 'virus', 'pandemic', 'disease', 'doctor', 'hospital', 'patient', 'therapy', 'nutrition', 'diet', 'fitness', 'mental health'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'stock market', 'gdp', 'inflation', 'parliament', 'senate', 'election']
+    },
+    education: {
+      inc: ['education', 'educational', 'school', 'schools', 'university', 'college', 'student', 'students', 'teacher', 'teachers', 'learning', 'study', 'curriculum', 'academy', 'academic', 'degree', 'tuition'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'stock market', 'gdp', 'inflation']
+    },
+    travel: {
+      inc: ['travel', 'tourism', 'tourist', 'flight', 'flights', 'airline', 'airlines', 'hotel', 'hotels', 'resort', 'destination', 'wanderlust', 'cruise', 'trip', 'vacation', 'baggage'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'stock market', 'gdp', 'inflation', 'parliament', 'senate', 'election']
+    },
+    lifestyle: {
+      inc: ['lifestyle', 'fashion', 'food', 'decor', 'home', 'recipe', 'recipes', 'cuisine', 'design', 'styling', 'trends', 'beauty', 'wellness'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'stock market', 'gdp', 'inflation', 'parliament', 'senate', 'election']
+    },
+    law: {
+      inc: ['law', 'legal', 'court', 'judge', 'trial', 'attorney', 'lawyer', 'crime', 'criminal', 'police', 'arrest', 'prison', 'jail', 'supreme court', 'lawsuit', 'prosecute', 'prosecution', 'custody'],
+      exc: ['sports', 'match', 'championship', 'game', 'player', 'wicket', 'goal', 'movie', 'album', 'box office', 'science', 'planet']
+    }
+  };
+
+  let targetCat = cat;
+  if (cat === 'tech & ai') targetCat = 'tech';
+  if (cat === 'law & crime') targetCat = 'law';
+
+  if (cat === 'sports') {
+    const matchSports = verifyProfile(fullText, keywords.sports);
+    const matchCricket = verifyProfile(fullText, keywords.cricket);
+    const matchFootball = verifyProfile(fullText, keywords.football);
+    const matchMma = verifyProfile(fullText, keywords.mma);
+    return matchSports || matchCricket || matchFootball || matchMma;
   }
 
-  // Generate 80+ mock articles for pagination/infinite scroll tests
+  const profile = keywords[targetCat];
+  if (!profile) return true;
+
+  return verifyProfile(fullText, profile);
+}
+
+function verifyProfile(text, profile) {
+  let incCount = 0;
+  for (const word of profile.inc) {
+    if (text.includes(word)) {
+      incCount++;
+    }
+  }
+
+  let excCount = 0;
+  for (const word of profile.exc) {
+    if (text.includes(word)) {
+      excCount++;
+    }
+  }
+
+  return incCount >= 1 && (excCount < 2 || excCount < incCount);
+}
+
+// Helper for Mock Articles
+function getMockArticles(category, query) {
+  const mockPools = {
+    sports: [
+      {
+        title: "Champions League Thriller: Real Madrid Clinches Victory with Late Goal",
+        description: "A dramatic 90th-minute striker goal seals a historic win in the European championship tournament.",
+        content: "The match was locked in a tense struggle until a brilliant pass found the striker in the box...",
+        source: { name: "ESPN Football" },
+        author: "Marcus Vance",
+        url: "https://example.com/champions-league-win",
+        urlToImage: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600",
+        publishedAt: new Date().toISOString()
+      },
+      {
+        title: "Virat Kohli Smashes Record Century to Lead India to Triumph",
+        description: "An incredible batting performance in the cricket world cup match seals a dominant victory over rivals.",
+        content: "Kohli displayed masterclass batting, scoring runs all over the pitch and hitting multiple boundaries...",
+        source: { name: "Cricinfo Desk" },
+        author: "Rohan Sharma",
+        url: "https://example.com/kohli-century",
+        urlToImage: "https://images.unsplash.com/photo-1532375811409-90d165c859d0?q=80&w=600",
+        publishedAt: new Date(Date.now() - 3600000).toISOString()
+      },
+      {
+        title: "Formula 1: Monaco Grand Prix Highlights Epic Driver Rivalry",
+        description: "A flawless race by the championship leader secures first place on the iconic street circuit.",
+        content: "The driver defended the pole position from start to finish, navigating the narrow streets with precision...",
+        source: { name: "F1 Chronicle" },
+        author: "Sarah Jenkins",
+        url: "https://example.com/f1-monaco",
+        urlToImage: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=600",
+        publishedAt: new Date(Date.now() - 7200000).toISOString()
+      },
+      {
+        title: "UFC Championship: Title Fight Decided in Intense Five-Round Battle",
+        description: "The featherweight champion retains the title in a spectacular MMA matchup.",
+        content: "Both fighters went the distance, showcasing elite striking and wrestling in the octagon...",
+        source: { name: "MMA Weekly" },
+        author: "Helena Rostova",
+        url: "https://example.com/ufc-title-fight",
+        urlToImage: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
+        publishedAt: new Date(Date.now() - 10800000).toISOString()
+      }
+    ],
+    tech: [
+      {
+        title: "AI Breakthrough: Next-Generation Language Models Unveiled",
+        description: "Developers release highly efficient software models performing complex logical reasoning tasks.",
+        content: "The new architecture reduces computational requirements while excelling at programming and logic...",
+        source: { name: "TechCrunch" },
+        author: "Marcus Vance",
+        url: "https://example.com/ai-software-breakthrough",
+        urlToImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600",
+        publishedAt: new Date().toISOString()
+      },
+      {
+        title: "Silicon Foundries Scale Up Production to Meet Cybersecurity Demand",
+        description: "New semiconductor manufacturing chips introduce hardware-level security protections.",
+        content: "Tech manufacturers are shifting towards custom microchips designed for high security cloud databases...",
+        source: { name: "Wired" },
+        author: "Sarah Jenkins",
+        url: "https://example.com/silicon-cybersecurity",
+        urlToImage: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600",
+        publishedAt: new Date(Date.now() - 3600000).toISOString()
+      }
+    ],
+    business: [
+      {
+        title: "Global Supply Chains Stabilize as Corporate Logistical Bottlenecks Ease",
+        description: "Manufacturing output increases and corporate retail sales show steady quarterly growth.",
+        content: "Logistics companies report faster delivery times and reduced shipping costs across oceans...",
+        source: { name: "Business Telegram" },
+        author: "Helena Rostova",
+        url: "https://example.com/supply-chain-growth",
+        urlToImage: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=600",
+        publishedAt: new Date().toISOString()
+      },
+      {
+        title: "Venture Capital Funding Surges in Industrial Technology Sectors",
+        description: "Startups focused on manufacturing efficiency receive significant private equity investments.",
+        content: "Investors are looking for companies that streamline logistics and reduce operational overhead...",
+        source: { name: "Bloomberg" },
+        author: "Marcus Vance",
+        url: "https://example.com/vc-investment",
+        urlToImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=600",
+        publishedAt: new Date(Date.now() - 3600000).toISOString()
+      }
+    ],
+    finance: [
+      {
+        title: "Global Inflation Eases as Central Banks Review Interest Rate Policy",
+        description: "Macroeconomic indicators suggest stabilizing markets in the next fiscal quarter.",
+        content: "The federal reserve indicated a potential freeze on rates as economic indicators remain strong...",
+        source: { name: "Financial Times" },
+        author: "Helena Rostova",
+        url: "https://example.com/inflation-rates",
+        urlToImage: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=600",
+        publishedAt: new Date().toISOString()
+      },
+      {
+        title: "India Projects Strong GDP Growth Driven by Infrastructure Investment",
+        description: "The finance ministry outlines ambitious spending plans and monetary policy adjustments.",
+        content: "Bond yields remain stable as domestic investments boost the national economy and markets...",
+        source: { name: "The Economic Times" },
+        author: "Rohan Sharma",
+        url: "https://example.com/india-gdp-growth",
+        urlToImage: "https://images.unsplash.com/photo-1532375811409-90d165c859d0?q=80&w=600",
+        publishedAt: new Date(Date.now() - 3600000).toISOString()
+      }
+    ],
+    politics: [
+      {
+        title: "Global Leaders Convene for Diplomatic Summit on Trade and Foreign Policy",
+        description: "Heads of state debate legislative measures and international security frameworks.",
+        content: "The prime minister and president discussed bilateral agreements to stabilize regional security...",
+        source: { name: "Reuters Politics" },
+        author: "Sarah Jenkins",
+        url: "https://example.com/diplomatic-summit",
+        urlToImage: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=600",
+        publishedAt: new Date().toISOString()
+      },
+      {
+        title: "Parliament Passes Landmark Bill After Lengthy Senate Debate",
+        description: "The new legislation outlines regulatory changes for national infrastructure funding.",
+        content: "Voters expressed mixed reactions to the policy candidate debates leading up to the election...",
+        source: { name: "BBC Parliament" },
+        author: "Helena Rostova",
+        url: "https://example.com/parliament-bill",
+        urlToImage: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?q=80&w=600",
+        publishedAt: new Date(Date.now() - 3600000).toISOString()
+      }
+    ],
+    environment: [
+      {
+        title: "Renewable Energy Capacity Reaches Record Highs in Western Europe",
+        description: "Wind and solar power generated more electricity than traditional coal sources.",
+        content: "Ecology studies confirm wind and solar generated more than 40% of the continent's power...",
+        source: { name: "Reuters Green" },
+        author: "Sarah Jenkins",
+        url: "https://example.com/renewable-records",
+        urlToImage: "https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=600",
+        publishedAt: new Date().toISOString()
+      },
+      {
+        title: "Global Ocean Initiative Targets Waste Reduction and Marine Species Protection",
+        description: "Conservation efforts aim to reduce plastic emissions and clean up coastlines.",
+        content: "Scientists and researchers announce new measures to protect endangered marine ecosystems...",
+        source: { name: "Nature Climate" },
+        author: "Marcus Vance",
+        url: "https://example.com/ocean-conservation",
+        urlToImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600",
+        publishedAt: new Date(Date.now() - 3600000).toISOString()
+      }
+    ]
+  };
+
+  const cat = (category || 'world').toLowerCase();
+  let pool = [];
+  if (['sports', 'cricket', 'football', 'mma'].includes(cat)) {
+    pool = mockPools.sports;
+  } else if (['tech', 'tech & ai'].includes(cat)) {
+    pool = mockPools.tech;
+  } else if (cat === 'business') {
+    pool = mockPools.business;
+  } else if (cat === 'finance') {
+    pool = mockPools.finance;
+  } else if (cat === 'politics') {
+    pool = mockPools.politics;
+  } else if (cat === 'environment') {
+    pool = mockPools.environment;
+  } else {
+    pool = [
+      ...mockPools.sports,
+      ...mockPools.tech,
+      ...mockPools.business,
+      ...mockPools.finance,
+      ...mockPools.politics,
+      ...mockPools.environment
+    ];
+  }
+
+  let filtered = pool;
+  if (query) {
+    const qLower = query.toLowerCase();
+    filtered = pool.filter(art => art.title.toLowerCase().includes(qLower) || art.description.toLowerCase().includes(qLower));
+    if (filtered.length === 0) {
+      filtered = pool;
+    }
+  }
+
   const replicated = [];
   for (let i = 0; i < 90; i++) {
-    const original = filtered[i % filtered.length] || baseArticles[0];
+    const original = filtered[i % filtered.length] || pool[0];
     replicated.push({
       ...original,
       title: `${original.title} [Wire Bulletin #${i + 1} - ${category.toUpperCase()}]`,
