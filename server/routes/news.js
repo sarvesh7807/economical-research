@@ -152,9 +152,9 @@ const parseRSSFeed = async (feedName, url) => {
   }
 };
 
-// In-Memory cache (5 min TTL)
+// In-Memory cache (15 min TTL for quota saving)
 const feedCache = {};
-const CACHE_EXPIRY = 5 * 60 * 1000;
+const CACHE_EXPIRY = 15 * 60 * 1000;
 
 const getCachedFeed = (key) => {
   const cached = feedCache[key];
@@ -171,9 +171,419 @@ const setCachedFeed = (key, data) => {
   };
 };
 
+// API Key Resolvers
+const getGNewsKey = () => process.env.GNEWS_KEY || 'c115ad6c999a544e461f5742c85f6d54';
+const getNewsDataKey = () => process.env.NEWSDATA_KEY || 'pub_8604840f11334dfc8574700a63216e68';
+
+// Category Mappers for APIs
+const getGNewsCategory = (category) => {
+  const cat = category.toLowerCase();
+  switch (cat) {
+    case 'world': return 'world';
+    case 'india': return 'nation';
+    case 'business': return 'business';
+    case 'finance': return 'business';
+    case 'tech':
+    case 'tech & ai': return 'technology';
+    case 'sports':
+    case 'cricket':
+    case 'football':
+    case 'mma': return 'sports';
+    case 'science': return 'science';
+    case 'health': return 'health';
+    case 'entertainment': return 'entertainment';
+    default: return null;
+  }
+};
+
+const getNewsDataCategory = (category) => {
+  const cat = category.toLowerCase();
+  switch (cat) {
+    case 'world': return 'world';
+    case 'india': return 'top';
+    case 'business': return 'business';
+    case 'finance': return 'business';
+    case 'tech':
+    case 'tech & ai': return 'technology';
+    case 'sports':
+    case 'cricket':
+    case 'football':
+    case 'mma': return 'sports';
+    case 'science': return 'science';
+    case 'health': return 'health';
+    case 'entertainment': return 'entertainment';
+    case 'politics': return 'politics';
+    case 'environment': return 'environment';
+    case 'education': return 'education';
+    case 'travel': return 'tourism';
+    case 'lifestyle': return 'lifestyle';
+    case 'law & crime': return 'crime';
+    default: return null;
+  }
+};
+
+// Image Pools and Entity matching databases (16:9 premium Unsplash images)
+const CATEGORY_IMAGES_POOLS = {
+  world: [
+    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=800&auto=format&fit=crop'
+  ],
+  india: [
+    'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1532375811409-90d165c859d0?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800&auto=format&fit=crop'
+  ],
+  politics: [
+    'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1541872703-74c5e44368f9?q=80&w=800&auto=format&fit=crop'
+  ],
+  business: [
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop'
+  ],
+  finance: [
+    'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=800&auto=format&fit=crop'
+  ],
+  tech: [
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop'
+  ],
+  sports: [
+    'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop'
+  ],
+  entertainment: [
+    'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=800&auto=format&fit=crop'
+  ],
+  science: [
+    'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop'
+  ],
+  environment: [
+    'https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?q=80&w=800&auto=format&fit=crop'
+  ],
+  health: [
+    'https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=800&auto=format&fit=crop'
+  ],
+  education: [
+    'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=800&auto=format&fit=crop'
+  ],
+  travel: [
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800&auto=format&fit=crop'
+  ],
+  lifestyle: [
+    'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1506157786151-b8491531f063?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'
+  ],
+  law: [
+    'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1505664194779-8bebcb35da44?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?q=80&w=800&auto=format&fit=crop'
+  ],
+  research: [
+    'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=800&auto=format&fit=crop'
+  ]
+};
+
+const ENTITY_IMAGES = [
+  { keywords: ['chatgpt', 'openai', 'gemini', 'copilot', 'llm', 'artificial intelligence', 'ai chip', 'ai model', 'midjourney'], url: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['apple', 'iphone', 'ipad', 'macbook', 'tim cook', 'ios'], url: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['google', 'sundar pichai', 'alphabet', 'android'], url: 'https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['microsoft', 'windows', 'satya nadella', 'xbox'], url: 'https://images.unsplash.com/photo-1625014020771-13721990414b?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['tesla', 'elon musk', 'cybercab', 'spacex', 'starship'], url: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['nvidia', 'jensen huang', 'gpu', 'blackwell', 'h100', 'ai chip'], url: 'https://images.unsplash.com/photo-1591453089816-0fbb971b454c?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['cricket', 'kohli', 'rohit', 'dhoni', 'ipl', 't20', 'icc', 'wicket', 'bcci'], url: 'https://images.unsplash.com/photo-1532375811409-90d165c859d0?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['football', 'soccer', 'messi', 'ronaldo', 'mbappe', 'fifa', 'champions league', 'premier league'], url: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['mma', 'ufc', 'fight', 'fighter', 'octagon', 'knockout', 'conor'], url: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['stocks', 'wall street', 'nasdaq', 'bull market', 'dow jones', 'stock market', 'trading'], url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['bitcoin', 'crypto', 'cryptocurrency', 'ethereum', 'btc', 'blockchain'], url: 'https://images.unsplash.com/photo-1516245834210-c4c142787335?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['court', 'judge', 'lawsuit', 'supreme court', 'verdict', 'attorney', 'prosecutors'], url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=800&auto=format&fit=crop' },
+  { keywords: ['space', 'telescope', 'nasa', 'galaxy', 'exoplanet', 'mars', 'moon', 'orbit'], url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=800&auto=format&fit=crop' }
+];
+
+// Helper to check for generic or broken thumbnails
+function isGenericPlaceholder(url) {
+  if (!url) return true;
+  const genericDomains = ['placeholder', 'default', 'logo', 'fallback', 'avatar', 'dummy', 'favicon'];
+  return genericDomains.some(d => url.includes(d));
+}
+
+// Smart Image Matching Resolver
+function resolveArticleImage(article, category, usedImagesSet) {
+  let img = article.urlToImage;
+  if (img && img.startsWith('http') && !isGenericPlaceholder(img) && !usedImagesSet.has(img)) {
+    usedImagesSet.add(img);
+    return img;
+  }
+
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.description || '').toLowerCase();
+  const text = `${title} ${desc}`;
+
+  // 1. Entity Match
+  for (const ent of ENTITY_IMAGES) {
+    for (const key of ent.keywords) {
+      if (text.includes(key)) {
+        let finalUrl = ent.url;
+        if (!usedImagesSet.has(finalUrl)) {
+          usedImagesSet.add(finalUrl);
+          return finalUrl;
+        }
+      }
+    }
+  }
+
+  // 2. Category Pool Match
+  const cat = (category || 'world').toLowerCase();
+  let targetCat = cat;
+  if (cat === 'tech & ai') targetCat = 'tech';
+  if (cat === 'law & crime') targetCat = 'law';
+
+  const pool = CATEGORY_IMAGES_POOLS[targetCat] || CATEGORY_IMAGES_POOLS.world;
+  
+  // Use a hash of the title to consistently choose a unique image index
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % pool.length;
+  let finalUrl = pool[index];
+
+  // Prevent generic duplication across siblings
+  if (usedImagesSet.has(finalUrl)) {
+    for (let i = 0; i < pool.length; i++) {
+      const altUrl = pool[(index + i) % pool.length];
+      if (!usedImagesSet.has(altUrl)) {
+        usedImagesSet.add(altUrl);
+        return altUrl;
+      }
+    }
+  }
+
+  usedImagesSet.add(finalUrl);
+  return finalUrl;
+}
+
+// Normalization functions
+const normalizeGNews = (articles) => 
+  (articles || []).map(a => ({
+    title: a.title || '',
+    description: a.description || '',
+    content: a.content || a.description || '',
+    url: a.url || '',
+    urlToImage: a.image || '',
+    publishedAt: a.publishedAt || new Date().toISOString(),
+    source: { name: a.source?.name || 'GNews' },
+    author: a.source?.name || 'GNews'
+  })).filter(a => a.title && a.title !== '[Removed]');
+
+const normalizeNewsData = (articles) =>
+  (articles || []).map(a => ({
+    title: a.title || '',
+    description: a.description || '',
+    content: a.content || a.description || '',
+    url: a.link || '',
+    urlToImage: a.image_url || '',
+    publishedAt: a.pubDate || new Date().toISOString(),
+    source: { name: a.source_id || 'NewsData' },
+    author: a.creator?.[0] || a.source_id || 'NewsData'
+  })).filter(a => a.title && a.title !== '[Removed]');
+
+// Headline Similarity ( intersection word matching )
+function getHeadlineSimilarity(h1, h2) {
+  if (h1 === h2) return 1.0;
+  const clean = (str) => str.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+  const w1 = clean(h1);
+  const w2 = clean(h2);
+  if (w1.length === 0 || w2.length === 0) return 0.0;
+  const intersection = w1.filter(w => w2.includes(w));
+  return intersection.length / Math.min(w1.length, w2.length);
+}
+
+// Deduplication
+function deduplicateArticles(articles) {
+  const unique = [];
+  for (const article of articles) {
+    let isDup = false;
+    for (const existing of unique) {
+      if (article.url && existing.url && article.url === existing.url) {
+        isDup = true;
+        break;
+      }
+      const headlineSim = getHeadlineSimilarity(article.title, existing.title);
+      if (headlineSim > 0.65) {
+        isDup = true;
+        break;
+      }
+    }
+    if (!isDup) {
+      unique.push(article);
+    }
+  }
+  return unique;
+}
+
+// Category Classifier Engine
+function classifyArticle(article) {
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.description || '').toLowerCase();
+  const content = (article.content || '').toLowerCase();
+  const fullText = `${title} ${desc} ${content}`;
+
+  const categoryScores = {
+    india: 0,
+    politics: 0,
+    business: 0,
+    finance: 0,
+    tech: 0,
+    sports: 0,
+    entertainment: 0,
+    science: 0,
+    environment: 0,
+    health: 0,
+    education: 0,
+    travel: 0,
+    lifestyle: 0,
+    law: 0,
+    research: 0,
+    world: 0.1
+  };
+
+  const keywords = {
+    india: ['india', 'indian', 'delhi', 'mumbai', 'bengaluru', 'modi', 'bollywood', 'gandhi', 'hindu', 'sachin', 'kohli', 'rupee', 'isro'],
+    politics: ['politics', 'political', 'election', 'elections', 'parliament', 'senate', 'congress', 'legislative', 'government', 'minister', 'president', 'governor', 'mayor', 'white house', 'democrat', 'republican', 'biden', 'trump', 'ballot', 'policy', 'candidate', 'diplomacy', 'summit'],
+    business: ['business', 'corporate', 'company', 'companies', 'acquisition', 'merger', 'industry', 'industries', 'startup', 'startups', 'ceo', 'coo', 'cfo', 'revenue', 'earnings', 'profit', 'sales', 'retail', 'manufacturing', 'logistics', 'supply chain', 'firm'],
+    finance: ['finance', 'financial', 'stock market', 'stocks', 'wall street', 'dow jones', 'nasdaq', 'currency', 'trading', 'inflation', 'economy', 'economic', 'gdp', 'central bank', 'federal reserve', 'fed', 'interest rate', 'rates', 'yield', 'bonds', 'investment', 'investors', 'banking', 'banks', 'fiscal', 'monetary'],
+    tech: ['tech', 'technology', 'technologies', 'software', 'hardware', 'ai', 'artificial intelligence', 'robot', 'robotics', 'app', 'apps', 'algorithm', 'cyber', 'cybersecurity', 'quantum', 'semiconductor', 'microchip', 'chip', 'coding', 'programming', 'developer', 'chatgpt', 'openai', 'smartphone', 'gadget', 'cloud computing'],
+    sports: ['sport', 'sports', 'athlete', 'game', 'match', 'tournament', 'cup', 'trophy', 'league', 'team', 'player', 'coach', 'stadium', 'championship', 'victory', 'score', 'cricket', 'football', 'soccer', 'tennis', 'basketball', 'mma', 'ufc', 'baseball', 'rugby', 'golf', 'athletics', 'olympics', 'fifa', 'ipl'],
+    entertainment: ['entertainment', 'movie', 'movies', 'film', 'films', 'cinema', 'actor', 'actress', 'celebrity', 'celebrities', 'hollywood', 'bollywood', 'album', 'song', 'music', 'concert', 'artist', 'singer', 'band', 'box office', 'show', 'television', 'tv series', 'streaming', 'netflix', 'oscar', 'grammy'],
+    science: ['science', 'scientific', 'astronomy', 'planet', 'planets', 'exoplanet', 'telescope', 'nasa', 'space', 'galaxy', 'physics', 'chemistry', 'biology', 'fusion', 'reactor', 'fossils', 'archaeology', 'microscope', 'scientist', 'laboratory', 'universe'],
+    environment: ['environment', 'environmental', 'climate', 'green energy', 'renewable', 'solar', 'wind power', 'recycling', 'emissions', 'conservation', 'wildlife', 'forest', 'ocean', 'oceans', 'carbon', 'warming', 'pollution', 'species', 'ecology'],
+    health: ['health', 'hygiene', 'medical', 'medicine', 'vaccine', 'vaccines', 'virus', 'pandemic', 'disease', 'diseases', 'doctor', 'hospital', 'patient', 'therapy', 'nutrition', 'diet', 'fitness', 'mental health', 'clinical'],
+    education: ['education', 'educational', 'school', 'schools', 'university', 'college', 'student', 'students', 'teacher', 'teachers', 'learning', 'study', 'curriculum', 'academy', 'academic', 'degree', 'tuition', 'classroom'],
+    travel: ['travel', 'tourism', 'tourist', 'flight', 'flights', 'airline', 'airlines', 'hotel', 'hotels', 'resort', 'destination', 'wanderlust', 'cruise', 'trip', 'vacation', 'baggage', 'exploration'],
+    lifestyle: ['lifestyle', 'fashion', 'food', 'decor', 'home', 'recipe', 'recipes', 'cuisine', 'design', 'styling', 'trends', 'beauty', 'wellness', 'cosmetics', 'makeup', 'gardening'],
+    law: ['law', 'legal', 'court', 'judge', 'trial', 'attorney', 'lawyer', 'crime', 'criminal', 'police', 'arrest', 'prison', 'jail', 'supreme court', 'lawsuit', 'prosecute', 'prosecution', 'custody', 'verdict'],
+    research: ['research', 'academic', 'study', 'studies', 'journal', 'publisher', 'breakthroughs', 'innovation', 'findings', 'thesis', 'scientists', 'university', 'research institute', 'peer-reviewed', 'experiment', 'data analysis']
+  };
+
+  for (const [cat, words] of Object.entries(keywords)) {
+    for (const word of words) {
+      if (fullText.includes(word)) {
+        categoryScores[cat] += 1;
+      }
+    }
+  }
+
+  let maxCat = 'world';
+  let maxScore = 0;
+  for (const [cat, score] of Object.entries(categoryScores)) {
+    if (score > maxScore) {
+      maxScore = score;
+      maxCat = cat;
+    }
+  }
+
+  const catMapping = {
+    world: 'World',
+    india: 'India',
+    politics: 'Politics',
+    business: 'Business',
+    finance: 'Finance',
+    tech: 'Tech & AI',
+    sports: 'Sports',
+    entertainment: 'Entertainment',
+    science: 'Science',
+    environment: 'Environment',
+    health: 'Health',
+    education: 'Education',
+    travel: 'Travel',
+    lifestyle: 'Lifestyle',
+    law: 'Law & Crime',
+    research: 'Research'
+  };
+
+  return catMapping[maxCat] || 'World';
+}
+
+// Fetchers for GNews
+const fetchGNews = async (category, q, country) => {
+  const key = getGNewsKey();
+  if (!key || key.includes('YAHAN')) return [];
+
+  try {
+    let url = 'https://gnews.io/api/v4/top-headlines?lang=en';
+    const gnewsCat = getGNewsCategory(category);
+
+    if (q) {
+      url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en`;
+    } else if (country && country.toLowerCase() === 'in') {
+      url += `&country=in`;
+    } else if (gnewsCat) {
+      url += `&category=${gnewsCat}`;
+    } else {
+      url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(category)}&lang=en`;
+    }
+
+    url += `&apikey=${key}&max=25`;
+    const response = await axios.get(url, { timeout: 6000 });
+    return response.data?.articles || [];
+  } catch (err) {
+    console.error('GNews API fetch error:', err.message);
+    return [];
+  }
+};
+
+// Fetchers for NewsData
+const fetchNewsData = async (category, q, country) => {
+  const key = getNewsDataKey();
+  if (!key || key.includes('YAHAN')) return [];
+
+  try {
+    let url = `https://newsdata.io/api/1/news?apikey=${key}&language=en`;
+    const newsDataCat = getNewsDataCategory(category);
+
+    if (q) {
+      url += `&q=${encodeURIComponent(q)}`;
+    } else if (country && country.toLowerCase() === 'in') {
+      url += `&country=in`;
+    } else if (newsDataCat) {
+      url += `&category=${newsDataCat}`;
+    } else {
+      url += `&q=${encodeURIComponent(category)}`;
+    }
+
+    const response = await axios.get(url, { timeout: 6000 });
+    return response.data?.results || [];
+  } catch (err) {
+    console.error('NewsData.io API fetch error:', err.message);
+    return [];
+  }
+};
+
 router.get('/', async (req, res) => {
   const { category = 'world', q = '', page = 1, pageSize = 20, country, language } = req.query;
-  const apiKey = getNewsApiKey();
   const pageNum = parseInt(page, 10) || 1;
   const pageSizeNum = parseInt(pageSize, 10) || 20;
 
@@ -181,115 +591,111 @@ router.get('/', async (req, res) => {
   const cacheKey = country
     ? `country_${country.toLowerCase()}_lang_${langCode}`
     : (q ? `search_${q.toLowerCase()}_lang_${langCode}` : `cat_${category.toLowerCase()}_lang_${langCode}`);
+  
   let aggregatedArticles = getCachedFeed(cacheKey);
 
   if (!aggregatedArticles) {
-    let newsApiArticles = [];
-    if (apiKey && !apiKey.includes('YAHAN')) {
-      try {
-        if (country) {
-          const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
-            params: {
-              apiKey,
-              country: country.toLowerCase(),
-              pageSize: 60
-            }
-          });
-          newsApiArticles = response.data.articles || [];
-        } else if (q) {
-          const response = await axios.get(`${NEWS_API_BASE}/everything`, {
-            params: {
-              apiKey,
-              q,
-              language: langCode,
-              sortBy: 'relevance',
-              pageSize: 80
-            }
-          });
-          newsApiArticles = response.data.articles || [];
-        } else {
-          if (langCode !== 'en' && category.toLowerCase() === 'world') {
-            // Fetch top-headlines in the target language
-            const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
-              params: {
-                apiKey,
-                language: langCode,
-                pageSize: 60
-              }
-            });
-            newsApiArticles = response.data.articles || [];
-          } else if (category.toLowerCase() === 'world') {
-            const [usRes, gbRes, auRes] = await Promise.all([
-              axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'us', pageSize: 30 } }).catch(() => ({ data: { articles: [] } })),
-              axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'gb', pageSize: 20 } }).catch(() => ({ data: { articles: [] } })),
-              axios.get(`${NEWS_API_BASE}/top-headlines`, { params: { apiKey, country: 'au', pageSize: 20 } }).catch(() => ({ data: { articles: [] } }))
-            ]);
-            newsApiArticles = [
-              ...(usRes.data.articles || []),
-              ...(gbRes.data.articles || []),
-              ...(auRes.data.articles || [])
-            ];
-          } else {
-            const mapping = mapCategoryToQuery(category);
-            const params = {
-              apiKey,
-              ...mapping.params,
-              pageSize: 60
-            };
-            if (!params.country) {
-              params.language = langCode;
-            }
-            const response = await axios.get(`${NEWS_API_BASE}/${mapping.endpoint}`, { params });
-            newsApiArticles = response.data.articles || [];
-          }
-        }
-      } catch (apiErr) {
-        console.error('NewsAPI fetch error in route:', apiErr.message);
-      }
-    }
-
-    // Parse RSS
-    let rssArticles = [];
-    if (q) {
-      const searchRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
-      try {
-        const searchResults = await parseRSSFeed(`Google News: ${q}`, searchRssUrl);
-        rssArticles = searchResults || [];
-      } catch (err) {
-        console.error('RSS Search Fetch Error:', err.message);
-      }
-    } else {
-      const feeds = getRSSFeedsForCategory(country ? 'world' : category);
-      const parsePromises = feeds.map(feed => parseRSSFeed(feed.name, feed.url));
-      const parsedResults = await Promise.all(parsePromises);
-      rssArticles = parsedResults.flat();
-    }
-
-    let rawMerged = [...newsApiArticles, ...rssArticles];
+    console.log(`Cache miss. Executing multi-source news pipeline for category: ${category}, query: ${q}`);
     
-    let cleaned = [];
-    const seenUrls = new Set();
+    // 1. Fetch from GNews (Primary)
+    const gnewsRaw = await fetchGNews(category, q, country);
+    const gnewsNormalized = normalizeGNews(gnewsRaw);
 
-    const filterAndClean = (list) => {
-      return list.filter(article => {
-        if (!article.title || article.title === '[Removed]') return false;
-        if (seenUrls.has(article.url)) return false;
-        if (!verifyArticleCategory(article, country ? 'world' : category)) return false;
-        seenUrls.add(article.url);
-        return true;
-      });
-    };
+    // 2. Fetch from NewsData.io (Secondary / Fallback)
+    const newsDataRaw = await fetchNewsData(category, q, country);
+    const newsDataNormalized = normalizeNewsData(newsDataRaw);
 
-    cleaned = filterAndClean(rawMerged);
+    // Merge normalized articles
+    let merged = [...gnewsNormalized, ...newsDataNormalized];
 
-    // Fallback to mock data ONLY if everything else fails or is filtered out
-    if (cleaned.length === 0) {
-      const mocks = getMockArticles(country ? 'world' : category, q);
-      cleaned = filterAndClean(mocks);
+    // Deduplicate
+    let deduplicated = deduplicateArticles(merged);
+
+    // 3. Fallback to RSS if APIs are rate-limited or return zero articles
+    if (deduplicated.length === 0) {
+      console.log('API sources failed or returned empty. Running RSS tertiary fallback...');
+      let rssArticles = [];
+      if (q) {
+        const searchRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+        rssArticles = await parseRSSFeed(`Google News: ${q}`, searchRssUrl);
+      } else {
+        const feeds = getRSSFeedsForCategory(country ? 'world' : category);
+        const parsedResults = await Promise.all(feeds.map(feed => parseRSSFeed(feed.name, feed.url)));
+        rssArticles = parsedResults.flat();
+      }
+      deduplicated = deduplicateArticles(rssArticles);
     }
 
-    cleaned.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-    aggregatedArticles = cleaned;
+    // 4. Fallback to Mock wire data if everything else fails
+    if (deduplicated.length === 0) {
+      console.log('All live sources exhausted. Rendering mock fallback...');
+      const mocks = getMockArticles(country ? 'world' : category, q);
+      deduplicated = deduplicateArticles(mocks);
+    }
+
+    // 5. Automatic Category Classifier
+    const classifiedList = deduplicated.map(article => {
+      const detectedCat = classifyArticle(article);
+      return {
+        ...article,
+        classifiedCategory: detectedCat
+      };
+    });
+
+    // Filter strictly by the requested category
+    let filtered = classifiedList;
+    const requestedCatLower = category.toLowerCase();
+    const isGeneralFeed = ['world', 'foryou', 'general'].includes(requestedCatLower);
+
+    if (!isGeneralFeed) {
+      filtered = classifiedList.filter(article => {
+        const articleCat = article.classifiedCategory.toLowerCase();
+        
+        let match = false;
+        if (requestedCatLower === 'tech & ai') {
+          match = ['tech & ai', 'tech'].includes(articleCat);
+        } else if (requestedCatLower === 'law & crime') {
+          match = ['law & crime', 'law'].includes(articleCat);
+        } else {
+          match = articleCat === requestedCatLower;
+        }
+
+        // Hard rule: Never show business/finance in sports
+        if (requestedCatLower === 'sports') {
+          const isBizOrFinance = ['business', 'finance'].includes(articleCat);
+          if (isBizOrFinance) return false;
+        }
+
+        const passesKeywords = verifyArticleCategory(article, category);
+        return match || passesKeywords;
+      });
+    }
+
+    // Backfill with mock items if classification is too restrictive to preserve high card density
+    if (filtered.length < 8) {
+      console.log(`Category ${category} has low density (${filtered.length}). Backfilling with editorial mocks.`);
+      const mocks = getMockArticles(country ? 'world' : category, q).map(m => ({
+        ...m,
+        classifiedCategory: category
+      }));
+      const additional = mocks.filter(m => !filtered.some(f => getHeadlineSimilarity(f.title, m.title) > 0.65));
+      filtered = [...filtered, ...additional].slice(0, 20);
+    }
+
+    // 6. Premium Image matching system
+    const usedImages = new Set();
+    const finalArticles = filtered.map(article => {
+      const resolvedImg = resolveArticleImage(article, category, usedImages);
+      return {
+        ...article,
+        urlToImage: resolvedImg
+      };
+    });
+
+    // Sort by publication date
+    finalArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+    aggregatedArticles = finalArticles;
     setCachedFeed(cacheKey, aggregatedArticles);
   }
 
@@ -630,53 +1036,44 @@ function getMockArticles(category, query) {
   return replicated;
 }
 
-// WORLD MAP: Proxy NewsAPI top-headlines by country code (bypasses browser CORS)
+// WORLD MAP: Proxy GNews / NewsData.io headlines by country code
 router.get('/country-headlines', async (req, res) => {
   const { country, q } = req.query;
   if (!country || country.length !== 2) {
     return res.status(400).json({ error: 'Valid 2-letter country code required', articles: [] });
   }
 
-  const apiKey = getNewsApiKey();
   const countryCode = country.toLowerCase();
-
-  // Supported country codes by NewsAPI top-headlines
-  const supportedNewsApiCountries = [
-    'ae', 'ar', 'at', 'au', 'be', 'bg', 'br', 'ca', 'ch', 'cn', 'co', 'cu', 'cz', 'de', 'eg', 'fr', 'gb', 'gr', 
-    'hk', 'hu', 'id', 'ie', 'il', 'in', 'it', 'jp', 'kr', 'lt', 'lv', 'ma', 'mx', 'my', 'ng', 'nl', 'no', 'nz', 
-    'ph', 'pl', 'pt', 'ro', 'rs', 'ru', 'sa', 'se', 'sg', 'si', 'sk', 'th', 'tr', 'tw', 'ua', 'us', 've', 'za'
-  ];
-
   let articles = [];
 
-  // 1. Try NewsAPI top-headlines first (only if country is supported and key is set/not rate-limited)
-  if (supportedNewsApiCountries.includes(countryCode) && apiKey && !apiKey.includes('YAHAN')) {
-    try {
-      const response = await axios.get(`${NEWS_API_BASE}/top-headlines`, {
-        params: {
-          country: countryCode,
-          pageSize: 20,
-          apiKey
-        },
-        timeout: 8000
-      });
+  // 1. Try GNews countryheadlines first
+  try {
+    const gnewsRaw = await fetchGNews('world', q, countryCode);
+    const normalized = normalizeGNews(gnewsRaw);
+    if (normalized.length > 0) {
+      articles = normalized;
+    }
+  } catch (err) {
+    console.error('country-headlines GNews error:', err.message);
+  }
 
-      if (response.data && response.data.status === 'ok') {
-        articles = (response.data.articles || []).filter(
-          a => a.title && a.title !== '[Removed]' && a.url
-        );
+  // 2. Try NewsData.io countryheadlines secondary
+  if (articles.length === 0) {
+    try {
+      const newsdataRaw = await fetchNewsData('world', q, countryCode);
+      const normalized = normalizeNewsData(newsdataRaw);
+      if (normalized.length > 0) {
+        articles = normalized;
       }
     } catch (err) {
-      console.error('country-headlines NewsAPI top-headlines error:', err.message);
+      console.error('country-headlines NewsData error:', err.message);
     }
   }
 
-  // 2. Try RSS Fallback if NewsAPI top-headlines failed or is unsupported/rate-limited
+  // 3. Try RSS Fallback if both APIs failed
   if (articles.length === 0) {
     try {
-      // Look up full country name for RSS search query
       let searchQuery = q || countryCode;
-      
       const codeToName = {
         'af': 'Afghanistan', 'ar': 'Argentina', 'au': 'Australia', 'at': 'Austria', 'be': 'Belgium', 
         'br': 'Brazil', 'bg': 'Bulgaria', 'ca': 'Canada', 'cn': 'China', 'co': 'Colombia', 
@@ -697,19 +1094,15 @@ router.get('/country-headlines', async (req, res) => {
       }
 
       console.log(`Using RSS fallback for country: ${countryCode}, query: ${searchQuery}`);
-      
       const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(searchQuery)}&hl=en-US&gl=US&ceid=US:en`;
       const rssArticles = await parseRSSFeed(`Google News: ${searchQuery}`, rssUrl);
-      
-      articles = (rssArticles || []).filter(
-        a => a.title && a.title !== '[Removed]'
-      );
+      articles = (rssArticles || []).filter(a => a.title && a.title !== '[Removed]');
     } catch (rssErr) {
       console.error('country-headlines RSS fallback error:', rssErr.message);
     }
   }
 
-  // 3. Try Mock data fallback if both NewsAPI and RSS failed
+  // 4. Try Mock data fallback if everything fails
   if (articles.length === 0) {
     let countryName = q;
     if (!countryName) {
@@ -733,7 +1126,15 @@ router.get('/country-headlines', async (req, res) => {
     articles = getMockArticles('world', countryName).slice(0, 10);
   }
 
-  return res.json({ status: 'ok', totalResults: articles.length, articles });
+  // Image Matching for country headlines
+  const usedImages = new Set();
+  const finalArticles = articles.map(article => ({
+    ...article,
+    urlToImage: resolveArticleImage(article, 'world', usedImages)
+  }));
+
+  return res.json({ status: 'ok', totalResults: finalArticles.length, articles: finalArticles });
 });
 
 export default router;
+
