@@ -9,6 +9,39 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Prevent React crashes when Google Translate or other translation tools mutate the DOM -->
+    <script>
+      (function() {
+        if (typeof Node !== 'undefined' && Node.prototype) {
+          const originalRemoveChild = Node.prototype.removeChild;
+          Node.prototype.removeChild = function(child) {
+            if (child.parentNode !== this) {
+              if (console) console.warn('removeChild: Parent mismatch, ignoring to prevent crash', this, child);
+              return child;
+            }
+            return originalRemoveChild.apply(this, arguments);
+          };
+
+          const originalInsertBefore = Node.prototype.insertBefore;
+          Node.prototype.insertBefore = function(newNode, referenceNode) {
+            if (referenceNode && referenceNode.parentNode !== this) {
+              if (console) console.warn('insertBefore: Parent mismatch, ignoring to prevent crash', this, referenceNode);
+              return newNode;
+            }
+            return originalInsertBefore.apply(this, arguments);
+          };
+
+          const originalReplaceChild = Node.prototype.replaceChild;
+          Node.prototype.replaceChild = function(newChild, oldChild) {
+            if (oldChild.parentNode !== this) {
+              if (console) console.warn('replaceChild: Parent mismatch, ignoring to prevent crash', this, oldChild);
+              return oldChild;
+            }
+            return originalReplaceChild.apply(this, arguments);
+          };
+        }
+      })();
+    </script>
   </head>
   <body class="bg-paper text-navy font-sans antialiased transition-colors duration-200 dark:bg-paper-dark dark:text-gray-100">
     <div id="root"></div>
