@@ -392,9 +392,12 @@
 .goog-te-banner-frame,
 .goog-te-banner-frame.skiptranslate,
 iframe.goog-te-banner-frame,
-.goog-te-balloon-frame {
+.goog-te-balloon-frame,
+iframe.skiptranslate,
+.skiptranslate iframe {
   display: none !important;
   visibility: hidden !important;
+  height: 0px !important;
 }
 body {
   top: 0px !important;

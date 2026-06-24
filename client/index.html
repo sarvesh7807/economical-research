@@ -47,9 +47,12 @@
       .goog-te-banner-frame,
       .goog-te-banner-frame.skiptranslate,
       iframe.goog-te-banner-frame,
-      .goog-te-balloon-frame {
+      .goog-te-balloon-frame,
+      iframe.skiptranslate,
+      .skiptranslate iframe {
         display: none !important;
         visibility: hidden !important;
+        height: 0px !important;
       }
       body {
         top: 0px !important;
@@ -69,6 +72,28 @@
         box-shadow: none !important;
       }
     </style>
+    <script>
+      (function() {
+        const checkAndHide = () => {
+          const elements = document.querySelectorAll('.goog-te-banner-frame, iframe.skiptranslate, .goog-te-balloon-frame');
+          elements.forEach(el => {
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('height', '0px', 'important');
+          });
+          if (document.body && document.body.style.top !== '0px' && document.body.style.top !== '') {
+            document.body.style.setProperty('top', '0px', 'important');
+          }
+          if (document.documentElement && document.documentElement.style.marginTop !== '0px' && document.documentElement.style.marginTop !== '') {
+            document.documentElement.style.setProperty('margin-top', '0px', 'important');
+          }
+        };
+        // Watch for changes and periodically enforce clean layout
+        setInterval(checkAndHide, 250);
+        window.addEventListener('DOMContentLoaded', checkAndHide);
+        window.addEventListener('load', checkAndHide);
+      })();
+    </script>
   </head>
   <body class="bg-paper text-navy font-sans antialiased transition-colors duration-200 dark:bg-paper-dark dark:text-gray-100">
     <div id="root"></div>
