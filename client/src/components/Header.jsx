@@ -411,7 +411,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       </div>
 
       {/* STOCKS TICKER */}
-      <div class="w-full bg-[#0A1628]/95 border-y border-gold/20 text-white py-1 px-4 text-[10px] overflow-hidden flex items-center h-7 font-mono">
+      <div class="w-full bg-[#0A1628]/95 border-y border-gold/20 text-white py-1 px-4 text-[10px] overflow-hidden flex items-center h-7 font-mono" translate="no">
         <div class="whitespace-nowrap flex gap-12 animate-[marquee_35s_linear_infinite] hover:[animation-play-state:paused] cursor-pointer">
           {stocks.map((stock, idx) => (
             <span key={idx} class="flex items-center gap-1">
@@ -439,10 +439,10 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                     title="Click to change city preference"
                     onClick={handleCityChangePrompt}
                   >
-                    {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C ✏️
+                    {getWeatherEmoji(weather.description)} {weather.city} <span translate="no">{Math.round(weather.temp)}°C</span> ✏️
                   </span>
                   <span class="text-gray-300 dark:text-gray-700">|</span>
-                  <span>💧 Humidity {weather.humidity}%</span>
+                  <span translate="no">💧 Humidity {weather.humidity}%</span>
                   {weather.monsoonActive && (
                     <>
                       <span class="text-gray-300 dark:text-gray-700">|</span>
@@ -450,20 +450,20 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                     </>
                   )}
                   <span class="text-gray-300 dark:text-gray-700">|</span>
-                  <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
+                  <span class="flex items-center gap-1 font-mono tabular-nums" translate="no">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
                 </span>
               </>
           ) : (
             <>
               <span class="text-gray-300 dark:text-gray-700">|</span>
-              <span class="flex items-center gap-1 font-mono tabular-nums">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
+              <span class="flex items-center gap-1 font-mono tabular-nums" translate="no">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
             </>
           )}
         </div>
 
         <div class="flex items-center gap-4 flex-wrap justify-end">
           {/* Custom Language Selector */}
-          <div ref={langRef} className="relative">
+          <div ref={langRef} className="relative" translate="no">
             <button
               onClick={() => setIsLangOpen(!isLangOpen)}
               className="flex items-center gap-1.5 border border-paper-border dark:border-paper-borderDark rounded px-2 py-0.5 bg-gray-50/55 dark:bg-navy-light/10 text-gray-650 dark:text-gray-300 hover:border-gold/50 transition-all font-bold text-[10px] focus:outline-none"
