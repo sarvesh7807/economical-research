@@ -242,17 +242,21 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
           </p>
         </div>
       ) : (
-        <div 
-          ref={scrollRef}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          class="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth relative"
-        >
-          {articles.map((article, idx) => (
-            <div key={`${article.url}-${idx}`} class="w-[340px] shrink-0">
-              <ArticleCard article={article} />
-            </div>
-          ))}
+        <div class="relative">
+          <div 
+            ref={scrollRef}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            class="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth"
+          >
+            {articles.map((article, idx) => (
+              <div key={`${article.url}-${idx}`} class="w-[340px] shrink-0">
+                <ArticleCard article={article} />
+              </div>
+            ))}
+          </div>
+          {/* Subtle fade overlay on the right to make the horizontal scroll cutoff look smooth */}
+          <div class="absolute top-0 right-0 bottom-4 w-16 pointer-events-none bg-gradient-to-r from-transparent to-background-light dark:to-background-dark z-10"></div>
         </div>
       )}
     </div>
@@ -867,7 +871,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       {/* Main Grid Layout */}
       <div>
         {isHomepage && renderLiveTV()}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left/Middle: News Sections (Home) or Category Grid */}
           <div class="col-span-1 lg:col-span-2 space-y-6">
             {activeCategory === 'foryou' ? (
@@ -905,12 +909,16 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                     <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-6">
                       Based on your reading history
                     </p>
-                    <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth">
-                      {personalizedNews.map((article, i) => (
-                        <div key={i} className="w-[340px] shrink-0">
-                          <ArticleCard article={article} />
-                        </div>
-                      ))}
+                    <div className="relative">
+                      <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth">
+                        {personalizedNews.map((article, i) => (
+                          <div key={i} className="w-[340px] shrink-0">
+                            <ArticleCard article={article} />
+                          </div>
+                        ))}
+                      </div>
+                      {/* Subtle fade overlay on the right to make the horizontal scroll cutoff look smooth */}
+                      <div class="absolute top-0 right-0 bottom-4 w-16 pointer-events-none bg-gradient-to-r from-transparent to-background-light dark:to-background-dark z-10"></div>
                     </div>
                   </section>
                 )}
