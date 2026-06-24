@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, ClipboardList, ArrowRight } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { fetchNews, removeDuplicates } from '../utils/newsFetcher';
 
 // Category verification logic
 function verifyArticleCategory(article, category) {
@@ -467,85 +468,58 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const loaderRef = useRef(null);
 
-  // Core Data Fetcher
-  const fetchArticles = (pageNum, clear = false) => {
-    if (clear) {
-      setLoading(true);
-      setError(null);
-    } else {
-      setLoadingMore(true);
-    }
+  const setNews = setArticles;
 
-    const queryParams = new URLSearchParams();
-    if (searchQuery) {
-      queryParams.append('q', searchQuery);
-    } else {
-      queryParams.append('category', activeCategory);
-    }
-    queryParams.append('page', pageNum);
-    queryParams.append('pageSize', 20);
-    
-    const userLang = localStorage.getItem('userLanguage');
-    if (userLang) {
-      queryParams.append('language', userLang);
-    }
-
-    const fetchUrl = `/api/news?${queryParams.toString()}`;
-
-    fetch(fetchUrl)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch data');
-        return res.json();
-      })
-      .then(data => {
-        let fetched = data.articles || [];
-        
-        // Filter out articles without images
-        fetched = fetched.filter(article => article.urlToImage && article.urlToImage.startsWith('http'));
-        
-        // Category verification filtering
-        if (!searchQuery) {
-          fetched = fetched.filter(article => verifyArticleCategory(article, activeCategory));
+  // Core Data Fetcher with multi-API fallback
+  const loadNews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (searchQuery) {
+        // Keep search using the existing backend api/news endpoint to avoid breaking it!
+        const queryParams = new URLSearchParams();
+        queryParams.append('q', searchQuery);
+        queryParams.append('page', '1');
+        queryParams.append('pageSize', '20');
+        const userLang = localStorage.getItem('userLanguage');
+        if (userLang) {
+          queryParams.append('language', userLang);
         }
-
-        // Inject category for fallback routing in ArticleCard
+        const res = await fetch(`/api/news?${queryParams.toString()}`);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        let fetched = data.articles || [];
+        fetched = fetched.filter(article => article.urlToImage && article.urlToImage.startsWith('http'));
         fetched = fetched.map(article => ({
           ...article,
           category: activeCategory
         }));
-
-        setArticles(prev => {
-          const combined = clear ? fetched : [...prev, ...fetched];
-          // Filter duplicates by title
-          const uniqueArticles = combined.filter((article, index, self) =>
-            article.title && index === self.findIndex(a => a.title === article.title)
-          );
-          
-          if (clear) {
-             console.log(`First 5 images for ${activeCategory || searchQuery}:`, uniqueArticles.slice(0,5).map(n => n.urlToImage));
-          }
-          return uniqueArticles;
-        });
-
-        const currentTotal = clear ? fetched.length : (articles.length + fetched.length);
-        setHasMore(fetched.length === 20 && currentTotal < (data.totalResults || 100));
-        
+        setNews(removeDuplicates(fetched));
+        setHasMore(false);
         if (data.warning) {
           setWarning(data.warning);
         } else {
           setWarning(null);
         }
-        setLoading(false);
-        setLoadingMore(false);
-        setError(null);
-      })
-      .catch(err => {
-        console.error('Fetch error:', err);
-        setError('Refreshing news...');
-        setLoading(false);
-        setLoadingMore(false);
-        setRetrySeconds(30);
-      });
+      } else {
+        const country = activeCategory === 'india' ? 'in' : '';
+        let fetchedArticles = await fetchNews(activeCategory, country);
+        fetchedArticles = fetchedArticles.map(article => ({
+          ...article,
+          category: activeCategory
+        }));
+        fetchedArticles = removeDuplicates(fetchedArticles);
+        setNews(fetchedArticles);
+        setHasMore(false);
+        setWarning(null);
+      }
+    } catch (err) {
+      console.error('News load failed:', err);
+      setError('Refreshing news...');
+      setRetrySeconds(30);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isHomepage = activeCategory.toLowerCase() === 'world' && !searchQuery;
@@ -562,7 +536,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     setPage(1);
     setHasMore(true);
     setTimeLeft(120);
-    fetchArticles(1, true);
+    loadNews();
   }, [activeCategory, searchQuery, triggerRefresh]);
 
   // Infinite Scroll Observer
@@ -573,7 +547,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       if (entries[0].isIntersecting) {
         setPage(prev => {
           const nextPage = prev + 1;
-          fetchArticles(nextPage, false);
+          loadNews();
           return nextPage;
         });
       }
@@ -593,7 +567,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          fetchArticles(1, true);
+          loadNews();
           setPage(1);
           return 120;
         }
@@ -609,7 +583,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     if (retrySeconds <= 0 || isHomepage) return;
     const timer = setTimeout(() => {
       if (retrySeconds === 1) {
-        fetchArticles(page, page === 1);
+        loadNews();
       }
       setRetrySeconds(prev => prev - 1);
     }, 1000);
@@ -846,7 +820,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         <h3 class="font-serif text-2xl font-bold text-navy dark:text-white mb-2">Editorial Connection Interrupted</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">{error}</p>
         <button 
-          onClick={() => fetchArticles(1, true)}
+          onClick={() => loadNews()}
           class="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-semibold text-xs transition-colors"
         >
           <RefreshCw size={14} />
@@ -1014,7 +988,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
               <button
                 onClick={() => {
                   const nextPage = page + 1;
-                  fetchArticles(nextPage, false);
+                  loadNews();
                   setPage(nextPage);
                 }}
                 class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
