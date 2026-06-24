@@ -359,39 +359,38 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         .slice(0, 3)
         .map(([topic]) => topic);
 
-      const getNewsApiUrlForTopic = (topic, apiKey) => {
+      const getNewsApiUrlForTopic = (topic) => {
         const supportedCategories = ['business', 'entertainment', 'health', 'science', 'sports', 'technology'];
         if (supportedCategories.includes(topic)) {
-          return `https://newsapi.org/v2/top-headlines?category=${topic}&apiKey=${apiKey}`;
+          return `/api/news?category=${topic}`;
         }
         
         // Custom mappings for others
         if (topic === 'world') {
-          return `https://newsapi.org/v2/top-headlines?category=general&apiKey=${apiKey}`;
+          return `/api/news?category=world`;
         }
         if (topic === 'politics') {
-          return `https://newsapi.org/v2/top-headlines?q=politics&apiKey=${apiKey}`;
+          return `/api/news?q=politics`;
         }
         if (topic === 'finance') {
-          return `https://newsapi.org/v2/top-headlines?category=business&q=finance&apiKey=${apiKey}`;
+          return `/api/news?category=business&q=finance`;
         }
         if (topic === 'cricket') {
-          return `https://newsapi.org/v2/top-headlines?category=sports&q=cricket&apiKey=${apiKey}`;
+          return `/api/news?category=sports&q=cricket`;
         }
         if (topic === 'football') {
-          return `https://newsapi.org/v2/top-headlines?category=sports&q=football&apiKey=${apiKey}`;
+          return `/api/news?category=sports&q=football`;
         }
         if (topic === 'mma') {
-          return `https://newsapi.org/v2/top-headlines?category=sports&q=mma&apiKey=${apiKey}`;
+          return `/api/news?category=sports&q=mma`;
         }
         
-        return `https://newsapi.org/v2/top-headlines?q=${topic}&apiKey=${apiKey}`;
+        return `/api/news?q=${encodeURIComponent(topic)}`;
       };
 
-      const apiKey = '6f075b0f9ff24eff9cebc5eb569e4731';
       const results = await Promise.all(
         topTopics.map(topic => 
-          fetch(getNewsApiUrlForTopic(topic, apiKey))
+          fetch(getNewsApiUrlForTopic(topic))
             .then(r => r.json())
             .then(d => {
               const rawArticles = d.articles || [];
@@ -421,7 +420,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       if (unique.length > 0 && topTopics.length > 0) {
         const topTopic = topTopics[0];
         // Fetch fresh breaking news for favorite topic
-        const url = getNewsApiUrlForTopic(topTopic, apiKey);
+        const url = getNewsApiUrlForTopic(topTopic);
         fetch(url)
           .then(r => r.json())
           .then(data => {

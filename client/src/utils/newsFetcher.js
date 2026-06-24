@@ -94,15 +94,14 @@ const normalizeNewsData = (articles) =>
     a.title
   )
 
-// Fetch from NewsAPI
+// Fetch from NewsAPI (via our backend proxy to avoid browser-plan restrictions)
 const fetchFromNewsAPI = async (category, country = '') => {
-  const cat = categoryMaps.newsapi[category] || 'general'
-  const countryParam = country ? `&country=${country}` : '&language=en'
-  const url = `https://newsapi.org/v2/top-headlines?category=${cat}${countryParam}&pageSize=20&apiKey=${import.meta.env.VITE_NEWSAPI_KEY}`
+  const countryParam = country ? `&country=${country}` : ''
+  const url = `/api/news?category=${category}${countryParam}`
   const res = await fetch(url)
   const data = await res.json()
-  if (data.status !== 'ok') throw new Error('NewsAPI failed')
-  return normalizeNewsAPI(data.articles || [])
+  if (data.status !== 'ok') throw new Error('NewsAPI proxy failed')
+  return data.articles || []
 }
 
 // Fetch from GNews
