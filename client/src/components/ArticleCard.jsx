@@ -311,13 +311,30 @@ export default function ArticleCard({ article }) {
     localStorage.setItem(key, currentCount + 1);
   };
 
-  const handleBookmarkToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (bookmarked) {
-      deleteBookmark(url);
+  const handleBookmarkToggle = async () => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal'));
+      return;
+    }
+    
+    if (isBookmarked) {
+      setBookmarked(false);
+      removeBookmark(url);
+      if (window.gtag) {
+        window.gtag('event', 'remove_bookmark', {
+          article_title: title,
+          article_url: url
+        });
+      }
     } else {
+      setBookmarked(true);
       saveBookmark(article);
+      if (window.gtag) {
+        window.gtag('event', 'save_bookmark', {
+          article_title: title,
+          article_url: url
+        });
+      }
     }
   };
 
@@ -327,12 +344,26 @@ export default function ArticleCard({ article }) {
       e.preventDefault();
       setPaywallActive(true);
       setPaywallType('reads');
+      if (window.gtag) {
+        window.gtag('event', 'paywall_blocked', {
+          action_type: 'read',
+          article_title: title
+        });
+      }
       return;
     }
     logReadingEvent(article);
     const topic = getArticleTopic();
     trackArticleRead(topic, 1);
     incrementPaywallCount('reads');
+    if (window.gtag) {
+      window.gtag('event', 'article_open', {
+        article_title: title,
+        article_url: url,
+        article_source: article.source?.name || 'Unknown',
+        article_category: activeCategory || article.category || 'world'
+      });
+    }
   };
 
   // Trigger Gemini Summary

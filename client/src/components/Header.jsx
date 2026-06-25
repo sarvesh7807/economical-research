@@ -276,6 +276,13 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
   }, [searchQuery]);
 
   const handleLanguageChange = (langCode) => {
+    if (window.gtag) {
+      window.gtag('event', 'language_switch', {
+        language_code: langCode,
+        transport: 'beacon'
+      });
+    }
+
     localStorage.setItem('userLanguage', langCode);
     
     // Set cookie

@@ -108,6 +108,19 @@ export default function Billing({ setView }) {
         billingCycle: cycle
       });
       console.log('Transaction saved to Firestore successfully.');
+      if (window.gtag) {
+        window.gtag('event', 'purchase', {
+          transaction_id: orderId || paymentId,
+          value: amount,
+          currency: 'INR',
+          items: [{
+            item_id: planId,
+            item_name: planName,
+            price: amount,
+            quantity: 1
+          }]
+        });
+      }
     } catch (dbErr) {
       console.error('Error saving transaction to Firestore:', dbErr);
     }
@@ -155,6 +168,14 @@ export default function Billing({ setView }) {
   };
 
   const handleCheckout = async (planId, forceSandbox = false) => {
+    if (window.gtag) {
+      window.gtag('event', 'begin_checkout', {
+        plan_id: planId,
+        checkout_cycle: cycle,
+        force_sandbox: forceSandbox
+      });
+    }
+
     if (!user) {
       window.dispatchEvent(new CustomEvent('open-auth-modal'));
       return;
@@ -302,6 +323,13 @@ export default function Billing({ setView }) {
   const handleWaitlistSubmit = (e) => {
     e.preventDefault();
     if (!waitlistEmail.trim()) return;
+
+    if (window.gtag) {
+      window.gtag('event', 'join_waitlist', {
+        plan_id: selectedPlanForWaitlist,
+        waitlist_email: waitlistEmail.trim()
+      });
+    }
 
     // Save waitlist email locally
     const saved = JSON.parse(localStorage.getItem('er_pro_waitlist') || '[]');

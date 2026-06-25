@@ -722,7 +722,13 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const handleResearchSubmit = (e) => {
     if (e) e.preventDefault();
     if (!researchInput.trim()) return;
-    setActiveResearchTopic(researchInput.trim());
+    const topic = researchInput.trim();
+    if (window.gtag) {
+      window.gtag('event', 'compile_research', {
+        research_topic: topic
+      });
+    }
+    setActiveResearchTopic(topic);
     setIsResearchOpen(true);
     setResearchInput('');
   };

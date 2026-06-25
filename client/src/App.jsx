@@ -293,6 +293,61 @@ function AppContent() {
     setView('feed');
   };
 
+  // GA4 Event and Page View Tracking
+  useEffect(() => {
+    if (window.gtag) {
+      const path = window.location.pathname + window.location.search;
+      window.gtag('event', 'page_view', {
+        page_title: `View: ${view}`,
+        page_location: window.location.href,
+        page_path: path
+      });
+    }
+  }, [view, selectedTrackerId]);
+
+  useEffect(() => {
+    if (activeCategory && window.gtag) {
+      window.gtag('event', 'category_visit', {
+        category_name: activeCategory
+      });
+    }
+  }, [activeCategory]);
+
+  useEffect(() => {
+    if (searchQuery && window.gtag) {
+      window.gtag('event', 'search', {
+        search_term: searchQuery
+      });
+    }
+  }, [searchQuery]);
+
+  // Outbound link click tracker
+  useEffect(() => {
+    const handleOutboundClick = (e) => {
+      const link = e.target.closest('a');
+      if (link && link.href) {
+        try {
+          const url = new URL(link.href, window.location.origin);
+          if (url.origin !== window.location.origin) {
+            if (window.gtag) {
+              window.gtag('event', 'click', {
+                event_category: 'outbound',
+                event_label: link.href,
+                value: link.href,
+                outbound: true,
+                transport: 'beacon'
+              });
+            }
+          }
+        } catch (err) {
+          // ignore invalid URLs
+        }
+      }
+    };
+    document.addEventListener('click', handleOutboundClick);
+    return () => document.removeEventListener('click', handleOutboundClick);
+  }, []);
+
   const triggerRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
