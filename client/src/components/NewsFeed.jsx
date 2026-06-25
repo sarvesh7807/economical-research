@@ -265,6 +265,27 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
 
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
   const { user, subscription, guestId, userPreferences, addNotification } = useAuth();
+  
+  const [weather, setWeather] = useState(() => {
+    const cached = localStorage.getItem('er_weather_data');
+    return cached ? JSON.parse(cached) : null;
+  });
+
+  useEffect(() => {
+    const handleWeatherUpdate = (e) => {
+      setWeather(e.detail);
+    };
+    window.addEventListener('weather-updated', handleWeatherUpdate);
+    return () => window.removeEventListener('weather-updated', handleWeatherUpdate);
+  }, []);
+
+  const navigate = (path) => {
+    if (path === '/pricing' || path === '/billing') {
+      window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
+    } else {
+      window.location.href = path;
+    }
+  };
   const [personalizedNews, setPersonalizedNews] = useState([]);
   const [loadingPersonalized, setLoadingPersonalized] = useState(false);
   const [articles, setArticles] = useState([]);
@@ -833,6 +854,13 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     );
   }
 
+  const feedArticles = activeCategory === 'foryou' ? personalizedNews : articles;
+  const trendingNews = feedArticles.slice(0, 5);
+  let latestNews = feedArticles.filter(a => a.urlToImage).slice(5, 10);
+  if (latestNews.length === 0) {
+    latestNews = feedArticles.filter(a => a.urlToImage).slice(0, 5);
+  }
+
   return (
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
       {/* Feed Title and Header */}
@@ -853,7 +881,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 <span>Sync: {timeLeft}s</span>
               </span>
               <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
-                {articles.length} Bulletins
+                {feedArticles.length} Bulletins
               </span>
             </>
           )}
@@ -868,77 +896,108 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         </div>
       )}
 
-      {/* Main Grid Layout */}
-      <div>
-        {isHomepage && renderLiveTV()}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left/Middle: News Sections (Home) or Category Grid */}
-          <div class="col-span-1 lg:col-span-2 space-y-6">
-            {activeCategory === 'foryou' ? (
-              personalizedNews.length === 0 ? (
-                <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
-                  <Sparkles size={40} class="mx-auto text-gold mb-3 animate-pulse" />
-                  <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1 uppercase">Recommendation Profile Empty</h3>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Choose your favorite topics to compile your personalized intelligence wire.</p>
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-interest-modal'))}
-                    class="px-5 py-2.5 bg-gold text-[#0A1628] hover:scale-105 transition-all text-xs font-black uppercase tracking-wider rounded-full shadow"
-                  >
-                    Select Interests
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <ArticleCard article={personalizedNews[0]} isLead={true} />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {personalizedNews.slice(1).map((article, idx) => (
-                      <ArticleCard key={`${article.url}-${idx}`} article={article} />
-                    ))}
+      {/* Main Layout Area */}
+      {isHomepage ? (
+        <div>
+          {renderLiveTV()}
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left/Middle: News Sections (Home) */}
+            <div class="col-span-1 lg:col-span-2 space-y-6">
+              {activeCategory === 'foryou' ? (
+                personalizedNews.length === 0 ? (
+                  <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
+                    <Sparkles size={40} class="mx-auto text-gold mb-3 animate-pulse" />
+                    <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1 uppercase">Recommendation Profile Empty</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Choose your favorite topics to compile your personalized intelligence wire.</p>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-interest-modal'))}
+                      class="px-5 py-2.5 bg-gold text-[#0A1628] hover:scale-105 transition-all text-xs font-black uppercase tracking-wider rounded-full shadow"
+                    >
+                      Select Interests
+                    </button>
                   </div>
-                </div>
-              )
-            ) : isHomepage ? (
-              <div class="space-y-2">
-                {/* Homepage Personalized Section (Step 4) */}
-                {personalizedNews.length > 0 && (
-                  <section className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-gold/10 via-[#0A1628]/10 to-gold/5 border border-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.05)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gold/5 blur-2xl pointer-events-none"></div>
-                    <h2 className="font-display text-xl md:text-2xl font-black tracking-tight text-gold uppercase mb-1 flex items-center gap-2">
-                      ⭐ Your Personalized Feed
-                    </h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-6">
-                      Based on your reading history
-                    </p>
-                    <div className="relative">
-                      <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth">
-                        {personalizedNews.map((article, i) => (
-                          <div key={i} className="w-[340px] shrink-0">
-                            <ArticleCard article={article} />
-                          </div>
-                        ))}
-                      </div>
-                      {/* Subtle fade overlay on the right to make the horizontal scroll cutoff look smooth */}
-                      <div class="absolute top-0 right-0 bottom-4 w-16 pointer-events-none bg-gradient-to-r from-transparent to-background-light dark:to-background-dark z-10"></div>
+                ) : (
+                  <div className="space-y-6">
+                    <ArticleCard article={personalizedNews[0]} isLead={true} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {personalizedNews.slice(1).map((article, idx) => (
+                        <ArticleCard key={`${article.url}-${idx}`} article={article} />
+                      ))}
                     </div>
-                  </section>
-                )}
-                {detectedCountry && (
-                  <NewsSection 
-                    title="News from Your Region" 
-                    category="world"
-                    fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
-                  />
-                )}
-                <NewsSection title="World News" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="India News" category="india" fetchUrl={`/api/news?category=india&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Business News" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Technology News" category="tech" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Sports News" category="sports" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Health News" category="health" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Science News" category="science" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                <NewsSection title="Entertainment News" category="entertainment" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  </div>
+                )
+              ) : (
+                <div class="space-y-2">
+                  {/* Homepage Personalized Section (Step 4) */}
+                  {personalizedNews.length > 0 && (
+                    <section className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-gold/10 via-[#0A1628]/10 to-gold/5 border border-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.05)] relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gold/5 blur-2xl pointer-events-none"></div>
+                      <h2 className="font-display text-xl md:text-2xl font-black tracking-tight text-gold uppercase mb-1 flex items-center gap-2">
+                        ⭐ Your Personalized Feed
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-6">
+                        Based on your reading history
+                      </p>
+                      <div className="relative">
+                        <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth">
+                          {personalizedNews.map((article, i) => (
+                            <div key={i} className="w-[340px] shrink-0">
+                              <ArticleCard article={article} />
+                            </div>
+                          ))}
+                        </div>
+                        {/* Subtle fade overlay on the right to make the horizontal scroll cutoff look smooth */}
+                        <div class="absolute top-0 right-0 bottom-4 w-16 pointer-events-none bg-gradient-to-r from-transparent to-background-light dark:to-background-dark z-10"></div>
+                      </div>
+                    </section>
+                  )}
+                  {detectedCountry && (
+                    <NewsSection 
+                      title="News from Your Region" 
+                      category="world"
+                      fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
+                    />
+                  )}
+                  <NewsSection title="World News" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="India News" category="india" fetchUrl={`/api/news?category=india&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Business News" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Technology News" category="tech" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Sports News" category="sports" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Health News" category="health" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Science News" category="science" fetchUrl={`/api/science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Entertainment News" category="entertainment" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                </div>
+              )}
+            </div>
+            {/* Right Side: Research Desk & Side Panel */}
+            <div class="col-span-1 space-y-6">
+              {renderResearchDesk()}
+              {isHomepage && <OutcomeTrackerWidget />}
+              {renderSidePanel()}
+              <div class="sticky top-6 space-y-6">
+                <TrendingWidget />
+                <MarketSignalsWidget />
               </div>
-            ) : articles.length === 0 ? (
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Category / Search Feed
+        <div className="main-content-wrapper">
+          <div className="news-feed-main">
+            {activeCategory === 'foryou' && personalizedNews.length === 0 ? (
+              <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
+                <Sparkles size={40} class="mx-auto text-gold mb-3 animate-pulse" />
+                <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1 uppercase">Recommendation Profile Empty</h3>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Choose your favorite topics to compile your personalized intelligence wire.</p>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-interest-modal'))}
+                  class="px-5 py-2.5 bg-gold text-[#0A1628] hover:scale-105 transition-all text-xs font-black uppercase tracking-wider rounded-full shadow"
+                >
+                  Select Interests
+                </button>
+              </div>
+            ) : feedArticles.length === 0 ? (
               <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
                 <Newspaper size={40} class="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
                 <h3 class="font-serif text-xl font-bold text-navy dark:text-white mb-1">
@@ -951,68 +1010,149 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 </p>
               </div>
             ) : (
-              <>
-                <ArticleCard article={articles[0]} isLead={true} />
+              <div className="space-y-6">
+                <ArticleCard article={feedArticles[0]} isLead={true} />
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {articles.slice(1, 5).map((article, idx) => (
+                  {feedArticles.slice(1, 5).map((article, idx) => (
                     <ArticleCard key={`${article.url}-${idx}`} article={article} />
                   ))}
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Right Side: Research Desk & Side Panel */}
-          <div class="col-span-1 space-y-6">
-            {renderResearchDesk()}
-            {isHomepage && <OutcomeTrackerWidget />}
-            {renderSidePanel()}
-            <div class="sticky top-6 space-y-6">
-              <TrendingWidget />
-              <MarketSignalsWidget />
-            </div>
-          </div>
-        </div>
-
-        {/* Remaining articles in standard 3-column layout (Non-Homepage only) */}
-        {!isHomepage && articles.length > 5 && (
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-            {articles.slice(5).map((article, idx) => (
-              <ArticleCard key={`${article.url}-${idx + 5}`} article={article} />
-            ))}
-          </div>
-        )}
-
-        {/* Loader Element for Infinite Scroll or Load More button (Non-Homepage only) */}
-        {!isHomepage && hasMore && articles.length > 0 && (
-          <div ref={loaderRef} class="mt-8 pt-4 border-t border-dashed border-paper-border dark:border-paper-borderDark flex flex-col items-center justify-center">
-            {loadingMore ? (
-              <div class="flex items-center gap-2 text-xs font-bold text-navy dark:text-gold uppercase tracking-widest">
-                <Loader size={16} class="animate-spin text-gold" />
-                <span>Loading next page...</span>
+                
+                {feedArticles.length > 5 && (
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    {feedArticles.slice(5).map((article, idx) => (
+                      <ArticleCard key={`${article.url}-${idx + 5}`} article={article} />
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
-              <button
-                onClick={() => {
-                  const nextPage = page + 1;
-                  loadNews();
-                  setPage(nextPage);
-                }}
-                class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
-              >
-                Load More Reports
-              </button>
+            )}
+
+            {/* Loader Element for Infinite Scroll or Load More button */}
+            {hasMore && feedArticles.length > 0 && (
+              <div ref={loaderRef} class="mt-8 pt-4 border-t border-dashed border-paper-border dark:border-paper-borderDark flex flex-col items-center justify-center">
+                {loadingMore ? (
+                  <div class="flex items-center gap-2 text-xs font-bold text-navy dark:text-gold uppercase tracking-widest">
+                    <Loader size={16} class="animate-spin text-gold" />
+                    <span>Loading next page...</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const nextPage = page + 1;
+                      loadNews();
+                      setPage(nextPage);
+                    }}
+                    class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
+                  >
+                    Load More Reports
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!hasMore && feedArticles.length > 0 && (
+              <div class="mt-12 text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4 border-t border-double border-paper-border dark:border-paper-borderDark">
+                ✦ End of Editorial Ledger Wire ✦
+              </div>
             )}
           </div>
-        )}
 
-        {!isHomepage && !hasMore && articles.length > 0 && (
-          <div class="mt-12 text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4 border-t border-double border-paper-border dark:border-paper-borderDark">
-            ✦ End of Editorial Ledger Wire ✦
-          </div>
-        )}
-      </div>
-      
+          <aside className="sidebar">
+            {/* 1. TRENDING NEWS Section */}
+            <div className="sidebar-section">
+              <h3>🔥 Trending Now</h3>
+              {trendingNews.slice(0, 5).map((article, i) => (
+                <a href={article.url} target="_blank" rel="noopener noreferrer" key={i}>
+                  <div className="trending-item">
+                    <span className="trending-number">{i + 1}</span>
+                    <p>{article.title}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            {/* 2. LATEST NEWS Section */}
+            <div className="sidebar-section">
+              <h3>⚡ Latest Updates</h3>
+              {latestNews.slice(0, 5).map((article, i) => (
+                <a href={article.url} target="_blank" rel="noopener noreferrer" key={i}>
+                  <div className="latest-item">
+                    <img src={article.urlToImage} 
+                      style={{width:'70px', height:'50px',
+                        objectFit:'cover', borderRadius:'4px'}}/>
+                    <p>{article.title?.slice(0,60)}...</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            {/* 3. WEATHER WIDGET Section */}
+            <div className="sidebar-section">
+              <h3>🌤️ Weather</h3>
+              {weather && (
+                <div style={{color: '#fff', fontSize: '13px', lineHeight: '1.6'}}>
+                  <p style={{fontWeight: 'bold', fontSize: '15px'}}>{weather.city}</p>
+                  <p style={{fontSize: '24px', fontWeight: '900', color: '#F4A726', margin: '4px 0'}}>{weather.temp}°C</p>
+                  <p style={{textTransform: 'capitalize'}}>{weather.description}</p>
+                </div>
+              )}
+            </div>
+
+            {/* 4. FOLLOW US Section */}
+            <div className="sidebar-section">
+              <h3>Follow Us</h3>
+              <a href="https://x.com/ERNewsDesk" 
+                target="_blank" rel="noopener noreferrer"
+                style={{display: 'block', color: '#fff', fontSize: '13px', margin: '6px 0', textDecoration: 'none', transition: 'color 0.2s'}}
+                onMouseOver={(e) => e.target.style.color = '#F4A726'}
+                onMouseOut={(e) => e.target.style.color = '#fff'}
+              >X (Twitter)</a>
+              <a href="https://www.instagram.com/economical.research"
+                target="_blank" rel="noopener noreferrer"
+                style={{display: 'block', color: '#fff', fontSize: '13px', margin: '6px 0', textDecoration: 'none', transition: 'color 0.2s'}}
+                onMouseOver={(e) => e.target.style.color = '#F4A726'}
+                onMouseOut={(e) => e.target.style.color = '#fff'}
+              >Instagram</a>
+            </div>
+
+            {/* 5. SUBSCRIBE Section */}
+            <div className="sidebar-section">
+              <h3>📰 Go PRO</h3>
+              <p style={{color: '#fff', fontSize: '12px', lineHeight: '1.4', marginBottom: '12px'}}>
+                Unlimited AI features, ad-free experience and more!
+              </p>
+              <button 
+                onClick={() => navigate('/pricing')}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(90deg, #F4A726, #e09015)',
+                  color: '#0A1628',
+                  fontWeight: '800',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, opacity 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = 'scale(1.02)';
+                  e.target.style.opacity = '0.9';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'scale(1)';
+                  e.target.style.opacity = '1';
+                }}
+              >
+                Upgrade to PRO
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {isResearchOpen && (
         <ResearchMode topic={activeResearchTopic} onClose={() => setIsResearchOpen(false)} />
       )}

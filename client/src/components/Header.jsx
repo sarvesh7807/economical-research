@@ -138,15 +138,19 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
       localStorage.setItem('er_weather_country_pref', country);
     }
 
-    setWeather({
+    const weatherData = {
       city: data.name,
-      temp: data.main?.temp || 0,
+      temp: Math.round(data.main?.temp || 0),
       feels: data.main?.feels_like || 0,
       humidity: humidity,
       description: description,
       country: country,
       monsoonActive: monsoonActive
-    });
+    };
+
+    setWeather(weatherData);
+    localStorage.setItem('er_weather_data', JSON.stringify(weatherData));
+    window.dispatchEvent(new CustomEvent('weather-updated', { detail: weatherData }));
   };
 
   const fetchWeather = async (lat, lon) => {
