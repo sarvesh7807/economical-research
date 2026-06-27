@@ -262,6 +262,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const isHomepage = activeCategory.toLowerCase() === 'world' && !searchQuery;
   const currentId = user ? user.uid : localStorage.getItem('guestId');
+  const detectedCountry = weather?.country || localStorage.getItem('er_weather_country_pref') || '';
+  const warning = null;
 
   // React Query for recommendations
   const { data: personalizedNewsData, isLoading: loadingPersonalized } = useQuery({
@@ -766,7 +768,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         <h3 class="font-serif text-2xl font-bold text-navy dark:text-white mb-2">Editorial Connection Interrupted</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">{error}</p>
         <button 
-          onClick={() => loadNews()}
+          onClick={() => refetch()}
           class="inline-flex items-center gap-1.5 px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-semibold text-xs transition-colors"
         >
           <RefreshCw size={14} />
