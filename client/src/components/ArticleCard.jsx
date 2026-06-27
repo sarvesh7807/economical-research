@@ -688,7 +688,9 @@ function ArticleCard({ article, isLead }) {
       ref={articleRef}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setReadProgress(0); }}
-      class="glass-card p-5 flex flex-col justify-between relative group min-h-[350px] overflow-hidden rounded-3xl"
+      class={`glass-card p-5 flex flex-col justify-between relative group overflow-hidden rounded-3xl transition-all ${
+        isLead ? 'w-full min-h-[500px]' : 'w-full h-[480px] shrink-0'
+      }`}
     >
       {/* Simulated Reading Progressive Bar */}
       <div 
@@ -698,7 +700,12 @@ function ArticleCard({ article, isLead }) {
 
       <div>
         {/* Featured Image - Bleeds to top edge */}
-        <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden" style={{ background: '#1A3A5C', minHeight: '200px' }}>
+        <div 
+          class={`relative w-full -mx-5 -mt-5 mb-5 overflow-hidden ${
+            isLead ? 'h-56 md:h-64' : 'h-40 md:h-44'
+          }`} 
+          style={{ background: '#1A3A5C', minHeight: isLead ? '220px' : '160px' }}
+        >
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
           <img 
             src={imageUrl} 
@@ -815,7 +822,7 @@ function ArticleCard({ article, isLead }) {
 
         {/* Article Title */}
         <h3 class={`font-display font-bold leading-tight text-navy dark:text-white hover:text-primary-glow dark:hover:text-primary-glow transition-colors mb-3 ${
-          isLead ? 'text-2xl md:text-3xl line-clamp-3' : 'text-xl md:text-2xl line-clamp-3'
+          isLead ? 'text-2xl md:text-3xl line-clamp-3' : 'text-xl md:text-2xl line-clamp-2'
         }`}>
           <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
             {translatedTitle || title}
@@ -831,7 +838,7 @@ function ArticleCard({ article, isLead }) {
 
         {/* Article Description */}
         <p class={`text-navy/80 dark:text-gray-300 leading-relaxed font-sans mb-5 ${
-          isLead ? 'line-clamp-6' : 'line-clamp-4'
+          isLead ? 'line-clamp-4' : 'line-clamp-2'
         } ${
           settings?.fontSize === 'small' ? 'text-sm' : 
           settings?.fontSize === 'large' ? 'text-lg' : 'text-base'
