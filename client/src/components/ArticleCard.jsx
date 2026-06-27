@@ -6,7 +6,7 @@ import { getCachedOrFetchAI } from '../utils/aiCache';
 import ShareModal from './ShareModal';
 import { getPremiumArticleImage } from '../utils/imageSystem';
 
-export default function ArticleCard({ article }) {
+function ArticleCard({ article, isLead }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
   const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
   
@@ -154,6 +154,23 @@ export default function ArticleCard({ article }) {
   };
 
 
+
+  const [imgError, setImgError] = useState(false);
+  const imageUrl = getPremiumArticleImage(imgError ? { ...article, urlToImage: null } : article);
+
+  // Preload above-the-fold hero image dynamically
+  useEffect(() => {
+    if (isLead && imageUrl) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = imageUrl;
+      document.head.appendChild(link);
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, [isLead, imageUrl]);
 
   useEffect(() => {
     return () => {
@@ -595,7 +612,6 @@ export default function ArticleCard({ article }) {
   };
 
   // Image error handling
-  const [imgError, setImgError] = useState(false);
 
   const categoryFallbacks = {
     world: [
@@ -685,9 +701,11 @@ export default function ArticleCard({ article }) {
         <div class="relative w-full h-48 -mx-5 -mt-5 mb-5 overflow-hidden" style={{ background: '#1A3A5C', minHeight: '200px' }}>
           <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
           <img 
-            src={getPremiumArticleImage(imgError ? { ...article, urlToImage: null } : article)} 
+            src={imageUrl} 
             alt={title} 
-            loading="lazy"
+            loading={isLead ? "eager" : "lazy"}
+            fetchPriority={isLead ? "high" : "low"}
+            decoding="async"
             class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
             onError={() => setImgError(true)}
           />
@@ -796,7 +814,9 @@ export default function ArticleCard({ article }) {
         )}
 
         {/* Article Title */}
-        <h3 class="font-display text-xl md:text-2xl font-bold leading-tight text-navy dark:text-white hover:text-primary-glow dark:hover:text-primary-glow transition-colors mb-3">
+        <h3 class={`font-display font-bold leading-tight text-navy dark:text-white hover:text-primary-glow dark:hover:text-primary-glow transition-colors mb-3 ${
+          isLead ? 'text-2xl md:text-3xl line-clamp-3' : 'text-xl md:text-2xl line-clamp-3'
+        }`}>
           <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
             {translatedTitle || title}
           </a>
@@ -811,6 +831,8 @@ export default function ArticleCard({ article }) {
 
         {/* Article Description */}
         <p class={`text-navy/80 dark:text-gray-300 leading-relaxed font-sans mb-5 ${
+          isLead ? 'line-clamp-6' : 'line-clamp-4'
+        } ${
           settings?.fontSize === 'small' ? 'text-sm' : 
           settings?.fontSize === 'large' ? 'text-lg' : 'text-base'
         }`}>
@@ -1245,3 +1267,11 @@ export default function ArticleCard({ article }) {
     </article>
   );
 }
+
+// Wrap in React.memo to prevent unnecessary re-renders of the cards
+export default React.memo(ArticleCard, (prev, next) => {
+  return prev.isLead === next.isLead && 
+         prev.article.url === next.article.url && 
+         prev.article.title === next.article.title && 
+         prev.article.publishedAt === next.article.publishedAt;
+});

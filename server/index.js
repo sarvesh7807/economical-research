@@ -88,10 +88,19 @@ app.get('/api/youtube-live', async (req, res) => {
 const NEWS_API_BASE = 'https://newsapi.org/v2';
 const getNewsApiKey = () => process.env.NEWS_API_KEY;
 
+const suggestionsCache = {};
+const SUGGESTIONS_TTL = 15 * 60 * 1000; // 15 minutes
+
 app.get('/api/suggestions', async (req, res) => {
   const { q = '' } = req.query;
   if (!q || q.length < 2) {
     return res.json([]);
+  }
+
+  const queryKey = q.toLowerCase();
+  const cached = suggestionsCache[queryKey];
+  if (cached && (Date.now() - cached.timestamp < SUGGESTIONS_TTL)) {
+    return res.json(cached.data);
   }
 
   const apiKey = getNewsApiKey();
@@ -116,6 +125,11 @@ app.get('/api/suggestions', async (req, res) => {
         .map(a => a.title.split(' - ')[0])
         .filter(t => t && t.length < 80)
     )).slice(0, 5);
+
+    suggestionsCache[queryKey] = {
+      timestamp: Date.now(),
+      data: suggestions
+    };
 
     res.json(suggestions);
   } catch (error) {

@@ -3,28 +3,31 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Header from './components/Header';
 import NewsFeed from './components/NewsFeed';
-import Profile from './components/Profile';
-import Settings from './components/Settings';
-import Billing from './components/Billing';
-import AdminPanel from './components/AdminPanel';
 import AiAssistant from './components/AiAssistant';
 import AuthModal from './components/AuthModal';
-import EPaper from './components/EPaper';
-import LiveTV from './components/LiveTV';
-import LegalPages from './components/LegalPages';
 import CookieConsent from './components/CookieConsent';
-import ErAssistantFull from './components/ErAssistantFull';
-import FakeNewsChecker from './components/FakeNewsChecker';
-import BiasDetector from './components/BiasDetector';
-import WorldMap from './components/WorldMap';
-import OutcomeTracker from './components/OutcomeTracker';
-import OutcomeDetail from './components/OutcomeDetail';
 import ErrorBoundary from './components/ErrorBoundary';
-import BillingHistory from './components/BillingHistory';
 import SocialLinks from './components/SocialLinks';
 import InterestSelectorModal from './components/InterestSelectorModal';
+
+// Lazy load secondary modules to reduce initial JS execution time
+const Profile = React.lazy(() => import('./components/Profile'));
+const Settings = React.lazy(() => import('./components/Settings'));
+const Billing = React.lazy(() => import('./components/Billing'));
+const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
+const EPaper = React.lazy(() => import('./components/EPaper'));
+const LiveTV = React.lazy(() => import('./components/LiveTV'));
+const LegalPages = React.lazy(() => import('./components/LegalPages'));
+const ErAssistantFull = React.lazy(() => import('./components/ErAssistantFull'));
+const FakeNewsChecker = React.lazy(() => import('./components/FakeNewsChecker'));
+const BiasDetector = React.lazy(() => import('./components/BiasDetector'));
+const WorldMap = React.lazy(() => import('./components/WorldMap'));
+const OutcomeTracker = React.lazy(() => import('./components/OutcomeTracker'));
+const OutcomeDetail = React.lazy(() => import('./components/OutcomeDetail'));
+const BillingHistory = React.lazy(() => import('./components/BillingHistory'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -391,91 +394,103 @@ function AppContent() {
 
       {/* Main Content Router */}
       <main class="flex-grow">
-        {view === 'feed' ? (
-          <ErrorBoundary>
-            <NewsFeed 
-              activeCategory={activeCategory}
-              searchQuery={searchQuery}
-              triggerRefresh={triggerRefresh}
-            />
-          </ErrorBoundary>
-        ) : view === 'assistant' ? (
-          <ErAssistantFull />
-        ) : view === 'fake-news' ? (
-          <FakeNewsChecker />
-        ) : view === 'bias-detector' ? (
-          <BiasDetector />
-        ) : view === 'world-map' ? (
-          <WorldMap setView={setView} />
-        ) : view === 'outcome-tracker' ? (
-          <OutcomeTracker setView={setView} />
-        ) : view === 'outcome-detail' ? (
-          <OutcomeDetail setView={setView} trackerId={selectedTrackerId} />
-        ) : view === 'profile' ? (
-          user ? (
-            <Profile 
+        <React.Suspense fallback={
+          <div class="fixed inset-0 z-50 bg-paper/80 dark:bg-paper-dark/80 backdrop-blur-sm flex flex-col items-center justify-center text-navy dark:text-gold animate-pulse">
+            <div class="flex flex-col items-center gap-3">
+              <div class="relative flex h-10 w-10">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-10 w-10 border-4 border-double border-gold animate-spin"></span>
+              </div>
+              <span class="text-[10px] font-black uppercase tracking-widest font-mono">LOADING DISPATCH BRIEF...</span>
+            </div>
+          </div>
+        }>
+          {view === 'feed' ? (
+            <ErrorBoundary>
+              <NewsFeed 
+                activeCategory={activeCategory}
+                searchQuery={searchQuery}
+                triggerRefresh={triggerRefresh}
+              />
+            </ErrorBoundary>
+          ) : view === 'assistant' ? (
+            <ErAssistantFull />
+          ) : view === 'fake-news' ? (
+            <FakeNewsChecker />
+          ) : view === 'bias-detector' ? (
+            <BiasDetector />
+          ) : view === 'world-map' ? (
+            <WorldMap setView={setView} />
+          ) : view === 'outcome-tracker' ? (
+            <OutcomeTracker setView={setView} />
+          ) : view === 'outcome-detail' ? (
+            <OutcomeDetail setView={setView} trackerId={selectedTrackerId} />
+          ) : view === 'profile' ? (
+            user ? (
+              <Profile 
+                setView={setView}
+                onSearchSubmit={handleSearchSubmit}
+              />
+            ) : (
+              <div class="max-w-md mx-auto px-4 py-20 text-center font-sans">
+                <h2 class="font-serif text-2xl font-black text-navy dark:text-gold mb-2 uppercase">Access Restricted</h2>
+                <p class="text-xs text-gray-450 dark:text-gray-300 leading-relaxed mb-6 font-serif">
+                  You must be logged in to view your research credentials.
+                </p>
+                <button 
+                  onClick={() => setAuthModalOpen(true)}
+                  class="px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-bold text-xs uppercase"
+                >
+                  Log In
+                </button>
+              </div>
+            )
+          ) : view === 'settings' ? (
+            <Settings 
               setView={setView}
-              onSearchSubmit={handleSearchSubmit}
+            />
+          ) : view === 'billing' ? (
+            <Billing 
+              setView={setView}
+            />
+          ) : view === 'billing-history' ? (
+            <BillingHistory setView={setView} />
+          ) : view === 'admin' ? (
+            <AdminPanel 
+              setView={setView}
+            />
+          ) : view === 'epaper' ? (
+            <EPaper 
+              setView={setView}
+            />
+          ) : view === 'livetv' ? (
+            <ErrorBoundary>
+              <LiveTV 
+                setView={setView}
+              />
+            </ErrorBoundary>
+          ) : ['about', 'contact', 'terms', 'privacy'].includes(view) ? (
+            <LegalPages 
+              setView={setView}
+              initialSection={view}
             />
           ) : (
+            /* Custom 404 Page View */
             <div class="max-w-md mx-auto px-4 py-20 text-center font-sans">
-              <h2 class="font-serif text-2xl font-black text-navy dark:text-gold mb-2 uppercase">Access Restricted</h2>
+              <h2 class="font-serif text-5xl font-black text-navy dark:text-gold mb-2">404</h2>
+              <p class="text-xs uppercase tracking-widest font-mono text-gray-400 mb-6">WIRE BRIEFING NOT FOUND</p>
               <p class="text-xs text-gray-450 dark:text-gray-300 leading-relaxed mb-6 font-serif">
-                You must be logged in to view your research credentials.
+                The satellite channel or editorial brief you are attempting to retrieve does not exist in our active indexing ledger.
               </p>
               <button 
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => setView('feed')}
                 class="px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-bold text-xs uppercase"
               >
-                Log In
+                Return to News Feed
               </button>
             </div>
-          )
-        ) : view === 'settings' ? (
-          <Settings 
-            setView={setView}
-          />
-        ) : view === 'billing' ? (
-          <Billing 
-            setView={setView}
-          />
-        ) : view === 'billing-history' ? (
-          <BillingHistory setView={setView} />
-        ) : view === 'admin' ? (
-          <AdminPanel 
-            setView={setView}
-          />
-        ) : view === 'epaper' ? (
-          <EPaper 
-            setView={setView}
-          />
-        ) : view === 'livetv' ? (
-          <ErrorBoundary>
-            <LiveTV 
-              setView={setView}
-            />
-          </ErrorBoundary>
-        ) : ['about', 'contact', 'terms', 'privacy'].includes(view) ? (
-          <LegalPages 
-            setView={setView}
-            initialSection={view}
-          />
-        ) : (
-          /* Custom 404 Page View */
-          <div class="max-w-md mx-auto px-4 py-20 text-center font-sans">
-            <h2 class="font-serif text-5xl font-black text-navy dark:text-gold mb-2">404</h2>
-            <p class="text-xs uppercase tracking-widest font-mono text-gray-400 mb-6">WIRE BRIEFING NOT FOUND</p>
-            <p class="text-xs text-gray-450 dark:text-gray-300 leading-relaxed mb-6 font-serif">
-              The satellite channel or editorial brief you are attempting to retrieve does not exist in our active indexing ledger.
-            </p>
-            <button 
-              onClick={() => setView('feed')}
-              class="px-4 py-2 bg-navy text-gold hover:bg-navy-light rounded font-bold text-xs uppercase"
-            >
-              Return to News Feed
-            </button>
-          </div>
-        )}
+          )}
+        </React.Suspense>
       </main>
 
       {/* FOOTER */}
@@ -593,10 +608,25 @@ function AppContent() {
   );
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,     // 5 minutes
+      gcTime: 10 * 60 * 1000,        // 10 minutes
+      cacheTime: 10 * 60 * 1000,     // 10 minutes (backward compatibility)
+      retry: 2,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+  },
+});
+
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

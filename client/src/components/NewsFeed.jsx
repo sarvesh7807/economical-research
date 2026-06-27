@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import ArticleCard from './ArticleCard';
 import ResearchMode from './ResearchMode';
 import { useAuth } from '../contexts/AuthContext';
@@ -129,55 +130,27 @@ function verifyProfile(text, profile) {
 }
 
 function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [retrySeconds, setRetrySeconds] = useState(0);
   const scrollRef = useRef(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  const fetchSectionNews = async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['newsSection', fetchUrl],
+    queryFn: async () => {
       const res = await fetch(fetchUrl);
       if (!res.ok) throw new Error('Fetch failed');
-      const data = await res.json();
-      
-      const raw = data.articles || [];
-      // Filter duplicate articles by title and verify category
-      const unique = raw
-        .filter((article, index, self) =>
-          article.title && index === self.findIndex(a => a.title === article.title)
-        )
-        .filter(article => verifyArticleCategory(article, category || 'world'));
-      
-      setArticles(unique);
-      setLoading(false);
-    } catch (err) {
-      console.error(`Error fetching section ${title}:`, err);
-      setError('Refreshing news...');
-      setLoading(false);
-      setRetrySeconds(30);
-    }
-  };
+      return res.json();
+    },
+    refetchInterval: 120000, // automatic refetch every 2 minutes
+  });
 
-  useEffect(() => {
-    fetchSectionNews();
-    const refreshInterval = setInterval(fetchSectionNews, 120000);
-    return () => clearInterval(refreshInterval);
-  }, [fetchUrl]);
-
-  useEffect(() => {
-    if (retrySeconds <= 0) return;
-    const timer = setTimeout(() => {
-      if (retrySeconds === 1) {
-        fetchSectionNews();
-      }
-      setRetrySeconds(prev => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [retrySeconds]);
+  const rawArticles = data?.articles || [];
+  const articles = useMemo(() => {
+    return rawArticles
+      .filter((article, index, self) =>
+        article.title && index === self.findIndex(a => a.title === article.title)
+      )
+      .filter(article => verifyArticleCategory(article, category || 'world'));
+  }, [rawArticles, category]);
 
   useEffect(() => {
     if (articles.length === 0 || isHovered || !autoScroll) return;
@@ -197,7 +170,7 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
     return () => clearInterval(interval);
   }, [articles, isHovered, autoScroll]);
 
-  if (loading && articles.length === 0) {
+  if (isLoading && articles.length === 0) {
     return (
       <div class="mb-8">
         <h3 class="font-display text-lg font-black text-navy dark:text-gold uppercase tracking-wider mb-4 border-b border-gray-150 dark:border-white/10 pb-1.5 flex items-center gap-2">
@@ -230,12 +203,12 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
         </div>
         {error && (
           <span class="text-[10px] text-red-500 font-mono font-bold animate-pulse">
-            ⚠️ {error} (retrying in {retrySeconds}s)
+            ⚠️ Refreshing news...
           </span>
         )}
       </h3>
 
-      {articles.length === 0 && !loading ? (
+      {articles.length === 0 && !isLoading ? (
         <div class="py-8 text-center border border-dashed border-paper-border dark:border-paper-borderDark rounded-2xl bg-white/50 dark:bg-black/10">
           <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">
             {category && category.toLowerCase() === 'sports' ? 'No Sports Articles Available' : 'No wire articles available for this section.'}
@@ -286,17 +259,112 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       window.location.href = path;
     }
   };
-  const [personalizedNews, setPersonalizedNews] = useState([]);
-  const [loadingPersonalized, setLoadingPersonalized] = useState(false);
-  const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const isHomepage = activeCategory.toLowerCase() === 'world' && !searchQuery;
+  const currentId = user ? user.uid : localStorage.getItem('guestId');
+
+  // React Query for recommendations
+  const { data: personalizedNewsData, isLoading: loadingPersonalized } = useQuery({
+    queryKey: ['personalizedNews', currentId, userPreferences],
+    queryFn: async () => {
+      if (!currentId) return [];
+      
+      const prefDoc = await getDoc(doc(db, 'user_preferences', currentId));
+      if (!prefDoc.exists()) return [];
+
+      const scores = prefDoc.data().topicScores || {};
+      if (Object.keys(scores).length === 0) return [];
+
+      const topTopics = Object.entries(scores)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([topic]) => topic);
+
+      const getNewsApiUrlForTopic = (topic) => {
+        const supportedCategories = ['business', 'entertainment', 'health', 'science', 'sports', 'technology'];
+        if (supportedCategories.includes(topic)) {
+          return `/api/news?category=${topic}`;
+        }
+        if (topic === 'world') return `/api/news?category=world`;
+        if (topic === 'politics') return `/api/news?q=politics`;
+        if (topic === 'finance') return `/api/news?category=business&q=finance`;
+        if (topic === 'cricket') return `/api/news?category=sports&q=cricket`;
+        if (topic === 'football') return `/api/news?category=sports&q=football`;
+        if (topic === 'mma') return `/api/news?category=sports&q=mma`;
+        return `/api/news?q=${encodeURIComponent(topic)}`;
+      };
+
+      const results = await Promise.all(
+        topTopics.map(topic => 
+          fetch(getNewsApiUrlForTopic(topic))
+            .then(r => {
+              if (!r.ok) throw new Error('Fetch failed');
+              return r.json();
+            })
+            .then(d => {
+              const rawArticles = d.articles || [];
+              return rawArticles
+                .filter(art => art.title && art.urlToImage)
+                .slice(0, 3)
+                .map(art => ({ ...art, category: topic }));
+            })
+            .catch(err => {
+              console.error(`Error fetching recommendations for ${topic}:`, err);
+              return [];
+            })
+        )
+      );
+
+      const combined = results.flat();
+      const unique = combined.filter((art, index, self) =>
+        art.title && index === self.findIndex(a => a.title === art.title)
+      );
+
+      // Background breaking news trigger
+      if (unique.length > 0 && topTopics.length > 0) {
+        const topTopic = topTopics[0];
+        const url = getNewsApiUrlForTopic(topTopic);
+        fetch(url)
+          .then(r => r.json())
+          .then(data => {
+            const latestArticle = data.articles?.[0];
+            if (latestArticle) {
+              const storageKey = `last_notified_${currentId}_${topTopic}`;
+              const lastNotifiedUrl = localStorage.getItem(storageKey);
+              if (lastNotifiedUrl !== latestArticle.url) {
+                localStorage.setItem(storageKey, latestArticle.url);
+                const categoriesList = [
+                  { id: 'business', label: 'Business' },
+                  { id: 'technology', label: 'Technology' },
+                  { id: 'sports', label: 'Sports' },
+                  { id: 'politics', label: 'Politics' },
+                  { id: 'health', label: 'Health' },
+                  { id: 'science', label: 'Science' },
+                  { id: 'entertainment', label: 'Entertainment' },
+                  { id: 'world', label: 'World News' },
+                  { id: 'finance', label: 'Finance' },
+                  { id: 'cricket', label: 'Cricket' },
+                  { id: 'football', label: 'Football' },
+                  { id: 'mma', label: 'MMA' }
+                ];
+                const topicLabel = categoriesList.find(c => c.id === topTopic)?.label || topTopic;
+                addNotification('breaking', `🔴 Breaking: New [${topicLabel}] news for you!`, latestArticle.title, latestArticle.url);
+              }
+            }
+          })
+          .catch(e => console.error('Error fetching breaking alert:', e));
+      }
+
+      return unique;
+    },
+    enabled: !!currentId && (activeCategory === 'world' || activeCategory === 'foryou'),
+  });
+
+  const personalizedNews = personalizedNewsData || [];
+
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
-  const [warning, setWarning] = useState(null);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [timeLeft, setTimeLeft] = useState(120);
-  const [retrySeconds, setRetrySeconds] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(10); // Progressive rendering count
 
   const INITIAL_CHANNELS = [
     { name: 'Al Jazeera', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', id: 'UCNye-wNBqNL5ZzHSJj3l8Bg' },
@@ -358,149 +426,14 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const [activeResearchTopic, setActiveResearchTopic] = useState(null);
   const [isResearchOpen, setIsResearchOpen] = useState(false);
 
-  const fetchPersonalizedFeed = async () => {
-    const currentId = user ? user.uid : localStorage.getItem('guestId');
-    if (!currentId) return;
-
-    setLoadingPersonalized(true);
-    try {
-      const prefDoc = await getDoc(doc(db, 'user_preferences', currentId));
-      if (!prefDoc.exists()) {
-        setPersonalizedNews([]);
-        setLoadingPersonalized(false);
-        return;
-      }
-
-      const scores = prefDoc.data().topicScores || {};
-      if (Object.keys(scores).length === 0) {
-        setPersonalizedNews([]);
-        setLoadingPersonalized(false);
-        return;
-      }
-
-      // Sort topics by score (most read first)
-      const topTopics = Object.entries(scores)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([topic]) => topic);
-
-      const getNewsApiUrlForTopic = (topic) => {
-        const supportedCategories = ['business', 'entertainment', 'health', 'science', 'sports', 'technology'];
-        if (supportedCategories.includes(topic)) {
-          return `/api/news?category=${topic}`;
-        }
-        
-        // Custom mappings for others
-        if (topic === 'world') {
-          return `/api/news?category=world`;
-        }
-        if (topic === 'politics') {
-          return `/api/news?q=politics`;
-        }
-        if (topic === 'finance') {
-          return `/api/news?category=business&q=finance`;
-        }
-        if (topic === 'cricket') {
-          return `/api/news?category=sports&q=cricket`;
-        }
-        if (topic === 'football') {
-          return `/api/news?category=sports&q=football`;
-        }
-        if (topic === 'mma') {
-          return `/api/news?category=sports&q=mma`;
-        }
-        
-        return `/api/news?q=${encodeURIComponent(topic)}`;
-      };
-
-      const results = await Promise.all(
-        topTopics.map(topic => 
-          fetch(getNewsApiUrlForTopic(topic))
-            .then(r => r.json())
-            .then(d => {
-              const rawArticles = d.articles || [];
-              return rawArticles
-                .filter(art => art.title && art.urlToImage)
-                .slice(0, 3)
-                .map(art => ({
-                  ...art,
-                  category: topic
-                }));
-            })
-            .catch(err => {
-              console.error(`Error fetching recommendations for ${topic}:`, err);
-              return [];
-            })
-        )
-      );
-
-      const combined = results.flat();
-      const unique = combined.filter((art, index, self) =>
-        art.title && index === self.findIndex(a => a.title === art.title)
-      );
-
-      setPersonalizedNews(unique);
-
-      // Smart Topic Breaking News check (Step 8)
-      if (unique.length > 0 && topTopics.length > 0) {
-        const topTopic = topTopics[0];
-        // Fetch fresh breaking news for favorite topic
-        const url = getNewsApiUrlForTopic(topTopic);
-        fetch(url)
-          .then(r => r.json())
-          .then(data => {
-            const latestArticle = data.articles?.[0];
-            if (latestArticle) {
-              const storageKey = `last_notified_${currentId}_${topTopic}`;
-              const lastNotifiedUrl = localStorage.getItem(storageKey);
-              if (lastNotifiedUrl !== latestArticle.url) {
-                localStorage.setItem(storageKey, latestArticle.url);
-                const categoriesList = [
-                  { id: 'business', label: 'Business' },
-                  { id: 'technology', label: 'Technology' },
-                  { id: 'sports', label: 'Sports' },
-                  { id: 'politics', label: 'Politics' },
-                  { id: 'health', label: 'Health' },
-                  { id: 'science', label: 'Science' },
-                  { id: 'entertainment', label: 'Entertainment' },
-                  { id: 'world', label: 'World News' },
-                  { id: 'finance', label: 'Finance' },
-                  { id: 'cricket', label: 'Cricket' },
-                  { id: 'football', label: 'Football' },
-                  { id: 'mma', label: 'MMA' }
-                ];
-                const topicLabel = categoriesList.find(c => c.id === topTopic)?.label || topTopic;
-                addNotification('breaking', `🔴 Breaking: New [${topicLabel}] news for you!`, latestArticle.title, latestArticle.url);
-              }
-            }
-          })
-          .catch(e => console.error('Error fetching breaking alert:', e));
-      }
-
-    } catch (e) {
-      console.error('Error getting personalized feed:', e);
-    } finally {
-      setLoadingPersonalized(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeCategory === 'world' || activeCategory === 'foryou') {
-      fetchPersonalizedFeed();
-    }
-  }, [user, userPreferences, activeCategory]);
-
   const loaderRef = useRef(null);
 
-  const setNews = setArticles;
-
-  // Core Data Fetcher with multi-API fallback
-  const loadNews = async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  // React Query for primary news feed
+  const country = activeCategory === 'india' ? 'in' : '';
+  const { data: queryArticles, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['feedNews', activeCategory, searchQuery, triggerRefresh],
+    queryFn: async () => {
       if (searchQuery) {
-        // Keep search using the existing backend api/news endpoint to avoid breaking it!
         const queryParams = new URLSearchParams();
         queryParams.append('q', searchQuery);
         queryParams.append('page', '1');
@@ -514,75 +447,23 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         const data = await res.json();
         let fetched = data.articles || [];
         fetched = fetched.filter(article => article.urlToImage && article.urlToImage.startsWith('http'));
-        fetched = fetched.map(article => ({
-          ...article,
-          category: activeCategory
-        }));
-        setNews(removeDuplicates(fetched));
-        setHasMore(false);
-        if (data.warning) {
-          setWarning(data.warning);
-        } else {
-          setWarning(null);
-        }
+        return removeDuplicates(fetched.map(article => ({ ...article, category: activeCategory })));
       } else {
-        const country = activeCategory === 'india' ? 'in' : '';
-        let fetchedArticles = await fetchNews(activeCategory, country);
-        fetchedArticles = fetchedArticles.map(article => ({
-          ...article,
-          category: activeCategory
-        }));
-        fetchedArticles = removeDuplicates(fetchedArticles);
-        setNews(fetchedArticles);
-        setHasMore(false);
-        setWarning(null);
+        const fetched = await fetchNews(activeCategory, country);
+        return removeDuplicates(fetched.map(article => ({ ...article, category: activeCategory })));
       }
-    } catch (err) {
-      console.error('News load failed:', err);
-      setError('Refreshing news...');
-      setRetrySeconds(30);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    enabled: !isHomepage && activeCategory !== 'foryou',
+  });
 
-  const isHomepage = activeCategory.toLowerCase() === 'world' && !searchQuery;
-  const detectedCountry = localStorage.getItem('er_weather_country_pref');
+  const articles = queryArticles || [];
+  const error = queryError ? 'Refreshing news...' : null;
 
-  // Reset page and reload on filters/category changes
+  // Reset pagination/slicing count when filters/category changes
   useEffect(() => {
-    if (isHomepage) {
-      setLoading(false);
-      setArticles([]);
-      setError(null);
-      return;
-    }
-    setPage(1);
-    setHasMore(true);
+    setVisibleCount(10);
     setTimeLeft(120);
-    loadNews();
   }, [activeCategory, searchQuery, triggerRefresh]);
-
-  // Infinite Scroll Observer
-  useEffect(() => {
-    if (loading || loadingMore || !hasMore || articles.length === 0 || isHomepage) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        setPage(prev => {
-          const nextPage = prev + 1;
-          loadNews();
-          return nextPage;
-        });
-      }
-    }, { threshold: 0.5 });
-
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [loading, loadingMore, hasMore, articles, isHomepage]);
 
   // 120 Seconds Auto-Refresh Timer
   useEffect(() => {
@@ -591,8 +472,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          loadNews();
-          setPage(1);
+          refetch();
+          setVisibleCount(10);
           return 120;
         }
         return prev - 1;
@@ -600,19 +481,28 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeCategory, searchQuery, isHomepage]);
+  }, [activeCategory, searchQuery, isHomepage, refetch]);
 
-  // Main view retry timer
+  // Infinite Scroll Observer for local progressive rendering
   useEffect(() => {
-    if (retrySeconds <= 0 || isHomepage) return;
-    const timer = setTimeout(() => {
-      if (retrySeconds === 1) {
-        loadNews();
+    if (loading || loadingMore || !hasMore || feedArticles.length === 0 || isHomepage) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setLoadingMore(true);
+        setTimeout(() => {
+          setVisibleCount(prev => prev + 10);
+          setLoadingMore(false);
+        }, 200);
       }
-      setRetrySeconds(prev => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [retrySeconds, isHomepage]);
+    }, { threshold: 0.5 });
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loading, loadingMore, hasMore, feedArticles.length, isHomepage]);
 
   const getFeedTitle = () => {
     if (searchQuery) {
@@ -861,11 +751,16 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   }
 
   const feedArticles = activeCategory === 'foryou' ? personalizedNews : articles;
-  const trendingNews = feedArticles.slice(0, 5);
-  let latestNews = feedArticles.filter(a => a.urlToImage).slice(5, 10);
-  if (latestNews.length === 0) {
-    latestNews = feedArticles.filter(a => a.urlToImage).slice(0, 5);
-  }
+  const hasMore = visibleCount < feedArticles.length;
+  
+  const trendingNews = useMemo(() => feedArticles.slice(0, 5), [feedArticles]);
+  const latestNews = useMemo(() => {
+    let sliced = feedArticles.filter(a => a.urlToImage).slice(5, 10);
+    if (sliced.length === 0) {
+      sliced = feedArticles.filter(a => a.urlToImage).slice(0, 5);
+    }
+    return sliced;
+  }, [feedArticles]);
 
   return (
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
@@ -1017,16 +912,21 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
               </div>
             ) : (
               <div className="space-y-6">
-                <ArticleCard article={feedArticles[0]} isLead={true} />
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {feedArticles.slice(1, 5).map((article, idx) => (
-                    <ArticleCard key={`${article.url}-${idx}`} article={article} />
-                  ))}
-                </div>
+                {visibleCount > 0 && feedArticles.length > 0 && (
+                  <ArticleCard article={feedArticles[0]} isLead={true} />
+                )}
                 
-                {feedArticles.length > 5 && (
+                {visibleCount > 1 && feedArticles.length > 1 && (
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {feedArticles.slice(1, Math.min(5, visibleCount)).map((article, idx) => (
+                      <ArticleCard key={`${article.url}-${idx}`} article={article} />
+                    ))}
+                  </div>
+                )}
+                
+                {visibleCount > 5 && feedArticles.length > 5 && (
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    {feedArticles.slice(5).map((article, idx) => (
+                    {feedArticles.slice(5, visibleCount).map((article, idx) => (
                       <ArticleCard key={`${article.url}-${idx + 5}`} article={article} />
                     ))}
                   </div>
@@ -1045,9 +945,11 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 ) : (
                   <button
                     onClick={() => {
-                      const nextPage = page + 1;
-                      loadNews();
-                      setPage(nextPage);
+                      setLoadingMore(true);
+                      setTimeout(() => {
+                        setVisibleCount(prev => prev + 10);
+                        setLoadingMore(false);
+                      }, 200);
                     }}
                     class="px-6 py-3 bg-gradient-to-r from-navy to-primary dark:from-white/10 dark:to-white/5 text-white hover:scale-105 text-xs font-bold uppercase tracking-wider rounded-full shadow-3d-light dark:shadow-3d-dark transition-all"
                   >

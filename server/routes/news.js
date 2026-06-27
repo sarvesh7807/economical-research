@@ -152,24 +152,14 @@ const parseRSSFeed = async (feedName, url) => {
   }
 };
 
-// In-Memory cache (15 min TTL for quota saving)
+// In-Memory cache with Stale-While-Revalidate and Request Coalescing
 const feedCache = {};
-const CACHE_EXPIRY = 15 * 60 * 1000;
+const ongoingFetches = {};
+const countryCache = {};
+const ongoingCountryFetches = {};
 
-const getCachedFeed = (key) => {
-  const cached = feedCache[key];
-  if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY)) {
-    return cached.data;
-  }
-  return null;
-};
-
-const setCachedFeed = (key, data) => {
-  feedCache[key] = {
-    timestamp: Date.now(),
-    data
-  };
-};
+const FRESH_TTL = 10 * 60 * 1000; // 10 minutes
+const STALE_TTL = 15 * 60 * 1000; // 15 minutes
 
 // API Key Resolvers
 const getGNewsKey = () => process.env.GNEWS_KEY || 'c115ad6c999a544e461f5742c85f6d54';
@@ -582,6 +572,155 @@ const fetchNewsData = async (category, q, country) => {
   }
 };
 
+async function getProcessedArticles(category, q, country, language) {
+  // 1. Fetch from GNews (Primary)
+  const gnewsRaw = await fetchGNews(category, q, country);
+  const gnewsNormalized = normalizeGNews(gnewsRaw);
+
+  // 2. Fetch from NewsData.io (Secondary / Fallback)
+  const newsDataRaw = await fetchNewsData(category, q, country);
+  const newsDataNormalized = normalizeNewsData(newsDataRaw);
+
+  // Merge normalized articles
+  let merged = [...gnewsNormalized, ...newsDataNormalized];
+
+  // Deduplicate
+  let deduplicated = deduplicateArticles(merged);
+
+  // 3. Fallback to RSS if APIs are rate-limited or return zero articles
+  if (deduplicated.length === 0) {
+    console.log('API sources failed or returned empty. Running RSS tertiary fallback...');
+    let rssArticles = [];
+    if (q) {
+      const searchRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+      rssArticles = await parseRSSFeed(`Google News: ${q}`, searchRssUrl);
+    } else {
+      const feeds = getRSSFeedsForCategory(country ? 'world' : category);
+      const parsedResults = await Promise.all(feeds.map(feed => parseRSSFeed(feed.name, feed.url)));
+      rssArticles = parsedResults.flat();
+    }
+    deduplicated = deduplicateArticles(rssArticles);
+  }
+
+  // 4. Fallback to Mock wire data if everything else fails
+  if (deduplicated.length === 0) {
+    console.log('All live sources exhausted. Rendering mock fallback...');
+    const mocks = getMockArticles(country ? 'world' : category, q);
+    deduplicated = deduplicateArticles(mocks);
+  }
+
+  // 5. Automatic Category Classifier
+  const classifiedList = deduplicated.map(article => {
+    const detectedCat = classifyArticle(article);
+    return {
+      ...article,
+      classifiedCategory: detectedCat
+    };
+  });
+
+  // Filter strictly by the requested category
+  let filtered = classifiedList;
+  const requestedCatLower = category.toLowerCase();
+  const isGeneralFeed = ['world', 'foryou', 'general'].includes(requestedCatLower);
+
+  if (!isGeneralFeed) {
+    filtered = classifiedList.filter(article => {
+      const articleCat = article.classifiedCategory.toLowerCase();
+      
+      let match = false;
+      if (requestedCatLower === 'tech & ai') {
+        match = ['tech & ai', 'tech'].includes(articleCat);
+      } else if (requestedCatLower === 'law & crime') {
+        match = ['law & crime', 'law'].includes(articleCat);
+      } else {
+        match = articleCat === requestedCatLower;
+      }
+
+      // Hard rule: Never show business/finance in sports
+      if (requestedCatLower === 'sports') {
+        const isBizOrFinance = ['business', 'finance'].includes(articleCat);
+        if (isBizOrFinance) return false;
+      }
+
+      const passesKeywords = verifyArticleCategory(article, category);
+      return match || passesKeywords;
+    });
+  }
+
+  // Backfill with mock items if classification is too restrictive to preserve high card density
+  if (filtered.length < 8) {
+    console.log(`Category ${category} has low density (${filtered.length}). Backfilling with editorial mocks.`);
+    const mocks = getMockArticles(country ? 'world' : category, q).map(m => ({
+      ...m,
+      classifiedCategory: category
+    }));
+    const additional = mocks.filter(m => !filtered.some(f => getHeadlineSimilarity(f.title, m.title) > 0.65));
+    filtered = [...filtered, ...additional].slice(0, 20);
+  }
+
+  // 6. Premium Image matching system
+  const usedImages = new Set();
+  const finalArticles = filtered.map(article => {
+    const resolvedImg = resolveArticleImage(article, category, usedImages);
+    return {
+      ...article,
+      urlToImage: resolvedImg
+    };
+  });
+
+  // Sort by publication date
+  finalArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+  return finalArticles;
+}
+
+const getOrFetchArticles = async (cacheKey, category, q, country, language) => {
+  const now = Date.now();
+  const cached = feedCache[cacheKey];
+
+  if (cached) {
+    const age = now - cached.timestamp;
+    if (age < FRESH_TTL) {
+      return cached.data;
+    } else if (age < STALE_TTL) {
+      if (!ongoingFetches[cacheKey]) {
+        console.log(`[Cache Stale] Background refresh for key: ${cacheKey}`);
+        ongoingFetches[cacheKey] = getProcessedArticles(category, q, country, language)
+          .then(data => {
+            feedCache[cacheKey] = { timestamp: Date.now(), data };
+            delete ongoingFetches[cacheKey];
+            return data;
+          })
+          .catch(err => {
+            console.error(`Background refresh failed for key ${cacheKey}:`, err.message);
+            delete ongoingFetches[cacheKey];
+          });
+      }
+      return cached.data;
+    }
+  }
+
+  if (ongoingFetches[cacheKey]) {
+    console.log(`[Request Coalescing] Reusing ongoing fetch for key: ${cacheKey}`);
+    return ongoingFetches[cacheKey];
+  }
+
+  console.log(`[Cache Miss/Expired] Fetching synchronously for key: ${cacheKey}`);
+  const fetchPromise = getProcessedArticles(category, q, country, language)
+    .then(data => {
+      feedCache[cacheKey] = { timestamp: Date.now(), data };
+      delete ongoingFetches[cacheKey];
+      return data;
+    })
+    .catch(err => {
+      delete ongoingFetches[cacheKey];
+      throw err;
+    });
+
+  ongoingFetches[cacheKey] = fetchPromise;
+  return fetchPromise;
+};
+
 router.get('/', async (req, res) => {
   const { category = 'world', q = '', page = 1, pageSize = 20, country, language } = req.query;
   const pageNum = parseInt(page, 10) || 1;
@@ -591,124 +730,23 @@ router.get('/', async (req, res) => {
   const cacheKey = country
     ? `country_${country.toLowerCase()}_lang_${langCode}`
     : (q ? `search_${q.toLowerCase()}_lang_${langCode}` : `cat_${category.toLowerCase()}_lang_${langCode}`);
-  
-  let aggregatedArticles = getCachedFeed(cacheKey);
 
-  if (!aggregatedArticles) {
-    console.log(`Cache miss. Executing multi-source news pipeline for category: ${category}, query: ${q}`);
-    
-    // 1. Fetch from GNews (Primary)
-    const gnewsRaw = await fetchGNews(category, q, country);
-    const gnewsNormalized = normalizeGNews(gnewsRaw);
+  try {
+    const aggregatedArticles = await getOrFetchArticles(cacheKey, category, q, country, language);
+    const startIdx = (pageNum - 1) * pageSizeNum;
+    const slicedArticles = aggregatedArticles.slice(startIdx, startIdx + pageSizeNum);
 
-    // 2. Fetch from NewsData.io (Secondary / Fallback)
-    const newsDataRaw = await fetchNewsData(category, q, country);
-    const newsDataNormalized = normalizeNewsData(newsDataRaw);
-
-    // Merge normalized articles
-    let merged = [...gnewsNormalized, ...newsDataNormalized];
-
-    // Deduplicate
-    let deduplicated = deduplicateArticles(merged);
-
-    // 3. Fallback to RSS if APIs are rate-limited or return zero articles
-    if (deduplicated.length === 0) {
-      console.log('API sources failed or returned empty. Running RSS tertiary fallback...');
-      let rssArticles = [];
-      if (q) {
-        const searchRssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
-        rssArticles = await parseRSSFeed(`Google News: ${q}`, searchRssUrl);
-      } else {
-        const feeds = getRSSFeedsForCategory(country ? 'world' : category);
-        const parsedResults = await Promise.all(feeds.map(feed => parseRSSFeed(feed.name, feed.url)));
-        rssArticles = parsedResults.flat();
-      }
-      deduplicated = deduplicateArticles(rssArticles);
-    }
-
-    // 4. Fallback to Mock wire data if everything else fails
-    if (deduplicated.length === 0) {
-      console.log('All live sources exhausted. Rendering mock fallback...');
-      const mocks = getMockArticles(country ? 'world' : category, q);
-      deduplicated = deduplicateArticles(mocks);
-    }
-
-    // 5. Automatic Category Classifier
-    const classifiedList = deduplicated.map(article => {
-      const detectedCat = classifyArticle(article);
-      return {
-        ...article,
-        classifiedCategory: detectedCat
-      };
+    res.json({
+      status: 'ok',
+      articles: slicedArticles,
+      totalResults: aggregatedArticles.length,
+      page: pageNum,
+      pageSize: pageSizeNum
     });
-
-    // Filter strictly by the requested category
-    let filtered = classifiedList;
-    const requestedCatLower = category.toLowerCase();
-    const isGeneralFeed = ['world', 'foryou', 'general'].includes(requestedCatLower);
-
-    if (!isGeneralFeed) {
-      filtered = classifiedList.filter(article => {
-        const articleCat = article.classifiedCategory.toLowerCase();
-        
-        let match = false;
-        if (requestedCatLower === 'tech & ai') {
-          match = ['tech & ai', 'tech'].includes(articleCat);
-        } else if (requestedCatLower === 'law & crime') {
-          match = ['law & crime', 'law'].includes(articleCat);
-        } else {
-          match = articleCat === requestedCatLower;
-        }
-
-        // Hard rule: Never show business/finance in sports
-        if (requestedCatLower === 'sports') {
-          const isBizOrFinance = ['business', 'finance'].includes(articleCat);
-          if (isBizOrFinance) return false;
-        }
-
-        const passesKeywords = verifyArticleCategory(article, category);
-        return match || passesKeywords;
-      });
-    }
-
-    // Backfill with mock items if classification is too restrictive to preserve high card density
-    if (filtered.length < 8) {
-      console.log(`Category ${category} has low density (${filtered.length}). Backfilling with editorial mocks.`);
-      const mocks = getMockArticles(country ? 'world' : category, q).map(m => ({
-        ...m,
-        classifiedCategory: category
-      }));
-      const additional = mocks.filter(m => !filtered.some(f => getHeadlineSimilarity(f.title, m.title) > 0.65));
-      filtered = [...filtered, ...additional].slice(0, 20);
-    }
-
-    // 6. Premium Image matching system
-    const usedImages = new Set();
-    const finalArticles = filtered.map(article => {
-      const resolvedImg = resolveArticleImage(article, category, usedImages);
-      return {
-        ...article,
-        urlToImage: resolvedImg
-      };
-    });
-
-    // Sort by publication date
-    finalArticles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
-    aggregatedArticles = finalArticles;
-    setCachedFeed(cacheKey, aggregatedArticles);
+  } catch (err) {
+    console.error(`Error in news router:`, err.message);
+    res.status(500).json({ error: 'Failed to retrieve news' });
   }
-
-  const startIdx = (pageNum - 1) * pageSizeNum;
-  const slicedArticles = aggregatedArticles.slice(startIdx, startIdx + pageSizeNum);
-
-  res.json({
-    status: 'ok',
-    articles: slicedArticles,
-    totalResults: aggregatedArticles.length,
-    page: pageNum,
-    pageSize: pageSizeNum
-  });
 });
 
 // Category verification logic
@@ -1037,12 +1075,7 @@ function getMockArticles(category, query) {
 }
 
 // WORLD MAP: Proxy GNews / NewsData.io headlines by country code
-router.get('/country-headlines', async (req, res) => {
-  const { country, q } = req.query;
-  if (!country || country.length !== 2) {
-    return res.status(400).json({ error: 'Valid 2-letter country code required', articles: [] });
-  }
-
+async function getProcessedCountryArticles(country, q) {
   const countryCode = country.toLowerCase();
   let articles = [];
 
@@ -1133,7 +1166,72 @@ router.get('/country-headlines', async (req, res) => {
     urlToImage: resolveArticleImage(article, 'world', usedImages)
   }));
 
-  return res.json({ status: 'ok', totalResults: finalArticles.length, articles: finalArticles });
+  return finalArticles;
+}
+
+const getOrFetchCountryArticles = async (cacheKey, country, q) => {
+  const now = Date.now();
+  const cached = countryCache[cacheKey];
+
+  if (cached) {
+    const age = now - cached.timestamp;
+    if (age < FRESH_TTL) {
+      return cached.data;
+    } else if (age < STALE_TTL) {
+      if (!ongoingCountryFetches[cacheKey]) {
+        console.log(`[Country Cache Stale] Background refresh for key: ${cacheKey}`);
+        ongoingCountryFetches[cacheKey] = getProcessedCountryArticles(country, q)
+          .then(data => {
+            countryCache[cacheKey] = { timestamp: Date.now(), data };
+            delete ongoingCountryFetches[cacheKey];
+            return data;
+          })
+          .catch(err => {
+            console.error(`Background refresh failed for country key ${cacheKey}:`, err.message);
+            delete ongoingCountryFetches[cacheKey];
+          });
+      }
+      return cached.data;
+    }
+  }
+
+  if (ongoingCountryFetches[cacheKey]) {
+    console.log(`[Country Request Coalescing] Reusing fetch for key: ${cacheKey}`);
+    return ongoingCountryFetches[cacheKey];
+  }
+
+  console.log(`[Country Cache Miss] Fetching synchronously for key: ${cacheKey}`);
+  const fetchPromise = getProcessedCountryArticles(country, q)
+    .then(data => {
+      countryCache[cacheKey] = { timestamp: Date.now(), data };
+      delete ongoingCountryFetches[cacheKey];
+      return data;
+    })
+    .catch(err => {
+      delete ongoingCountryFetches[cacheKey];
+      throw err;
+    });
+
+  ongoingCountryFetches[cacheKey] = fetchPromise;
+  return fetchPromise;
+};
+
+router.get('/country-headlines', async (req, res) => {
+  const { country, q } = req.query;
+  if (!country || country.length !== 2) {
+    return res.status(400).json({ error: 'Valid 2-letter country code required', articles: [] });
+  }
+
+  const countryCode = country.toLowerCase();
+  const cacheKey = q ? `${countryCode}_q_${q.toLowerCase()}` : countryCode;
+
+  try {
+    const finalArticles = await getOrFetchCountryArticles(cacheKey, country, q);
+    return res.json({ status: 'ok', totalResults: finalArticles.length, articles: finalArticles });
+  } catch (err) {
+    console.error(`Error in country-headlines router:`, err.message);
+    res.status(500).json({ error: 'Failed to retrieve country headlines' });
+  }
 });
 
 export default router;
