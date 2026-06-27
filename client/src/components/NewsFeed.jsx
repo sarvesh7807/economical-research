@@ -267,95 +267,100 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const { data: personalizedNewsData, isLoading: loadingPersonalized } = useQuery({
     queryKey: ['personalizedNews', currentId, userPreferences],
     queryFn: async () => {
-      if (!currentId) return [];
-      
-      const prefDoc = await getDoc(doc(db, 'user_preferences', currentId));
-      if (!prefDoc.exists()) return [];
+      try {
+        if (!currentId) return [];
+        
+        const prefDoc = await getDoc(doc(db, 'user_preferences', currentId));
+        if (!prefDoc.exists()) return [];
 
-      const scores = prefDoc.data().topicScores || {};
-      if (Object.keys(scores).length === 0) return [];
+        const scores = prefDoc.data().topicScores || {};
+        if (Object.keys(scores).length === 0) return [];
 
-      const topTopics = Object.entries(scores)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([topic]) => topic);
+        const topTopics = Object.entries(scores)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 3)
+          .map(([topic]) => topic);
 
-      const getNewsApiUrlForTopic = (topic) => {
-        const supportedCategories = ['business', 'entertainment', 'health', 'science', 'sports', 'technology'];
-        if (supportedCategories.includes(topic)) {
-          return `/api/news?category=${topic}`;
-        }
-        if (topic === 'world') return `/api/news?category=world`;
-        if (topic === 'politics') return `/api/news?q=politics`;
-        if (topic === 'finance') return `/api/news?category=business&q=finance`;
-        if (topic === 'cricket') return `/api/news?category=sports&q=cricket`;
-        if (topic === 'football') return `/api/news?category=sports&q=football`;
-        if (topic === 'mma') return `/api/news?category=sports&q=mma`;
-        return `/api/news?q=${encodeURIComponent(topic)}`;
-      };
+        const getNewsApiUrlForTopic = (topic) => {
+          const supportedCategories = ['business', 'entertainment', 'health', 'science', 'sports', 'technology'];
+          if (supportedCategories.includes(topic)) {
+            return `/api/news?category=${topic}`;
+          }
+          if (topic === 'world') return `/api/news?category=world`;
+          if (topic === 'politics') return `/api/news?q=politics`;
+          if (topic === 'finance') return `/api/news?category=business&q=finance`;
+          if (topic === 'cricket') return `/api/news?category=sports&q=cricket`;
+          if (topic === 'football') return `/api/news?category=sports&q=football`;
+          if (topic === 'mma') return `/api/news?category=sports&q=mma`;
+          return `/api/news?q=${encodeURIComponent(topic || '')}`;
+        };
 
-      const results = await Promise.all(
-        topTopics.map(topic => 
-          fetch(getNewsApiUrlForTopic(topic))
-            .then(r => {
-              if (!r.ok) throw new Error('Fetch failed');
-              return r.json();
-            })
-            .then(d => {
-              const rawArticles = d.articles || [];
-              return rawArticles
-                .filter(art => art.title && art.urlToImage)
-                .slice(0, 3)
-                .map(art => ({ ...art, category: topic }));
-            })
-            .catch(err => {
-              console.error(`Error fetching recommendations for ${topic}:`, err);
-              return [];
-            })
-        )
-      );
+        const results = await Promise.all(
+          topTopics.map(topic => 
+            fetch(getNewsApiUrlForTopic(topic))
+              .then(r => {
+                if (!r.ok) throw new Error('Fetch failed');
+                return r.json();
+              })
+              .then(d => {
+                const rawArticles = d.articles || [];
+                return rawArticles
+                  .filter(art => art && art.title && art.urlToImage)
+                  .slice(0, 3)
+                  .map(art => ({ ...art, category: topic }));
+              })
+              .catch(err => {
+                console.error(`Error fetching recommendations for ${topic}:`, err);
+                return [];
+              })
+          )
+        );
 
-      const combined = results.flat();
-      const unique = combined.filter((art, index, self) =>
-        art.title && index === self.findIndex(a => a.title === art.title)
-      );
+        const combined = results.flat();
+        const unique = combined.filter((art, index, self) =>
+          art && art.title && index === self.findIndex(a => a && a.title === art.title)
+        );
 
-      // Background breaking news trigger
-      if (unique.length > 0 && topTopics.length > 0) {
-        const topTopic = topTopics[0];
-        const url = getNewsApiUrlForTopic(topTopic);
-        fetch(url)
-          .then(r => r.json())
-          .then(data => {
-            const latestArticle = data.articles?.[0];
-            if (latestArticle) {
-              const storageKey = `last_notified_${currentId}_${topTopic}`;
-              const lastNotifiedUrl = localStorage.getItem(storageKey);
-              if (lastNotifiedUrl !== latestArticle.url) {
-                localStorage.setItem(storageKey, latestArticle.url);
-                const categoriesList = [
-                  { id: 'business', label: 'Business' },
-                  { id: 'technology', label: 'Technology' },
-                  { id: 'sports', label: 'Sports' },
-                  { id: 'politics', label: 'Politics' },
-                  { id: 'health', label: 'Health' },
-                  { id: 'science', label: 'Science' },
-                  { id: 'entertainment', label: 'Entertainment' },
-                  { id: 'world', label: 'World News' },
-                  { id: 'finance', label: 'Finance' },
-                  { id: 'cricket', label: 'Cricket' },
-                  { id: 'football', label: 'Football' },
-                  { id: 'mma', label: 'MMA' }
-                ];
-                const topicLabel = categoriesList.find(c => c.id === topTopic)?.label || topTopic;
-                addNotification('breaking', `🔴 Breaking: New [${topicLabel}] news for you!`, latestArticle.title, latestArticle.url);
+        // Background breaking news trigger
+        if (unique.length > 0 && topTopics.length > 0) {
+          const topTopic = topTopics[0];
+          const url = getNewsApiUrlForTopic(topTopic);
+          fetch(url)
+            .then(r => r.json())
+            .then(data => {
+              const latestArticle = data?.articles?.[0];
+              if (latestArticle) {
+                const storageKey = `last_notified_${currentId}_${topTopic}`;
+                const lastNotifiedUrl = localStorage.getItem(storageKey);
+                if (lastNotifiedUrl !== latestArticle.url) {
+                  localStorage.setItem(storageKey, latestArticle.url);
+                  const categoriesList = [
+                    { id: 'business', label: 'Business' },
+                    { id: 'technology', label: 'Technology' },
+                    { id: 'sports', label: 'Sports' },
+                    { id: 'politics', label: 'Politics' },
+                    { id: 'health', label: 'Health' },
+                    { id: 'science', label: 'Science' },
+                    { id: 'entertainment', label: 'Entertainment' },
+                    { id: 'world', label: 'World News' },
+                    { id: 'finance', label: 'Finance' },
+                    { id: 'cricket', label: 'Cricket' },
+                    { id: 'football', label: 'Football' },
+                    { id: 'mma', label: 'MMA' }
+                  ];
+                  const topicLabel = categoriesList.find(c => c.id === topTopic)?.label || topTopic;
+                  addNotification('breaking', `🔴 Breaking: New [${topicLabel}] news for you!`, latestArticle.title, latestArticle.url);
+                }
               }
-            }
-          })
-          .catch(e => console.error('Error fetching breaking alert:', e));
-      }
+            })
+            .catch(e => console.error('Error fetching breaking alert:', e));
+        }
 
-      return unique;
+        return unique;
+      } catch (err) {
+        console.error('Error in recommendations queryFn:', err);
+        return [];
+      }
     },
     enabled: !!currentId && (activeCategory === 'world' || activeCategory === 'foryou'),
   });
@@ -385,11 +390,19 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       try {
         const cached = localStorage.getItem('er_youtube_live_streams_v2');
         if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Date.now() - parsed.timestamp < 3600 * 1000 * 6) { // 6 hours TTL
-            setLiveChannels(parsed.channels);
-            setActiveStream(parsed.channels[0].id);
-            return;
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.channels) && parsed.channels.length > 0 && parsed.timestamp) {
+              if (Date.now() - parsed.timestamp < 3600 * 1000 * 6) { // 6 hours TTL
+                setLiveChannels(parsed.channels);
+                if (parsed.channels[0] && parsed.channels[0].id) {
+                  setActiveStream(parsed.channels[0].id);
+                }
+                return;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing cached live streams:', e);
           }
         }
 
@@ -590,7 +603,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
               </div>
               
               <h3 class="font-display text-base font-black text-navy dark:text-gold uppercase tracking-tight mb-1">
-                Now Monitoring: {liveChannels.find(c => c.id === activeStream)?.name || 'Live Broadcast'}
+                Now Monitoring: {(Array.isArray(liveChannels) ? liveChannels : []).find(c => c && c.id === activeStream)?.name || 'Live Broadcast'}
               </h3>
               <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-serif line-clamp-2 max-w-2xl">
                 Direct satellite feed compiled for macro intelligence monitoring. Switch channels below to monitor real-time broadcasts.
@@ -598,11 +611,12 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             </div>
 
             <div class="grid grid-cols-6 gap-2 mt-4">
-              {liveChannels.map((stream) => {
+              {Array.isArray(liveChannels) && liveChannels.map((stream) => {
+                if (!stream) return null;
                 const isSelected = activeStream === stream.id;
                 return (
                   <button
-                    key={stream.channelId}
+                    key={stream.channelId || stream.id}
                     onClick={() => setActiveStream(stream.id)}
                     class={`py-2 px-1.5 rounded-xl text-[9.5px] font-black uppercase tracking-wider text-center transition-all ${
                       isSelected
@@ -610,7 +624,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                         : 'bg-gray-100 dark:bg-white/5 text-navy dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
                     }`}
                   >
-                    {stream.name.replace(' English', '').replace(' Live', '')}
+                    {stream.name ? stream.name.replace(' English', '').replace(' Live', '') : 'Channel'}
                   </button>
                 );
               })}
@@ -867,7 +881,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                   <NewsSection title="Technology News" category="tech" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Sports News" category="sports" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Health News" category="health" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                  <NewsSection title="Science News" category="science" fetchUrl={`/api/science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Science News" category="science" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Entertainment News" category="entertainment" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                 </div>
               )}
