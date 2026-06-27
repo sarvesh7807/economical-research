@@ -459,6 +459,18 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const articles = queryArticles || [];
   const error = queryError ? 'Refreshing news...' : null;
 
+  const feedArticles = activeCategory === 'foryou' ? personalizedNews : articles;
+  const hasMore = visibleCount < feedArticles.length;
+  
+  const trendingNews = useMemo(() => feedArticles.slice(0, 5), [feedArticles]);
+  const latestNews = useMemo(() => {
+    let sliced = feedArticles.filter(a => a.urlToImage).slice(5, 10);
+    if (sliced.length === 0) {
+      sliced = feedArticles.filter(a => a.urlToImage).slice(0, 5);
+    }
+    return sliced;
+  }, [feedArticles]);
+
   // Reset pagination/slicing count when filters/category changes
   useEffect(() => {
     setVisibleCount(10);
@@ -750,17 +762,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     );
   }
 
-  const feedArticles = activeCategory === 'foryou' ? personalizedNews : articles;
-  const hasMore = visibleCount < feedArticles.length;
-  
-  const trendingNews = useMemo(() => feedArticles.slice(0, 5), [feedArticles]);
-  const latestNews = useMemo(() => {
-    let sliced = feedArticles.filter(a => a.urlToImage).slice(5, 10);
-    if (sliced.length === 0) {
-      sliced = feedArticles.filter(a => a.urlToImage).slice(0, 5);
-    }
-    return sliced;
-  }, [feedArticles]);
+
 
   return (
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
