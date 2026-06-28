@@ -7,14 +7,17 @@ import ShareModal from './ShareModal';
 import { getPremiumArticleImage } from '../utils/imageSystem';
 
 function ArticleCard({ article, isLead }) {
+  const [translatedTitle, setTranslatedTitle] = useState(article?.title || '')
+  const [translatedDescription, setTranslatedDescription] = useState(article?.description || '')
+  const [translatedContent, setTranslatedContent] = useState(article?.content || '')
+  const [isTranslated, setIsTranslated] = useState(false)
+  const [activeAI, setActiveAI] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiContent, setAiContent] = useState('')
+
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
   const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
   
-  // Translation states (restored to fix ReferenceErrors)
-  const [translatedTitle, setTranslatedTitle] = useState(article.title || '');
-  const [translatedDescription, setTranslatedDescription] = useState(article.description || '');
-  const [isTranslated, setIsTranslated] = useState(false);
-
   // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
 
@@ -26,11 +29,6 @@ function ArticleCard({ article, isLead }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Shared state for AI
-  const [activeAI, setActiveAI] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiContent, setAiContent] = useState('');
 
 
 
