@@ -154,6 +154,8 @@ export const AuthProvider = ({ children }) => {
         }, (err) => console.error('Error fetching notifications:', err));
  
         // Feature 2: Sync Smart Topic Alerts
+        // Firebase index needed - create at above URL
+        // https://console.firebase.google.com/v1/r/project/propane-avatar-476809-q2/firestore/indexes?create_composite=Clxwcm9qZWN0cy9wcm9wYW5lLWF2YXRhci00NzY4MDktcTIvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3VzZXJfYWxlcnRzL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGg0KCWNyZWF0ZWRBdBACGgwKCF9fbmFtZV9fEAI
         const alertsRef = collection(db, 'user_alerts');
         const alertsQuery = query(alertsRef, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
         unsubscribeAlerts = onSnapshot(alertsQuery, (snap) => {

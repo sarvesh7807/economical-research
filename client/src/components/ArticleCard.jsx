@@ -10,6 +10,10 @@ function ArticleCard({ article, isLead }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
   const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
   
+  // Translation states (restored to fix ReferenceErrors)
+  const [translatedTitle, setTranslatedTitle] = useState(article.title || '');
+  const [translatedDescription, setTranslatedDescription] = useState(article.description || '');
+  const [isTranslated, setIsTranslated] = useState(false);
 
   // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
@@ -28,11 +32,7 @@ function ArticleCard({ article, isLead }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiContent, setAiContent] = useState('');
 
-  // Debug API key load status
-  useEffect(() => {
-    console.log('Gemini Key exists:', !!import.meta.env.VITE_GEMINI_API_KEY);
-    console.log('Key starts with:', import.meta.env.VITE_GEMINI_API_KEY?.slice(0, 10));
-  }, []);
+
 
   // Sentiment and Trust rating
   const [analysis, setAnalysis] = useState(null);
@@ -129,7 +129,7 @@ function ArticleCard({ article, isLead }) {
     e.stopPropagation();
     window.speechSynthesis.cancel();
 
-    const textToSpeak = (translatedTitle || title) + ". " + (translatedDesc || description || "");
+    const textToSpeak = (translatedTitle || title) + ". " + (translatedDescription || description || "");
     const speech = new SpeechSynthesisUtterance();
     speech.text = textToSpeak;
     speech.lang = 'en-US';
