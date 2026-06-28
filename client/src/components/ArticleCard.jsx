@@ -16,21 +16,8 @@ function ArticleCard({ article, isLead }) {
   const [translating, setTranslating] = useState(false);
   const [activeLang, setActiveLang] = useState('Original');
 
-  // AI Summary / Keypoints
-  const [summary, setSummary] = useState(null);
-  const [keyPoints, setKeyPoints] = useState(null);
-  const [loadingSummary, setLoadingSummary] = useState(false);
-  const [loadingKeyPoints, setLoadingKeyPoints] = useState(false);
-  const [errorSummary, setErrorSummary] = useState(null);
-  const [errorKeyPoints, setErrorKeyPoints] = useState(null);
-  const [showSummary, setShowSummary] = useState(false);
-  const [showKeyPoints, setShowKeyPoints] = useState(false);
-
-  // Mobile layout and AI Summary states
+  // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryText, setSummaryText] = useState('');
-  const [summaryError, setSummaryError] = useState('');
 
   useEffect(() => {
     const handleResize = () => {
@@ -41,6 +28,16 @@ function ArticleCard({ article, isLead }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Shared state for AI
+  const [activeAI, setActiveAI] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiContent, setAiContent] = useState('');
+
+  // Debug API key load status
+  useEffect(() => {
+    console.log('Gemini Key exists:', !!import.meta.env.VITE_GEMINI_API_KEY);
+    console.log('Key starts with:', import.meta.env.VITE_GEMINI_API_KEY?.slice(0, 10));
+  }, []);
 
   // Sentiment and Trust rating
   const [analysis, setAnalysis] = useState(null);
@@ -54,8 +51,7 @@ function ArticleCard({ article, isLead }) {
   const [paywallActive, setPaywallActive] = useState(false);
   const [paywallType, setPaywallType] = useState('reads'); // 'reads' or 'summaries'
 
-  // Comments drawer
-  const [showComments, setShowComments] = useState(false);
+  // Comments/Share settings
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const articleRef = useRef(null);
 
@@ -63,67 +59,6 @@ function ArticleCard({ article, isLead }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Feature 1: 5 Point Summary
-  const [fivePoints, setFivePoints] = useState(null);
-  const [loadingFivePoints, setLoadingFivePoints] = useState(false);
-  const [errorFivePoints, setErrorFivePoints] = useState(null);
-  const [showFivePoints, setShowFivePoints] = useState(false);
-
-  // Feature 3: Market Impact Meter
-  const [marketImpact, setMarketImpact] = useState(null);
-  const [loadingMarketImpact, setLoadingMarketImpact] = useState(false);
-  const [errorMarketImpact, setErrorMarketImpact] = useState(null);
-  const [showMarketImpact, setShowMarketImpact] = useState(false);
-
-  // AI Caching states
-  const [cacheStatusSummary, setCacheStatusSummary] = useState(null);
-  const [cacheStatusKeyPoints, setCacheStatusKeyPoints] = useState(null);
-  const [cacheStatusFivePoints, setCacheStatusFivePoints] = useState(null);
-  const [cacheStatusMarketImpact, setCacheStatusMarketImpact] = useState(null);
-  const [cacheStatusDebate, setCacheStatusDebate] = useState(null);
-
-  // AI Retry countdown states
-  const [countdownSummary, setCountdownSummary] = useState(0);
-  const [countdownKeyPoints, setCountdownKeyPoints] = useState(0);
-  const [countdownFivePoints, setCountdownFivePoints] = useState(0);
-  const [countdownMarketImpact, setCountdownMarketImpact] = useState(0);
-  const [countdownDebate, setCountdownDebate] = useState(0);
-
-  // AI Debate starter states
-  const [debate, setDebate] = useState(null);
-  const [loadingDebate, setLoadingDebate] = useState(false);
-  const [errorDebate, setErrorDebate] = useState(null);
-
-  // Countdown timer effects
-  useEffect(() => {
-    if (countdownSummary <= 0) return;
-    const timer = setTimeout(() => setCountdownSummary(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdownSummary]);
-
-  useEffect(() => {
-    if (countdownKeyPoints <= 0) return;
-    const timer = setTimeout(() => setCountdownKeyPoints(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdownKeyPoints]);
-
-  useEffect(() => {
-    if (countdownFivePoints <= 0) return;
-    const timer = setTimeout(() => setCountdownFivePoints(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdownFivePoints]);
-
-  useEffect(() => {
-    if (countdownMarketImpact <= 0) return;
-    const timer = setTimeout(() => setCountdownMarketImpact(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdownMarketImpact]);
-
-  useEffect(() => {
-    if (countdownDebate <= 0) return;
-    const timer = setTimeout(() => setCountdownDebate(prev => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdownDebate]);
 
   // Caching helpers
   const getArticleId = (urlStr) => {
@@ -243,7 +178,7 @@ function ArticleCard({ article, isLead }) {
 
   // Fetch Sentiment and Trust score on hover or interaction
   useEffect(() => {
-    if (!hovered && !showSummary && !showKeyPoints && !showFivePoints && !showMarketImpact && !showComments) return;
+    if (!hovered && !activeAI) return;
     if (analysis || loadingAnalysis) return;
 
     setLoadingAnalysis(true);
@@ -261,7 +196,7 @@ function ArticleCard({ article, isLead }) {
         console.error('Analysis error:', err);
         setLoadingAnalysis(false);
       });
-  }, [title, hovered, showSummary, showKeyPoints, showFivePoints, showMarketImpact, showComments, analysis, loadingAnalysis]);
+  }, [title, hovered, activeAI, analysis, loadingAnalysis]);
 
   // Progressive Reading attention bar simulation
   useEffect(() => {
@@ -399,241 +334,173 @@ function ArticleCard({ article, isLead }) {
     }
   };
 
-  // Trigger Gemini Summary
-  const handleFetchSummary = async () => {
-    if (summary) {
-      setShowSummary(!showSummary);
-      setShowKeyPoints(false);
-      return;
-    }
-
-    setLoadingSummary(true);
-    setErrorSummary(null);
-    setShowSummary(true);
-    setShowKeyPoints(false);
-
+  const callGeminiAI = async (prompt, cacheKey) => {
+    // Check cache first
     try {
-      const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_summary`, () => callGeminiAPI('summary'));
-      setSummary(data.summary);
-      setCacheStatusSummary(fromCache ? 'instant' : 'fresh');
-      const topic = getArticleTopic();
-      trackArticleRead(topic, 2);
-    } catch (err) {
-      console.error(err);
-      if (err.status === 429) {
-        setErrorSummary("⏳ High demand right now! Try again in 30 seconds.");
-        setCountdownSummary(30);
-      } else {
-        setErrorSummary("Connection issue. Please check your internet and try again.");
-      }
-    } finally {
-      setLoadingSummary(false);
-    }
-  };
-
-  const handleSummary = async () => {
-    setSummaryLoading(true);
-    setSummaryError('');
-    setSummaryText('');
-    
-    try {
+      const { getCachedOrFetchAI } = await import('../utils/aiCache');
       const result = await getCachedOrFetchAI(
-        `${article.url}_summary`,
+        cacheKey,
         async () => {
-          const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [{
-                    text: `Summarize this news article in 3-4 sentences: ${article.title}. ${article.description}`
-                  }]
-                }]
-              })
-            }
-          );
+          const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+          
+          if (!apiKey) {
+            throw new Error('No API key found');
+          }
+          
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+          
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({
+              contents: [{ 
+                parts: [{ text: prompt }] 
+              }],
+              generationConfig: {
+                maxOutputTokens: 500,
+                temperature: 0.7
+              }
+            })
+          });
           
           if (res.status === 429) {
-            throw new Error('RATE_LIMITED');
+            return '⏳ Too many requests. Please wait 30 seconds and try again.';
           }
           
           if (!res.ok) {
-            throw new Error('API_ERROR');
+            const errData = await res.json();
+            console.error('Gemini error:', errData);
+            throw new Error('API call failed');
           }
           
           const data = await res.json();
-          return data.candidates?.[0]?.content
-            ?.parts?.[0]?.text || 'Summary not available';
+          return data.candidates?.[0]
+            ?.content?.parts?.[0]?.text || 
+            'Could not generate response.';
         }
       );
-      
-      setSummaryText(result.content || result);
+      return result.content || result;
     } catch (err) {
-      if (err.message === 'RATE_LIMITED') {
-        setSummaryError(
-          '⏳ Please wait 30 seconds and try again.');
-      } else {
-        setSummaryError(
-          'Could not load summary. Try again.');
-      }
-    } finally {
-      setSummaryLoading(false);
+      console.error('AI call failed:', err);
+      return '❌ Could not load. Please try again.';
     }
   };
 
-  const handleSummaryClick = () => {
-    if (isMobile) {
-      if (showSummary) {
-        setShowSummary(false);
-      } else {
-        setShowSummary(true);
-        setShowKeyPoints(false);
-        if (!summaryText && !summaryLoading) {
-          handleSummary();
-        }
-      }
-    } else {
-      handleFetchSummary();
-    }
-  };
-
-
-  // Trigger Gemini Key Points
-  const handleFetchKeyPoints = async () => {
-    if (keyPoints) {
-      setShowKeyPoints(!showKeyPoints);
-      setShowSummary(false);
+  // AI SUMMARY
+  const handleSummary = async () => {
+    if (activeAI === 'summary') {
+      setActiveAI(null);
       return;
     }
-
-    setLoadingKeyPoints(true);
-    setErrorKeyPoints(null);
-    setShowKeyPoints(true);
-    setShowSummary(false);
-
-    try {
-      const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_keypoints`, () => callGeminiAPI('keypoints'));
-      setKeyPoints(data.keyPoints);
-      setCacheStatusKeyPoints(fromCache ? 'instant' : 'fresh');
-    } catch (err) {
-      console.error(err);
-      if (err.status === 429) {
-        setErrorKeyPoints("⏳ High demand right now! Try again in 30 seconds.");
-        setCountdownKeyPoints(30);
-      } else {
-        setErrorKeyPoints("Connection issue. Please check your internet and try again.");
-      }
-    } finally {
-      setLoadingKeyPoints(false);
-    }
+    setActiveAI('summary');
+    setAiLoading(true);
+    setAiContent('');
+    
+    const result = await callGeminiAI(
+      `Summarize this news in 3-4 clear sentences. 
+      Title: ${article.title}
+      Description: ${article.description || ''}
+      Be concise and informative.`,
+      `summary_${article.url?.slice(-30)}`
+    );
+    
+    setAiContent(result);
+    setAiLoading(false);
   };
 
-  // Feature 1: 5 Point Summary handler
+  // KEY POINTS
+  const handleKeyPoints = async () => {
+    if (activeAI === 'keypoints') {
+      setActiveAI(null);
+      return;
+    }
+    setActiveAI('keypoints');
+    setAiLoading(true);
+    setAiContent('');
+    
+    const result = await callGeminiAI(
+      `Extract 5 key points from this news article.
+      Format as numbered list.
+      Title: ${article.title}
+      Description: ${article.description || ''}`,
+      `keypoints_${article.url?.slice(-30)}`
+    );
+    
+    setAiContent(result);
+    setAiLoading(false);
+  };
+
+  // DEBATE
+  const handleDebate = async () => {
+    if (activeAI === 'debate') {
+      setActiveAI(null);
+      return;
+    }
+    setActiveAI('debate');
+    setAiLoading(true);
+    setAiContent('');
+    
+    const result = await callGeminiAI(
+      `Create a short debate on this news topic.
+      FOR argument (2 points) and 
+      AGAINST argument (2 points).
+      Title: ${article.title}
+      Description: ${article.description || ''}`,
+      `debate_${article.url?.slice(-30)}`
+    );
+    
+    setAiContent(result);
+    setAiLoading(false);
+  };
+
+  // 5 POINTS SUMMARY
   const handleFivePoints = async () => {
-    if (fivePoints) {
-      setShowFivePoints(!showFivePoints);
-      setShowSummary(false);
-      setShowKeyPoints(false);
-      setShowMarketImpact(false);
+    if (activeAI === 'fivepoints') {
+      setActiveAI(null);
       return;
     }
-
-    setLoadingFivePoints(true);
-    setErrorFivePoints(null);
-    setShowFivePoints(true);
-    setShowSummary(false);
-    setShowKeyPoints(false);
-    setShowMarketImpact(false);
-
-    try {
-      const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_5points`, () => callGeminiAPI('fivepoints'));
-      setFivePoints(data.points);
-      setCacheStatusFivePoints(fromCache ? 'instant' : 'fresh');
-    } catch (err) {
-      console.error(err);
-      if (err.status === 429) {
-        setErrorFivePoints("⏳ High demand right now! Try again in 30 seconds.");
-        setCountdownFivePoints(30);
-      } else {
-        setErrorFivePoints("Connection issue. Please check your internet and try again.");
-      }
-    } finally {
-      setLoadingFivePoints(false);
-    }
+    setActiveAI('fivepoints');
+    setAiLoading(true);
+    setAiContent('');
+    
+    const result = await callGeminiAI(
+      `Summarize this news in exactly 5 
+      bullet points, each under 15 words.
+      Title: ${article.title}
+      Description: ${article.description || ''}`,
+      `fivepoints_${article.url?.slice(-30)}`
+    );
+    
+    setAiContent(result);
+    setAiLoading(false);
   };
 
-  // Feature 3: Market Impact Meter handler
+  // MARKET IMPACT
   const handleMarketImpact = async () => {
-    if (marketImpact) {
-      setShowMarketImpact(!showMarketImpact);
-      setShowSummary(false);
-      setShowKeyPoints(false);
-      setShowFivePoints(false);
+    if (activeAI === 'market') {
+      setActiveAI(null);
       return;
     }
-
-    setLoadingMarketImpact(true);
-    setErrorMarketImpact(null);
-    setShowMarketImpact(true);
-    setShowSummary(false);
-    setShowKeyPoints(false);
-    setShowFivePoints(false);
-
-    try {
-      const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_marketimpact`, () => callGeminiAPI('marketimpact'));
-      setMarketImpact(data);
-      setCacheStatusMarketImpact(fromCache ? 'instant' : 'fresh');
-    } catch (err) {
-      console.error(err);
-      if (err.status === 429) {
-        setErrorMarketImpact("⏳ High demand right now! Try again in 30 seconds.");
-        setCountdownMarketImpact(30);
-      } else {
-        setErrorMarketImpact("Connection issue. Please check your internet and try again.");
-      }
-    } finally {
-      setLoadingMarketImpact(false);
-    }
+    setActiveAI('market');
+    setAiLoading(true);
+    setAiContent('');
+    
+    const result = await callGeminiAI(
+      `Analyze the stock market impact of 
+      this news. Rate: HIGH/MEDIUM/LOW impact.
+      Direction: POSITIVE/NEGATIVE/NEUTRAL.
+      Affected sectors (list 2-3).
+      Title: ${article.title}
+      Description: ${article.description || ''}`,
+      `market_${article.url?.slice(-30)}`
+    );
+    
+    setAiContent(result);
+    setAiLoading(false);
   };
 
-  // Debate AI starter helper
-  const fetchDebateAI = async () => {
-    setLoadingDebate(true);
-    setErrorDebate(null);
-
-    try {
-      const articleId = getArticleId(url);
-      const { content: data, fromCache } = await getCachedOrFetchAI(`${articleId}_debate`, () => callGeminiAPI('debate'));
-      setDebate(data.debate);
-      setCacheStatusDebate(fromCache ? 'instant' : 'fresh');
-    } catch (err) {
-      console.error(err);
-      if (err.status === 429) {
-        setErrorDebate("⏳ High demand right now! Try again in 30 seconds.");
-        setCountdownDebate(30);
-      } else {
-        setErrorDebate("Connection issue. Please check your internet and try again.");
-      }
-    } finally {
-      setLoadingDebate(false);
-    }
-  };
-
-  // Debate AI starter handler
-  const handleFetchDebate = async () => {
-    setShowComments(!showComments);
-    if (showComments) return;
-
-    if (debate) return;
-
-    await fetchDebateAI();
-  };
 
   // Translation handler
   const handleTranslate = async (lang) => {
@@ -938,47 +805,65 @@ function ArticleCard({ article, isLead }) {
         <div class="article-btn-row flex items-center gap-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
           {/* AI Summary Button */}
           <button
-            onClick={handleSummaryClick}
-            disabled={isMobile ? summaryLoading : loadingSummary}
-            class={`ai-btn article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
-              showSummary
-                ? 'bg-primary text-white shadow-purple-glow border border-transparent'
-                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-primary/50 text-navy dark:text-gray-200'
-            }`}
+            onClick={handleSummary}
+            disabled={aiLoading}
+            class="ai-btn article-btn flex-1 flex items-center justify-center gap-1 transition-all"
+            style={{
+              background: activeAI === 'summary' ? '#F4A726' : 'rgba(244,167,38,0.1)',
+              color: activeAI === 'summary' ? '#0A1628' : '#F4A726',
+              border: '1px solid rgba(244,167,38,0.3)',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}
           >
-            <Sparkles size={12} class={showSummary ? 'text-white' : 'text-primary-glow'} />
+            <Sparkles size={12} class={activeAI === 'summary' ? 'text-[#0A1628]' : 'text-primary-glow'} />
             <span>AI Summary</span>
-            {showSummary ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {activeAI === 'summary' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
           {/* Key Points Button */}
           <button
-            onClick={handleFetchKeyPoints}
-            disabled={loadingKeyPoints}
-            class={`ai-btn article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
-              showKeyPoints
-                ? 'bg-primary text-white shadow-purple-glow border border-transparent'
-                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-primary/50 text-navy dark:text-gray-200'
-            }`}
+            onClick={handleKeyPoints}
+            disabled={aiLoading}
+            class="ai-btn article-btn flex-1 flex items-center justify-center gap-1 transition-all"
+            style={{
+              background: activeAI === 'keypoints' ? '#F4A726' : 'rgba(244,167,38,0.1)',
+              color: activeAI === 'keypoints' ? '#0A1628' : '#F4A726',
+              border: '1px solid rgba(244,167,38,0.3)',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}
           >
-            <List size={12} class={showKeyPoints ? 'text-white' : 'text-primary-glow'} />
+            <List size={12} class={activeAI === 'keypoints' ? 'text-[#0A1628]' : 'text-primary-glow'} />
             <span>Key Points</span>
-            {showKeyPoints ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {activeAI === 'keypoints' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
           {/* Comments Toggle */}
           <button
-            onClick={handleFetchDebate}
-            disabled={loadingDebate}
-            class={`ai-btn article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
-              showComments
-                ? 'bg-navy text-accent-neon dark:bg-white/10 dark:text-accent-neon border-transparent'
-                : 'bg-gray-100 dark:bg-white/5 border-transparent hover:border-navy dark:hover:border-white/20 text-navy dark:text-gray-200'
-            }`}
+            onClick={handleDebate}
+            disabled={aiLoading}
+            class="ai-btn article-btn flex-1 flex items-center justify-center gap-1 transition-all"
+            style={{
+              background: activeAI === 'debate' ? '#F4A726' : 'rgba(244,167,38,0.1)',
+              color: activeAI === 'debate' ? '#0A1628' : '#F4A726',
+              border: '1px solid rgba(244,167,38,0.3)',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}
           >
-            <MessageSquare size={12} />
+            <MessageSquare size={12} class={activeAI === 'debate' ? 'text-[#0A1628]' : 'text-primary-glow'} />
             <span>Debate</span>
-            {showComments ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {activeAI === 'debate' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
 
@@ -987,31 +872,43 @@ function ArticleCard({ article, isLead }) {
           {/* Feature 1: 5-Point Summary */}
           <button
             onClick={handleFivePoints}
-            disabled={loadingFivePoints}
-            class={`article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
-              showFivePoints
-                ? 'bg-amber-500 text-white border border-transparent'
-                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-amber-400/60 text-navy dark:text-gray-200'
-            }`}
+            disabled={aiLoading}
+            class="article-btn flex-1 flex items-center justify-center gap-1 transition-all"
+            style={{
+              background: activeAI === 'fivepoints' ? '#F4A726' : 'rgba(244,167,38,0.1)',
+              color: activeAI === 'fivepoints' ? '#0A1628' : '#F4A726',
+              border: '1px solid rgba(244,167,38,0.3)',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}
           >
-            <FileText size={12} class={showFivePoints ? 'text-white' : 'text-amber-500'} />
+            <FileText size={12} class={activeAI === 'fivepoints' ? 'text-[#0A1628]' : 'text-amber-500'} />
             <span>📝 5 Points</span>
-            {showFivePoints ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {activeAI === 'fivepoints' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
           {/* Feature 3: Market Impact Meter */}
           <button
             onClick={handleMarketImpact}
-            disabled={loadingMarketImpact}
-            class={`article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
-              showMarketImpact
-                ? 'bg-emerald-600 text-white border border-transparent'
-                : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-emerald-500/60 text-navy dark:text-gray-200'
-            }`}
+            disabled={aiLoading}
+            class="article-btn flex-1 flex items-center justify-center gap-1 transition-all"
+            style={{
+              background: activeAI === 'market' ? '#F4A726' : 'rgba(244,167,38,0.1)',
+              color: activeAI === 'market' ? '#0A1628' : '#F4A726',
+              border: '1px solid rgba(244,167,38,0.3)',
+              borderRadius: '6px',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}
           >
-            <TrendingUp size={12} class={showMarketImpact ? 'text-white' : 'text-emerald-500'} />
+            <TrendingUp size={12} class={activeAI === 'market' ? 'text-[#0A1628]' : 'text-emerald-500'} />
             <span>📊 Market Impact</span>
-            {showMarketImpact ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {activeAI === 'market' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
 
           {/* Share Button */}
@@ -1028,358 +925,42 @@ function ArticleCard({ article, isLead }) {
           </button>
         </div>
 
-        {/* AI DRAWER (SUMMARY OR KEY POINTS) */}
-        {(showSummary || showKeyPoints) && (
-          <div class="mt-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 relative overflow-hidden transition-all duration-300 shadow-inner">
-            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary-glow to-accent-neon"></div>
-
-            {/* AI Summary Content */}
-            {showSummary && (
-              <div>
-                <div class="flex items-center justify-between mb-1.5">
-                  <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest font-mono">
-                    <ShieldCheck size={11} class="text-primary-glow" />
-                    <span>AI Editorial Summary</span>
-                  </div>
-                  {cacheStatusSummary && (
-                    <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                      cacheStatusSummary === 'instant' 
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
-                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
-                    }`}>
-                      {cacheStatusSummary === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
-                    </span>
-                  )}
-                </div>
-                
-                {isMobile ? (
-                  <>
-                    {summaryLoading && (
-                      <div style={{
-                        padding: '12px',
-                        color: '#F4A726',
-                        textAlign: 'center',
-                        fontSize: '13px'
-                      }}>
-                        🤖 Generating summary...
-                      </div>
-                    )}
-
-                    {summaryError && (
-                      <div style={{
-                        padding: '12px',
-                        color: '#ff6b6b',
-                        fontSize: '12px',
-                        background: 'rgba(255,107,107,0.1)',
-                        borderRadius: '8px',
-                        marginTop: '8px'
-                      }}>
-                        {summaryError}
-                      </div>
-                    )}
-
-                    {summaryText && (
-                      <div style={{
-                        padding: '12px',
-                        color: '#fff',
-                        fontSize: '13px',
-                        lineHeight: '1.6',
-                        background: 'rgba(244,167,38,0.1)',
-                        borderRadius: '8px',
-                        marginTop: '8px',
-                        border: '1px solid rgba(244,167,38,0.2)'
-                      }}>
-                        {summaryText}
-                      </div>
-                    )}
-                  </>
-                ) : loadingSummary ? (
-                  <div class="space-y-1.5 py-1">
-                    <div class="h-2.5 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                    <div class="h-2.5 rounded w-[90%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                    <div class="h-2.5 rounded w-[75%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                  </div>
-                ) : errorSummary ? (
-                  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
-                    <div class="flex items-start gap-1.5">
-                      <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                      <span>{errorSummary}</span>
-                    </div>
-                    <button 
-                      onClick={handleFetchSummary}
-                      disabled={countdownSummary > 0}
-                      class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
-                    >
-                      {countdownSummary > 0 ? `Retry in ${countdownSummary}s` : '🔄 Retry'}
-                    </button>
-                  </div>
-                ) : (
-                  <p class="text-xs text-navy/95 dark:text-gray-200 font-sans leading-relaxed">
-                    {summary}
-                  </p>
-                )}
+        {/* AI Result Display (Step 5) */}
+        {(aiLoading || aiContent) && (
+          <div style={{
+            marginTop: '12px',
+            padding: '14px',
+            background: 'rgba(244,167,38,0.08)',
+            border: '1px solid rgba(244,167,38,0.25)',
+            borderRadius: '10px'
+          }}>
+            {aiLoading ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: '#F4A726',
+                fontSize: '13px'
+              }}>
+                <span>🤖</span>
+                <span>AI is thinking...</span>
               </div>
-            )}
-
-            {/* Key Points Content */}
-            {showKeyPoints && (
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-primary-glow uppercase tracking-widest font-mono">
-                    <ShieldCheck size={11} class="text-primary-glow" />
-                    <span>AI Structural Implications</span>
-                  </div>
-                  {cacheStatusKeyPoints && (
-                    <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                      cacheStatusKeyPoints === 'instant' 
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
-                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
-                    }`}>
-                      {cacheStatusKeyPoints === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
-                    </span>
-                  )}
-                </div>
-                
-                {loadingKeyPoints ? (
-                  <div class="space-y-1.5 py-1">
-                    <div class="h-2.5 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                    <div class="h-2.5 rounded w-[85%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                    <div class="h-2.5 rounded w-[95%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                  </div>
-                ) : errorKeyPoints ? (
-                  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
-                    <div class="flex items-start gap-1.5">
-                      <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                      <span>{errorKeyPoints}</span>
-                    </div>
-                    <button 
-                      onClick={handleFetchKeyPoints}
-                      disabled={countdownKeyPoints > 0}
-                      class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
-                    >
-                      {countdownKeyPoints > 0 ? `Retry in ${countdownKeyPoints}s` : '🔄 Retry'}
-                    </button>
-                  </div>
-                ) : (
-                  <ul class="space-y-1.5 text-xs text-navy/95 dark:text-gray-200 font-sans list-disc pl-4 leading-relaxed">
-                    {keyPoints && keyPoints.map((point, idx) => (
-                      <li key={idx} class="marker:text-gold">
-                        {point}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-            
-            {/* Read Full Article Link */}
-            {!loadingSummary && !loadingKeyPoints && !errorSummary && !errorKeyPoints && (
-              <div class="mt-4 pt-3 border-t border-gray-200 dark:border-white/10 flex justify-end">
-                <a 
-                  href={url} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  onClick={handleLinkClick}
-                  class="text-[9px] font-bold text-navy hover:text-primary-glow dark:text-gray-300 dark:hover:text-primary-glow uppercase tracking-widest flex items-center gap-0.5 transition-colors bg-white/50 dark:bg-black/50 px-3 py-1.5 rounded-full"
-                >
-                  Read Wire Release ↗
-                </a>
+            ) : (
+              <div style={{
+                color: '#fff',
+                fontSize: '13px',
+                lineHeight: '1.7',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {aiContent}
               </div>
             )}
           </div>
         )}
 
-        {/* FEATURE 1: 5-POINT SUMMARY DRAWER */}
-        {showFivePoints && (
-          <div class="mt-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 relative overflow-hidden transition-all duration-300 shadow-inner">
-            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 to-orange-500"></div>
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-1.5 text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest font-mono">
-                <FileText size={11} />
-                <span>📝 News in 5 Points</span>
-              </div>
-              {cacheStatusFivePoints && (
-                <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                  cacheStatusFivePoints === 'instant' 
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
-                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
-                }`}>
-                  {cacheStatusFivePoints === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
-                </span>
-              )}
-            </div>
-            {loadingFivePoints ? (
-              <div class="space-y-2 py-1">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} class="h-2.5 rounded bg-amber-200/60 dark:bg-amber-800/30 animate-pulse" style={{ width: `${85 + (i % 3) * 5}%` }}></div>
-                ))}
-              </div>
-            ) : errorFivePoints ? (
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
-                <div class="flex items-start gap-1.5">
-                  <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                  <span>{errorFivePoints}</span>
-                </div>
-                <button 
-                  onClick={handleFivePoints}
-                  disabled={countdownFivePoints > 0}
-                  class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
-                >
-                  {countdownFivePoints > 0 ? `Retry in ${countdownFivePoints}s` : '🔄 Retry'}
-                </button>
-              </div>
-            ) : fivePoints ? (
-              <ol class="space-y-2">
-                {fivePoints.map((point, idx) => (
-                  <li key={idx} class="flex items-start gap-2.5">
-                    <span class="shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white text-[9px] font-black flex items-center justify-center font-mono">{idx + 1}</span>
-                    <span class="text-[11px] text-navy/90 dark:text-gray-200 font-sans leading-snug">{point}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : null}
-          </div>
-        )}
-
-        {/* FEATURE 3: MARKET IMPACT METER DRAWER */}
-        {showMarketImpact && (
-          <div class="mt-3 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 relative overflow-hidden transition-all duration-300 shadow-inner">
-            <div class={`absolute left-0 top-0 bottom-0 w-1 ${
-              marketImpact?.impactLevel === 'HIGH' ? 'bg-red-500' :
-              marketImpact?.impactLevel === 'LOW' ? 'bg-green-500' : 'bg-yellow-500'
-            }`}></div>
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-1.5 text-[9px] font-bold text-navy dark:text-emerald-400 uppercase tracking-widest font-mono">
-                <TrendingUp size={11} />
-                <span>📊 Market Impact Analysis</span>
-              </div>
-              {cacheStatusMarketImpact && (
-                <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                  cacheStatusMarketImpact === 'instant' 
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
-                    : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
-                }`}>
-                  {cacheStatusMarketImpact === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
-                </span>
-              )}
-            </div>
-            {loadingMarketImpact ? (
-              <div class="space-y-2 py-1">
-                <div class="h-7 w-40 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                <div class="h-2.5 rounded w-[70%] bg-gray-200 dark:bg-gray-800 animate-pulse mt-3"></div>
-                <div class="h-2.5 rounded w-[50%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-              </div>
-            ) : errorMarketImpact ? (
-              <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
-                <div class="flex items-start gap-1.5">
-                  <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                  <span>{errorMarketImpact}</span>
-                </div>
-                <button 
-                  onClick={handleMarketImpact}
-                  disabled={countdownMarketImpact > 0}
-                  class="bg-red-500/10 hover:bg-red-500/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
-                >
-                  {countdownMarketImpact > 0 ? `Retry in ${countdownMarketImpact}s` : '🔄 Retry'}
-                </button>
-              </div>
-            ) : marketImpact ? (
-              <div class="space-y-3">
-                {/* Impact Badge */}
-                <div class={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
-                  marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'NEGATIVE'
-                    ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/30'
-                  : marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'POSITIVE'
-                    ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/30'
-                  : marketImpact.impactLevel === 'MEDIUM'
-                    ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-500/30'
-                  : marketImpact.direction === 'POSITIVE'
-                    ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-500/30'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'
-                }`}>
-                  <span>
-                    {marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'NEGATIVE' ? '🔴' :
-                     marketImpact.impactLevel === 'HIGH' && marketImpact.direction === 'POSITIVE' ? '🟢' :
-                     marketImpact.impactLevel === 'MEDIUM' ? '🟡' :
-                     marketImpact.direction === 'POSITIVE' ? '🟢' : '⚪'}
-                  </span>
-                  <span>{marketImpact.impactLevel} IMPACT — {marketImpact.direction}</span>
-                </div>
-
-                {/* Affected Sectors */}
-                {marketImpact.sectors && marketImpact.sectors.length > 0 && (
-                  <div>
-                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Affected Sectors</span>
-                    <div class="flex flex-wrap gap-1.5">
-                      {marketImpact.sectors.map((sector, idx) => (
-                        <span key={idx} class="px-2 py-0.5 bg-navy/5 dark:bg-white/10 text-navy dark:text-gray-200 text-[9px] font-bold rounded-full border border-navy/10 dark:border-white/10">
-                          {sector}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Reasoning */}
-                {marketImpact.reasoning && (
-                  <p class="text-[10px] text-gray-500 dark:text-gray-400 italic font-sans leading-relaxed border-t border-gray-100 dark:border-white/5 pt-2">
-                    {marketImpact.reasoning}
-                  </p>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* COMMENTS SECTION LEDGER */}
-        {showComments && (
-          <div>
-            {/* AI Debate Starter Card */}
-            {(loadingDebate || debate || errorDebate) && (
-              <div class="mt-3 mb-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 relative overflow-hidden transition-all duration-300 shadow-inner text-xs">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-600"></div>
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-1.5 text-[9px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-widest font-mono">
-                    <Sparkles size={11} class="text-indigo-500" />
-                    <span>AI Debate Catalyst</span>
-                  </div>
-                  {cacheStatusDebate && (
-                    <span class={`text-[9px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                      cacheStatusDebate === 'instant' 
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' 
-                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20'
-                    }`}>
-                      {cacheStatusDebate === 'instant' ? '⚡ Instant' : '✨ AI Generated'}
-                    </span>
-                  )}
-                </div>
-                
-                {loadingDebate ? (
-                  <div class="space-y-1.5 py-1">
-                    <div class="h-2.5 rounded bg-indigo-200/50 dark:bg-indigo-850 animate-pulse"></div>
-                    <div class="h-2.5 rounded w-[90%] bg-indigo-200/50 dark:bg-indigo-850 animate-pulse"></div>
-                  </div>
-                ) : errorDebate ? (
-                  <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-red-655 dark:text-red-400 text-[10px] font-medium py-1">
-                    <div class="flex items-start gap-1.5">
-                      <AlertCircle size={12} class="shrink-0 mt-0.5" />
-                      <span>{errorDebate}</span>
-                    </div>
-                    <button 
-                      onClick={fetchDebateAI}
-                      disabled={countdownDebate > 0}
-                      class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider transition-colors shrink-0 disabled:opacity-50"
-                    >
-                      {countdownDebate > 0 ? `Retry in ${countdownDebate}s` : '🔄 Retry'}
-                    </button>
-                  </div>
-                ) : (
-                  <p class="text-xs text-navy/95 dark:text-gray-200 font-sans italic leading-relaxed">
-                    "{debate}"
-                  </p>
-                )}
-              </div>
-            )}
+        {/* Comments Section for Debate */}
+        {activeAI === 'debate' && (
+          <div class="mt-4">
             <CommentsSection articleUrl={url} />
           </div>
         )}
