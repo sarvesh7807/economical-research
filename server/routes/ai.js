@@ -138,38 +138,7 @@ router.post('/analyze', async (req, res) => {
   }
 });
 
-// 4. TRANSLATION
-router.post('/translate', async (req, res) => {
-  const { text, targetLanguage } = req.body;
 
-  if (!text) return res.status(400).json({ error: 'Text required' });
-
-  if (!genAI) {
-    // Mock translation prefixes
-    const mockPrefixes = {
-      hindi: '📰 [Hindi Translation] ',
-      spanish: '📰 [Spanish Translation] ',
-      french: '📰 [French Translation] ',
-      german: '📰 [German Translation] ',
-      chinese: '📰 [Chinese Translation] ',
-      japanese: '📰 [Japanese Translation] ',
-      arabic: '📰 [Arabic Translation] '
-    };
-    const prefix = mockPrefixes[targetLanguage.toLowerCase()] || `📰 [${targetLanguage} Translation] `;
-    return res.json({ translatedText: prefix + text });
-  }
-
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
-    const prompt = `Translate the following news text into ${targetLanguage}. Maintain a professional, news-quality grammar structure. Output ONLY the translated text. Do not add comments or quotes.
-    Text: ${text}`;
-
-    const result = await model.generateContent(prompt);
-    res.json({ translatedText: result.response.text().trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // 5. ER ASSISTANT CHATBOT
 router.post('/chat', async (req, res) => {

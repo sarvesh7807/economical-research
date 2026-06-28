@@ -10,11 +10,6 @@ function ArticleCard({ article, isLead }) {
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
   const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
   
-  // Translation states
-  const [translatedTitle, setTranslatedTitle] = useState(null);
-  const [translatedDesc, setTranslatedDesc] = useState(null);
-  const [translating, setTranslating] = useState(false);
-  const [activeLang, setActiveLang] = useState('Original');
 
   // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
@@ -502,39 +497,6 @@ function ArticleCard({ article, isLead }) {
   };
 
 
-  // Translation handler
-  const handleTranslate = async (lang) => {
-    setActiveLang(lang);
-    if (lang === 'Original') {
-      setTranslatedTitle(null);
-      setTranslatedDesc(null);
-      return;
-    }
-
-    setTranslating(true);
-    try {
-      const titleRes = await fetch('/api/ai/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: title, targetLanguage: lang })
-      });
-      const titleData = await titleRes.json();
-
-      const descRes = await fetch('/api/ai/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: description || 'No summary text available.', targetLanguage: lang })
-      });
-      const descData = await descRes.json();
-
-      setTranslatedTitle(titleData.translatedText);
-      setTranslatedDesc(descData.translatedText);
-    } catch (err) {
-      console.error('Translation error:', err);
-    } finally {
-      setTranslating(false);
-    }
-  };
 
   const getRelativeTime = (dateString) => {
     if (!dateString) return 'Just now';
@@ -688,27 +650,6 @@ function ArticleCard({ article, isLead }) {
               {getEstimatedReadingTime()} min read
             </span>
 
-            {/* Translation Widget */}
-            <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
-              <Languages size={9} class="text-accent-pink shrink-0" />
-              {translating ? (
-                <span class="text-[8px] animate-pulse">Wait...</span>
-              ) : (
-                <select
-                  value={activeLang}
-                  onChange={(e) => handleTranslate(e.target.value)}
-                  class="bg-transparent text-gray-500 dark:text-gray-400 font-bold focus:outline-none cursor-pointer border-none text-[8px] p-0"
-                >
-                  <option value="Original" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">EN</option>
-                  <option value="Hindi" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">HI</option>
-                  <option value="Spanish" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">ES</option>
-                  <option value="French" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">FR</option>
-                  <option value="German" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">DE</option>
-                  <option value="Japanese" class="bg-paper dark:bg-paper-cardDark text-navy dark:text-white">JA</option>
-                </select>
-              )}
-            </div>
-
             <button 
               onClick={handleBookmarkToggle}
               class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors focus:outline-none shrink-0"
@@ -777,7 +718,7 @@ function ArticleCard({ article, isLead }) {
           isLead ? 'text-2xl md:text-3xl line-clamp-3' : 'text-xl md:text-2xl line-clamp-2'
         }`}>
           <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
-            {translatedTitle || title}
+            {title}
           </a>
         </h3>
 
@@ -795,7 +736,7 @@ function ArticleCard({ article, isLead }) {
           settings?.fontSize === 'small' ? 'text-sm' : 
           settings?.fontSize === 'large' ? 'text-lg' : 'text-base'
         }`}>
-          {translatedDesc || description || 'Full report details are available in the linked release archive.'}
+          {description || 'Full report details are available in the linked release archive.'}
         </p>
       </div>
 
