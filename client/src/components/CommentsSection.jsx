@@ -15,6 +15,8 @@ export default function CommentsSection({ articleUrl }) {
     let unsubscribe = () => {};
 
     if (db) {
+      // Firebase index needed - create at:
+      // https://console.firebase.google.com/v1/r/project/propane-avatar-476809-q2/firestore/indexes?create_composite=Clxwcm9qZWN0cy9wcm9wYW5lLWF2YXRhci00NzY4MDktcTIvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL2NvbW1lbnRzL2luZGV4ZXMvXxABGg4KCmFydGljbGVVcmwQARoNCgljcmVhdGVkQXQQARoMCghfX25hbWVfXxAB
       const q = query(
         collection(db, 'comments'),
         where('articleUrl', '==', articleUrl),

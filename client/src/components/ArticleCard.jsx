@@ -717,6 +717,7 @@ function ArticleCard({ article, isLead }) {
           }}>
             <button
               onClick={handleSummary}
+              disabled={aiLoading}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'summary' ? 
@@ -725,7 +726,8 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: aiLoading ? 'not-allowed' : 'pointer',
+                opacity: aiLoading ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
@@ -735,6 +737,7 @@ function ArticleCard({ article, isLead }) {
 
             <button
               onClick={handleKeyPoints}
+              disabled={aiLoading}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'keypoints' ? 
@@ -743,7 +746,8 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: aiLoading ? 'not-allowed' : 'pointer',
+                opacity: aiLoading ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
@@ -753,6 +757,7 @@ function ArticleCard({ article, isLead }) {
 
             <button
               onClick={handleDebate}
+              disabled={aiLoading}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'debate' ? 
@@ -761,7 +766,8 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: aiLoading ? 'not-allowed' : 'pointer',
+                opacity: aiLoading ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
@@ -771,6 +777,7 @@ function ArticleCard({ article, isLead }) {
 
             <button
               onClick={handleFivePoints}
+              disabled={aiLoading}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'fivepoints' ? 
@@ -779,7 +786,8 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: aiLoading ? 'not-allowed' : 'pointer',
+                opacity: aiLoading ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
@@ -789,6 +797,7 @@ function ArticleCard({ article, isLead }) {
 
             <button
               onClick={handleMarketImpact}
+              disabled={aiLoading}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'market' ? 
@@ -797,7 +806,8 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: aiLoading ? 'not-allowed' : 'pointer',
+                opacity: aiLoading ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
