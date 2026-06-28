@@ -343,6 +343,8 @@ function ArticleCard({ article, isLead }) {
   };
 
   const callGeminiAI = async (prompt, cacheKey, retryCount = 0) => {
+    console.log('callGeminiAI called, retryCount:', retryCount);
+    
     // Check localStorage cache first
     try {
       const cached = localStorage.getItem(`ai_cache_${cacheKey}`);
@@ -350,6 +352,7 @@ function ArticleCard({ article, isLead }) {
         const { result, timestamp } = JSON.parse(cached);
         const ageInHours = (Date.now() - timestamp) / 3600000;
         if (ageInHours < 24) {
+          console.log('Cache hit:', result.slice(0, 50));
           return result;
         }
       }
@@ -357,8 +360,11 @@ function ArticleCard({ article, isLead }) {
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      console.log('API Key exists:', !!apiKey);
+      
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
       
+      console.log('Calling Gemini API...');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -368,20 +374,36 @@ function ArticleCard({ article, isLead }) {
         })
       });
       
+      console.log('Response status:', res.status);
+      
       if (res.status === 429) {
-        if (retryCount < 2) {
+        console.log('Rate limited!');
+        if (retryCount < 1) {
           setAiContent('⏳ High demand... Auto-retrying in 35 seconds...');
           await new Promise(resolve => setTimeout(resolve, 35000));
           return callGeminiAI(prompt, cacheKey, retryCount + 1);
         }
-        return '⏳ Too many requests. Please wait 1 minute and try again.';
+        return '⏳ Rate limited. Please wait 1 minute.';
       }
       
-      if (!res.ok) throw new Error('API failed');
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('API Error:', res.status, errText);
+        return `❌ API Error ${res.status}. Try again.`;
+      }
       
       const data = await res.json();
+      console.log('API Response received:', JSON.stringify(data).slice(0, 200));
+      
       const result = data.candidates?.[0]
-        ?.content?.parts?.[0]?.text || 'No response.';
+        ?.content?.parts?.[0]?.text;
+      
+      console.log('Extracted result:', result?.slice(0, 100));
+      
+      if (!result) {
+        console.error('No result in response:', data);
+        return '❌ No response from AI. Try again.';
+      }
       
       try {
         localStorage.setItem(
@@ -392,102 +414,152 @@ function ArticleCard({ article, isLead }) {
       
       return result;
     } catch (err) {
-      return '❌ Could not load. Please try again.';
+      console.error('callGeminiAI error:', err);
+      return `❌ Error: ${err.message}`;
     }
   };
 
   const handleSummary = async () => {
-    if (activeAI === 'summary') { 
-      setActiveAI(null); setAiContent(''); return;
+    if (activeAI === 'summary') {
+      setActiveAI(null);
+      setAiContent('');
+      return;
     }
     setActiveAI('summary');
     setAiLoading(true);
     setAiContent('');
-    const result = await callGeminiAI(
-      `Summarize in 3-4 sentences: 
-      Title: ${article.title}
-      Description: ${article.description || ''}`,
-      `sum_${article.url?.slice(-20)}`
-    );
-    setAiContent(result);
-    setAiLoading(false);
-    startCooldown();
+    
+    try {
+      const result = await callGeminiAI(
+        `Summarize this news in 3-4 clear sentences.
+        Title: ${article.title}
+        Description: ${article.description || 'No description available'}`,
+        `sum_${(article.url || article.title || '').slice(-20)}`
+      );
+      console.log('Summary result:', result?.slice(0, 50));
+      setAiContent(result);
+    } catch(err) {
+      console.error('handleSummary error:', err);
+      setAiContent('❌ Could not load. Try again.');
+    } finally {
+      setAiLoading(false);
+      startCooldown();
+    }
   };
 
   const handleKeyPoints = async () => {
-    if (activeAI === 'keypoints') { 
-      setActiveAI(null); setAiContent(''); return;
+    if (activeAI === 'keypoints') {
+      setActiveAI(null);
+      setAiContent('');
+      return;
     }
     setActiveAI('keypoints');
     setAiLoading(true);
     setAiContent('');
-    const result = await callGeminiAI(
-      `Give 5 key points as numbered list:
-      Title: ${article.title}
-      Description: ${article.description || ''}`,
-      `key_${article.url?.slice(-20)}`
-    );
-    setAiContent(result);
-    setAiLoading(false);
-    startCooldown();
+    
+    try {
+      const result = await callGeminiAI(
+        `Give 5 key points as numbered list:
+        Title: ${article.title}
+        Description: ${article.description || 'No description available'}`,
+        `key_${(article.url || article.title || '').slice(-20)}`
+      );
+      console.log('KeyPoints result:', result?.slice(0, 50));
+      setAiContent(result);
+    } catch(err) {
+      console.error('handleKeyPoints error:', err);
+      setAiContent('❌ Could not load. Try again.');
+    } finally {
+      setAiLoading(false);
+      startCooldown();
+    }
   };
 
   const handleDebate = async () => {
-    if (activeAI === 'debate') { 
-      setActiveAI(null); setAiContent(''); return;
+    if (activeAI === 'debate') {
+      setActiveAI(null);
+      setAiContent('');
+      return;
     }
     setActiveAI('debate');
     setAiLoading(true);
     setAiContent('');
-    const result = await callGeminiAI(
-      `Create FOR and AGAINST debate (2 points each):
-      Title: ${article.title}
-      Description: ${article.description || ''}`,
-      `deb_${article.url?.slice(-20)}`
-    );
-    setAiContent(result);
-    setAiLoading(false);
-    startCooldown();
+    
+    try {
+      const result = await callGeminiAI(
+        `Create FOR and AGAINST debate (2 points each):
+        Title: ${article.title}
+        Description: ${article.description || 'No description available'}`,
+        `deb_${(article.url || article.title || '').slice(-20)}`
+      );
+      console.log('Debate result:', result?.slice(0, 50));
+      setAiContent(result);
+    } catch(err) {
+      console.error('handleDebate error:', err);
+      setAiContent('❌ Could not load. Try again.');
+    } finally {
+      setAiLoading(false);
+      startCooldown();
+    }
   };
 
   const handleFivePoints = async () => {
-    if (activeAI === 'fivepoints') { 
-      setActiveAI(null); setAiContent(''); return;
+    if (activeAI === 'fivepoints') {
+      setActiveAI(null);
+      setAiContent('');
+      return;
     }
     setActiveAI('fivepoints');
     setAiLoading(true);
     setAiContent('');
-    const result = await callGeminiAI(
-      `Summarize in exactly 5 bullet points 
-      under 15 words each:
-      Title: ${article.title}
-      Description: ${article.description || ''}`,
-      `five_${article.url?.slice(-20)}`
-    );
-    setAiContent(result);
-    setAiLoading(false);
-    startCooldown();
+    
+    try {
+      const result = await callGeminiAI(
+        `Summarize in exactly 5 bullet points under 15 words each:
+        Title: ${article.title}
+        Description: ${article.description || 'No description available'}`,
+        `five_${(article.url || article.title || '').slice(-20)}`
+      );
+      console.log('FivePoints result:', result?.slice(0, 50));
+      setAiContent(result);
+    } catch(err) {
+      console.error('handleFivePoints error:', err);
+      setAiContent('❌ Could not load. Try again.');
+    } finally {
+      setAiLoading(false);
+      startCooldown();
+    }
   };
 
   const handleMarketImpact = async () => {
-    if (activeAI === 'market') { 
-      setActiveAI(null); setAiContent(''); return;
+    if (activeAI === 'market') {
+      setActiveAI(null);
+      setAiContent('');
+      return;
     }
     setActiveAI('market');
     setAiLoading(true);
     setAiContent('');
-    const result = await callGeminiAI(
-      `Analyze market impact:
-      Rate: HIGH/MEDIUM/LOW
-      Direction: POSITIVE/NEGATIVE/NEUTRAL
-      Affected sectors (2-3):
-      Title: ${article.title}
-      Description: ${article.description || ''}`,
-      `mkt_${article.url?.slice(-20)}`
-    );
-    setAiContent(result);
-    setAiLoading(false);
-    startCooldown();
+    
+    try {
+      const result = await callGeminiAI(
+        `Analyze market impact:
+        Rate: HIGH/MEDIUM/LOW
+        Direction: POSITIVE/NEGATIVE/NEUTRAL
+        Affected sectors (2-3):
+        Title: ${article.title}
+        Description: ${article.description || 'No description available'}`,
+        `mkt_${(article.url || article.title || '').slice(-20)}`
+      );
+      console.log('MarketImpact result:', result?.slice(0, 50));
+      setAiContent(result);
+    } catch(err) {
+      console.error('handleMarketImpact error:', err);
+      setAiContent('❌ Could not load. Try again.');
+    } finally {
+      setAiLoading(false);
+      startCooldown();
+    }
   };
 
 
@@ -853,35 +925,33 @@ function ArticleCard({ article, isLead }) {
           </div>
 
           {/* AI Result Display */}
-          {(aiLoading || aiContent) && (
+          {aiLoading && (
             <div style={{
               padding: '14px',
               background: 'rgba(244,167,38,0.08)',
               border: '1px solid rgba(244,167,38,0.25)',
               borderRadius: '10px',
-              marginTop: '8px'
+              marginTop: '8px',
+              color: '#F4A726',
+              fontSize: '13px'
             }}>
-              {aiLoading ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  color: '#F4A726',
-                  fontSize: '13px'
-                }}>
-                  <span>🤖</span>
-                  <span>AI is thinking...</span>
-                </div>
-              ) : (
-                <div style={{
-                  color: '#fff',
-                  fontSize: '13px',
-                  lineHeight: '1.7',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {aiContent}
-                </div>
-              )}
+              🤖 {aiContent || 'AI is thinking...'}
+            </div>
+          )}
+
+          {!aiLoading && aiContent && (
+            <div style={{
+              padding: '14px',
+              background: 'rgba(244,167,38,0.08)',
+              border: '1px solid rgba(244,167,38,0.25)',
+              borderRadius: '10px',
+              marginTop: '8px',
+              color: '#fff',
+              fontSize: '13px',
+              lineHeight: '1.7',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {aiContent}
             </div>
           )}
         </div>
