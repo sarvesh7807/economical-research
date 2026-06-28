@@ -330,7 +330,6 @@ function ArticleCard({ article, isLead }) {
   };
 
   const callGeminiAI = async (prompt, cacheKey) => {
-    // Check cache first
     try {
       const { getCachedOrFetchAI } = await import('../utils/aiCache');
       const result = await getCachedOrFetchAI(
@@ -346,17 +345,10 @@ function ArticleCard({ article, isLead }) {
           
           const res = await fetch(url, {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json' 
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{ 
-                parts: [{ text: prompt }] 
-              }],
-              generationConfig: {
-                maxOutputTokens: 500,
-                temperature: 0.7
-              }
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 500 }
             })
           });
           
@@ -364,16 +356,11 @@ function ArticleCard({ article, isLead }) {
             return '⏳ Too many requests. Please wait 30 seconds and try again.';
           }
           
-          if (!res.ok) {
-            const errData = await res.json();
-            console.error('Gemini error:', errData);
-            throw new Error('API call failed');
-          }
+          if (!res.ok) throw new Error('API failed');
           
           const data = await res.json();
-          return data.candidates?.[0]
-            ?.content?.parts?.[0]?.text || 
-            'Could not generate response.';
+          return data.candidates?.[0]?.content
+            ?.parts?.[0]?.text || 'No response.';
         }
       );
       return result.content || result;
@@ -383,115 +370,91 @@ function ArticleCard({ article, isLead }) {
     }
   };
 
-  // AI SUMMARY
   const handleSummary = async () => {
-    if (activeAI === 'summary') {
-      setActiveAI(null);
-      return;
+    if (activeAI === 'summary') { 
+      setActiveAI(null); setAiContent(''); return;
     }
     setActiveAI('summary');
     setAiLoading(true);
     setAiContent('');
-    
     const result = await callGeminiAI(
-      `Summarize this news in 3-4 clear sentences. 
+      `Summarize in 3-4 sentences: 
       Title: ${article.title}
-      Description: ${article.description || ''}
-      Be concise and informative.`,
-      `summary_${article.url?.slice(-30)}`
+      Description: ${article.description || ''}`,
+      `sum_${article.url?.slice(-20)}`
     );
-    
     setAiContent(result);
     setAiLoading(false);
   };
 
-  // KEY POINTS
   const handleKeyPoints = async () => {
-    if (activeAI === 'keypoints') {
-      setActiveAI(null);
-      return;
+    if (activeAI === 'keypoints') { 
+      setActiveAI(null); setAiContent(''); return;
     }
     setActiveAI('keypoints');
     setAiLoading(true);
     setAiContent('');
-    
     const result = await callGeminiAI(
-      `Extract 5 key points from this news article.
-      Format as numbered list.
+      `Give 5 key points as numbered list:
       Title: ${article.title}
       Description: ${article.description || ''}`,
-      `keypoints_${article.url?.slice(-30)}`
+      `key_${article.url?.slice(-20)}`
     );
-    
     setAiContent(result);
     setAiLoading(false);
   };
 
-  // DEBATE
   const handleDebate = async () => {
-    if (activeAI === 'debate') {
-      setActiveAI(null);
-      return;
+    if (activeAI === 'debate') { 
+      setActiveAI(null); setAiContent(''); return;
     }
     setActiveAI('debate');
     setAiLoading(true);
     setAiContent('');
-    
     const result = await callGeminiAI(
-      `Create a short debate on this news topic.
-      FOR argument (2 points) and 
-      AGAINST argument (2 points).
+      `Create FOR and AGAINST debate (2 points each):
       Title: ${article.title}
       Description: ${article.description || ''}`,
-      `debate_${article.url?.slice(-30)}`
+      `deb_${article.url?.slice(-20)}`
     );
-    
     setAiContent(result);
     setAiLoading(false);
   };
 
-  // 5 POINTS SUMMARY
   const handleFivePoints = async () => {
-    if (activeAI === 'fivepoints') {
-      setActiveAI(null);
-      return;
+    if (activeAI === 'fivepoints') { 
+      setActiveAI(null); setAiContent(''); return;
     }
     setActiveAI('fivepoints');
     setAiLoading(true);
     setAiContent('');
-    
     const result = await callGeminiAI(
-      `Summarize this news in exactly 5 
-      bullet points, each under 15 words.
+      `Summarize in exactly 5 bullet points 
+      under 15 words each:
       Title: ${article.title}
       Description: ${article.description || ''}`,
-      `fivepoints_${article.url?.slice(-30)}`
+      `five_${article.url?.slice(-20)}`
     );
-    
     setAiContent(result);
     setAiLoading(false);
   };
 
-  // MARKET IMPACT
   const handleMarketImpact = async () => {
-    if (activeAI === 'market') {
-      setActiveAI(null);
-      return;
+    if (activeAI === 'market') { 
+      setActiveAI(null); setAiContent(''); return;
     }
     setActiveAI('market');
     setAiLoading(true);
     setAiContent('');
-    
     const result = await callGeminiAI(
-      `Analyze the stock market impact of 
-      this news. Rate: HIGH/MEDIUM/LOW impact.
-      Direction: POSITIVE/NEGATIVE/NEUTRAL.
-      Affected sectors (list 2-3).
+      `Analyze market impact:
+      Rate: HIGH/MEDIUM/LOW
+      Direction: POSITIVE/NEGATIVE/NEUTRAL
+      Affected sectors (2-3):
       Title: ${article.title}
       Description: ${article.description || ''}`,
-      `market_${article.url?.slice(-30)}`
+      `mkt_${article.url?.slice(-20)}`
     );
-    
     setAiContent(result);
     setAiLoading(false);
   };
@@ -741,163 +704,167 @@ function ArticleCard({ article, isLead }) {
       </div>
 
       {/* AI Controls, Drawer & Comments */}
-      <div class="article-actions">
-        {/* Action Buttons Row 1 */}
-        <div class="article-btn-row flex items-center gap-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
-          {/* AI Summary Button */}
-          <button
-            onClick={handleSummary}
-            disabled={aiLoading}
-            class="ai-btn article-btn flex-1 flex items-center justify-center gap-1 transition-all"
-            style={{
-              background: activeAI === 'summary' ? '#F4A726' : 'rgba(244,167,38,0.1)',
-              color: activeAI === 'summary' ? '#0A1628' : '#F4A726',
-              border: '1px solid rgba(244,167,38,0.3)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}
-          >
-            <Sparkles size={12} class={activeAI === 'summary' ? 'text-[#0A1628]' : 'text-primary-glow'} />
-            <span>AI Summary</span>
-            {activeAI === 'summary' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+      <div class="article-actions" style={{ marginTop: '12px' }}>
+        {/* AI BUTTONS SECTION */}
+        <div style={{
+          paddingTop: '12px',
+          borderTop: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          {/* Row 1 - AI Buttons */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            marginBottom: '8px'
+          }}>
+            <button
+              onClick={handleSummary}
+              style={{
+                padding: '6px 10px',
+                background: activeAI === 'summary' ? 
+                  '#F4A726' : 'rgba(244,167,38,0.1)',
+                color: activeAI === 'summary' ? 
+                  '#0A1628' : '#F4A726',
+                border: '1px solid rgba(244,167,38,0.4)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+              🤖 AI Summary
+            </button>
 
-          {/* Key Points Button */}
-          <button
-            onClick={handleKeyPoints}
-            disabled={aiLoading}
-            class="ai-btn article-btn flex-1 flex items-center justify-center gap-1 transition-all"
-            style={{
-              background: activeAI === 'keypoints' ? '#F4A726' : 'rgba(244,167,38,0.1)',
-              color: activeAI === 'keypoints' ? '#0A1628' : '#F4A726',
-              border: '1px solid rgba(244,167,38,0.3)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}
-          >
-            <List size={12} class={activeAI === 'keypoints' ? 'text-[#0A1628]' : 'text-primary-glow'} />
-            <span>Key Points</span>
-            {activeAI === 'keypoints' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+            <button
+              onClick={handleKeyPoints}
+              style={{
+                padding: '6px 10px',
+                background: activeAI === 'keypoints' ? 
+                  '#F4A726' : 'rgba(244,167,38,0.1)',
+                color: activeAI === 'keypoints' ? 
+                  '#0A1628' : '#F4A726',
+                border: '1px solid rgba(244,167,38,0.4)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+              📌 Key Points
+            </button>
 
-          {/* Comments Toggle */}
-          <button
-            onClick={handleDebate}
-            disabled={aiLoading}
-            class="ai-btn article-btn flex-1 flex items-center justify-center gap-1 transition-all"
-            style={{
-              background: activeAI === 'debate' ? '#F4A726' : 'rgba(244,167,38,0.1)',
-              color: activeAI === 'debate' ? '#0A1628' : '#F4A726',
-              border: '1px solid rgba(244,167,38,0.3)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}
-          >
-            <MessageSquare size={12} class={activeAI === 'debate' ? 'text-[#0A1628]' : 'text-primary-glow'} />
-            <span>Debate</span>
-            {activeAI === 'debate' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+            <button
+              onClick={handleDebate}
+              style={{
+                padding: '6px 10px',
+                background: activeAI === 'debate' ? 
+                  '#F4A726' : 'rgba(244,167,38,0.1)',
+                color: activeAI === 'debate' ? 
+                  '#0A1628' : '#F4A726',
+                border: '1px solid rgba(244,167,38,0.4)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+              ⚖️ Debate
+            </button>
+
+            <button
+              onClick={handleFivePoints}
+              style={{
+                padding: '6px 10px',
+                background: activeAI === 'fivepoints' ? 
+                  '#F4A726' : 'rgba(244,167,38,0.1)',
+                color: activeAI === 'fivepoints' ? 
+                  '#0A1628' : '#F4A726',
+                border: '1px solid rgba(244,167,38,0.4)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+              📝 5 Points
+            </button>
+
+            <button
+              onClick={handleMarketImpact}
+              style={{
+                padding: '6px 10px',
+                background: activeAI === 'market' ? 
+                  '#F4A726' : 'rgba(244,167,38,0.1)',
+                color: activeAI === 'market' ? 
+                  '#0A1628' : '#F4A726',
+                border: '1px solid rgba(244,167,38,0.4)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}>
+              📊 Market Impact
+            </button>
+          </div>
+
+          {/* AI Result Display */}
+          {(aiLoading || aiContent) && (
+            <div style={{
+              padding: '14px',
+              background: 'rgba(244,167,38,0.08)',
+              border: '1px solid rgba(244,167,38,0.25)',
+              borderRadius: '10px',
+              marginTop: '8px'
+            }}>
+              {aiLoading ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  color: '#F4A726',
+                  fontSize: '13px'
+                }}>
+                  <span>🤖</span>
+                  <span>AI is thinking...</span>
+                </div>
+              ) : (
+                <div style={{
+                  color: '#fff',
+                  fontSize: '13px',
+                  lineHeight: '1.7',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {aiContent}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Action Buttons Row 2 — New AI Features */}
-        <div class="article-btn-row flex items-center gap-2 mt-2">
-          {/* Feature 1: 5-Point Summary */}
-          <button
-            onClick={handleFivePoints}
-            disabled={aiLoading}
-            class="article-btn flex-1 flex items-center justify-center gap-1 transition-all"
-            style={{
-              background: activeAI === 'fivepoints' ? '#F4A726' : 'rgba(244,167,38,0.1)',
-              color: activeAI === 'fivepoints' ? '#0A1628' : '#F4A726',
-              border: '1px solid rgba(244,167,38,0.3)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}
-          >
-            <FileText size={12} class={activeAI === 'fivepoints' ? 'text-[#0A1628]' : 'text-amber-500'} />
-            <span>📝 5 Points</span>
-            {activeAI === 'fivepoints' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
-
-          {/* Feature 3: Market Impact Meter */}
-          <button
-            onClick={handleMarketImpact}
-            disabled={aiLoading}
-            class="article-btn flex-1 flex items-center justify-center gap-1 transition-all"
-            style={{
-              background: activeAI === 'market' ? '#F4A726' : 'rgba(244,167,38,0.1)',
-              color: activeAI === 'market' ? '#0A1628' : '#F4A726',
-              border: '1px solid rgba(244,167,38,0.3)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}
-          >
-            <TrendingUp size={12} class={activeAI === 'market' ? 'text-[#0A1628]' : 'text-emerald-500'} />
-            <span>📊 Market Impact</span>
-            {activeAI === 'market' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
-
-          {/* Share Button */}
+        {/* Share Button Row */}
+        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={() => {
               setIsShareModalOpen(true);
               const topic = getArticleTopic();
               trackArticleRead(topic, 3);
             }}
-            class="article-btn flex-1 flex items-center justify-center gap-1.5 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all bg-gray-100 dark:bg-white/5 border border-transparent hover:border-gold text-navy dark:text-gray-200"
+            class="article-btn"
+            style={{
+              padding: '6px 12px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: '600'
+            }}
           >
-            <Share2 size={12} class="text-gold" />
             <span>Share</span>
           </button>
         </div>
-
-        {/* AI Result Display (Step 5) */}
-        {(aiLoading || aiContent) && (
-          <div style={{
-            marginTop: '12px',
-            padding: '14px',
-            background: 'rgba(244,167,38,0.08)',
-            border: '1px solid rgba(244,167,38,0.25)',
-            borderRadius: '10px'
-          }}>
-            {aiLoading ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: '#F4A726',
-                fontSize: '13px'
-              }}>
-                <span>🤖</span>
-                <span>AI is thinking...</span>
-              </div>
-            ) : (
-              <div style={{
-                color: '#fff',
-                fontSize: '13px',
-                lineHeight: '1.7',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {aiContent}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Comments Section for Debate */}
         {activeAI === 'debate' && (
