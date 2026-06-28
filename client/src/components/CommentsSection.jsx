@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, Heart, CornerDownRight, Send, Trash2 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc, limit } from 'firebase/firestore';
 
 export default function CommentsSection({ articleUrl }) {
   const { user } = useAuth();
@@ -10,6 +10,8 @@ export default function CommentsSection({ articleUrl }) {
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [replyText, setReplyText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -20,14 +22,20 @@ export default function CommentsSection({ articleUrl }) {
       const q = query(
         collection(db, 'comments'),
         where('articleUrl', '==', articleUrl),
-        orderBy('createdAt', 'asc')
+        orderBy('createdAt', 'asc'),
+        limit(50)
       );
+      setLoading(true);
       unsubscribe = onSnapshot(q, (snap) => {
         const list = [];
         snap.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
         setComments(list);
+        setError(null);
+        setLoading(false);
       }, (err) => {
         console.error('Error fetching comments from firestore:', err);
+        setError('Comments loading... Please wait.');
+        setLoading(false);
       });
     }
 
@@ -165,7 +173,11 @@ export default function CommentsSection({ articleUrl }) {
 
       {/* Comments List */}
       <div class="space-y-4 max-h-[250px] overflow-y-auto pr-1 scrollbar-none">
-        {parentComments.length === 0 ? (
+        {error ? (
+          <p class="text-[10px] text-gold italic text-center py-2">{error}</p>
+        ) : loading ? (
+          <p class="text-[10px] text-gray-400 italic text-center py-2">Loading comments...</p>
+        ) : parentComments.length === 0 ? (
           <p class="text-[10px] text-gray-400 italic text-center py-2">No statements recorded on this wire briefing.</p>
         ) : (
           parentComments.map((comm) => (
