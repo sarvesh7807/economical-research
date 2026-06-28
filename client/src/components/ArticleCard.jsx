@@ -431,7 +431,7 @@ function ArticleCard({ article, isLead }) {
     
     try {
       const result = await callGeminiAI(
-        `Summarize this news in 3-4 clear sentences.
+        `Summarize in 3-4 clear sentences.
         Title: ${article.title}
         Description: ${article.description || 'No description available'}`,
         `sum_${(article.url || article.title || '').slice(-20)}`
@@ -459,7 +459,12 @@ function ArticleCard({ article, isLead }) {
     
     try {
       const result = await callGeminiAI(
-        `Give 5 key points as numbered list:
+        `List 5 key points:
+        1. Point one
+        2. Point two
+        3. Point three
+        4. Point four
+        5. Point five
         Title: ${article.title}
         Description: ${article.description || 'No description available'}`,
         `key_${(article.url || article.title || '').slice(-20)}`
@@ -487,9 +492,15 @@ function ArticleCard({ article, isLead }) {
     
     try {
       const result = await callGeminiAI(
-        `Create FOR and AGAINST debate (2 points each):
-        Title: ${article.title}
-        Description: ${article.description || 'No description available'}`,
+        `Create debate:
+        FOR:
+        1. Argument one
+        2. Argument two
+
+        AGAINST:
+        1. Argument one
+        2. Argument two
+        Title: ${article.title}`,
         `deb_${(article.url || article.title || '').slice(-20)}`
       );
       console.log('Debate result:', result?.slice(0, 50));
@@ -515,9 +526,13 @@ function ArticleCard({ article, isLead }) {
     
     try {
       const result = await callGeminiAI(
-        `Summarize in exactly 5 bullet points under 15 words each:
-        Title: ${article.title}
-        Description: ${article.description || 'No description available'}`,
+        `Give exactly 5 points under 15 words each:
+        1. 
+        2. 
+        3. 
+        4. 
+        5. 
+        Title: ${article.title}`,
         `five_${(article.url || article.title || '').slice(-20)}`
       );
       console.log('FivePoints result:', result?.slice(0, 50));
@@ -544,11 +559,12 @@ function ArticleCard({ article, isLead }) {
     try {
       const result = await callGeminiAI(
         `Analyze market impact:
-        Rate: HIGH/MEDIUM/LOW
+        Impact: HIGH/MEDIUM/LOW
         Direction: POSITIVE/NEGATIVE/NEUTRAL
-        Affected sectors (2-3):
-        Title: ${article.title}
-        Description: ${article.description || 'No description available'}`,
+        Sectors affected:
+        1. Sector one
+        2. Sector two
+        Title: ${article.title}`,
         `mkt_${(article.url || article.title || '').slice(-20)}`
       );
       console.log('MarketImpact result:', result?.slice(0, 50));
@@ -948,7 +964,7 @@ function ArticleCard({ article, isLead }) {
               marginTop: '8px',
               color: '#fff',
               fontSize: '13px',
-              lineHeight: '1.7',
+              lineHeight: '1.9',
               whiteSpace: 'pre-wrap'
             }}>
               {aiContent}
