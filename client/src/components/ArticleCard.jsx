@@ -14,6 +14,21 @@ function ArticleCard({ article, isLead }) {
   const [activeAI, setActiveAI] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiContent, setAiContent] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  const startCooldown = () => {
+    setCooldown(5)
+    const timer = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
 
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
   const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
@@ -327,43 +342,56 @@ function ArticleCard({ article, isLead }) {
     }
   };
 
-  const callGeminiAI = async (prompt, cacheKey) => {
+  const callGeminiAI = async (prompt, cacheKey, retryCount = 0) => {
+    // Check localStorage cache first
     try {
-      const { getCachedOrFetchAI } = await import('../utils/aiCache');
-      const result = await getCachedOrFetchAI(
-        cacheKey,
-        async () => {
-          const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-          
-          if (!apiKey) {
-            throw new Error('No API key found');
-          }
-          
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-          
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: 500 }
-            })
-          });
-          
-          if (res.status === 429) {
-            return '⏳ Too many requests. Please wait 30 seconds and try again.';
-          }
-          
-          if (!res.ok) throw new Error('API failed');
-          
-          const data = await res.json();
-          return data.candidates?.[0]?.content
-            ?.parts?.[0]?.text || 'No response.';
+      const cached = localStorage.getItem(`ai_cache_${cacheKey}`);
+      if (cached) {
+        const { result, timestamp } = JSON.parse(cached);
+        const ageInHours = (Date.now() - timestamp) / 3600000;
+        if (ageInHours < 24) {
+          return result;
         }
-      );
-      return result.content || result;
+      }
+    } catch(e) {}
+
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 500 }
+        })
+      });
+      
+      if (res.status === 429) {
+        if (retryCount < 2) {
+          setAiContent('⏳ High demand... Auto-retrying in 35 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 35000));
+          return callGeminiAI(prompt, cacheKey, retryCount + 1);
+        }
+        return '⏳ Too many requests. Please wait 1 minute and try again.';
+      }
+      
+      if (!res.ok) throw new Error('API failed');
+      
+      const data = await res.json();
+      const result = data.candidates?.[0]
+        ?.content?.parts?.[0]?.text || 'No response.';
+      
+      try {
+        localStorage.setItem(
+          `ai_cache_${cacheKey}`,
+          JSON.stringify({ result, timestamp: Date.now() })
+        );
+      } catch(e) {}
+      
+      return result;
     } catch (err) {
-      console.error('AI call failed:', err);
       return '❌ Could not load. Please try again.';
     }
   };
@@ -383,6 +411,7 @@ function ArticleCard({ article, isLead }) {
     );
     setAiContent(result);
     setAiLoading(false);
+    startCooldown();
   };
 
   const handleKeyPoints = async () => {
@@ -400,6 +429,7 @@ function ArticleCard({ article, isLead }) {
     );
     setAiContent(result);
     setAiLoading(false);
+    startCooldown();
   };
 
   const handleDebate = async () => {
@@ -417,6 +447,7 @@ function ArticleCard({ article, isLead }) {
     );
     setAiContent(result);
     setAiLoading(false);
+    startCooldown();
   };
 
   const handleFivePoints = async () => {
@@ -435,6 +466,7 @@ function ArticleCard({ article, isLead }) {
     );
     setAiContent(result);
     setAiLoading(false);
+    startCooldown();
   };
 
   const handleMarketImpact = async () => {
@@ -455,6 +487,7 @@ function ArticleCard({ article, isLead }) {
     );
     setAiContent(result);
     setAiLoading(false);
+    startCooldown();
   };
 
 
@@ -720,7 +753,7 @@ function ArticleCard({ article, isLead }) {
           }}>
             <button
               onClick={handleSummary}
-              disabled={aiLoading}
+              disabled={aiLoading || cooldown > 0}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'summary' ? 
@@ -729,18 +762,18 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: aiLoading ? 'not-allowed' : 'pointer',
-                opacity: aiLoading ? 0.65 : 1,
+                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
+                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-              🤖 AI Summary
+              {cooldown > 0 ? `⏳ ${cooldown}s` : '🤖 AI Summary'}
             </button>
 
             <button
               onClick={handleKeyPoints}
-              disabled={aiLoading}
+              disabled={aiLoading || cooldown > 0}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'keypoints' ? 
@@ -749,18 +782,18 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: aiLoading ? 'not-allowed' : 'pointer',
-                opacity: aiLoading ? 0.65 : 1,
+                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
+                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-              📌 Key Points
+              {cooldown > 0 ? `⏳ ${cooldown}s` : '📌 Key Points'}
             </button>
 
             <button
               onClick={handleDebate}
-              disabled={aiLoading}
+              disabled={aiLoading || cooldown > 0}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'debate' ? 
@@ -769,18 +802,18 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: aiLoading ? 'not-allowed' : 'pointer',
-                opacity: aiLoading ? 0.65 : 1,
+                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
+                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-              ⚖️ Debate
+              {cooldown > 0 ? `⏳ ${cooldown}s` : '⚖️ Debate'}
             </button>
 
             <button
               onClick={handleFivePoints}
-              disabled={aiLoading}
+              disabled={aiLoading || cooldown > 0}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'fivepoints' ? 
@@ -789,18 +822,18 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: aiLoading ? 'not-allowed' : 'pointer',
-                opacity: aiLoading ? 0.65 : 1,
+                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
+                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-              📝 5 Points
+              {cooldown > 0 ? `⏳ ${cooldown}s` : '📝 5 Points'}
             </button>
 
             <button
               onClick={handleMarketImpact}
-              disabled={aiLoading}
+              disabled={aiLoading || cooldown > 0}
               style={{
                 padding: '6px 10px',
                 background: activeAI === 'market' ? 
@@ -809,13 +842,13 @@ function ArticleCard({ article, isLead }) {
                   '#0A1628' : '#F4A726',
                 border: '1px solid rgba(244,167,38,0.4)',
                 borderRadius: '6px',
-                cursor: aiLoading ? 'not-allowed' : 'pointer',
-                opacity: aiLoading ? 0.65 : 1,
+                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
+                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
                 fontSize: '11px',
                 fontWeight: '600',
                 whiteSpace: 'nowrap'
               }}>
-              📊 Market Impact
+              {cooldown > 0 ? `⏳ ${cooldown}s` : '📊 Market Impact'}
             </button>
           </div>
 
