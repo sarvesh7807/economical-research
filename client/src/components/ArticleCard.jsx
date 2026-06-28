@@ -26,6 +26,22 @@ function ArticleCard({ article, isLead }) {
   const [showSummary, setShowSummary] = useState(false);
   const [showKeyPoints, setShowKeyPoints] = useState(false);
 
+  // Mobile layout and AI Summary states
+  const [isMobile, setIsMobile] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryText, setSummaryText] = useState('');
+  const [summaryError, setSummaryError] = useState('');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+
   // Sentiment and Trust rating
   const [analysis, setAnalysis] = useState(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -415,6 +431,75 @@ function ArticleCard({ article, isLead }) {
       setLoadingSummary(false);
     }
   };
+
+  const handleSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError('');
+    setSummaryText('');
+    
+    try {
+      const result = await getCachedOrFetchAI(
+        `${article.url}_summary`,
+        async () => {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{
+                    text: `Summarize this news article in 3-4 sentences: ${article.title}. ${article.description}`
+                  }]
+                }]
+              })
+            }
+          );
+          
+          if (res.status === 429) {
+            throw new Error('RATE_LIMITED');
+          }
+          
+          if (!res.ok) {
+            throw new Error('API_ERROR');
+          }
+          
+          const data = await res.json();
+          return data.candidates?.[0]?.content
+            ?.parts?.[0]?.text || 'Summary not available';
+        }
+      );
+      
+      setSummaryText(result.content || result);
+    } catch (err) {
+      if (err.message === 'RATE_LIMITED') {
+        setSummaryError(
+          '⏳ Please wait 30 seconds and try again.');
+      } else {
+        setSummaryError(
+          'Could not load summary. Try again.');
+      }
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleSummaryClick = () => {
+    if (isMobile) {
+      if (showSummary) {
+        setShowSummary(false);
+      } else {
+        setShowSummary(true);
+        setShowKeyPoints(false);
+        if (!summaryText && !summaryLoading) {
+          handleSummary();
+        }
+      }
+    } else {
+      handleFetchSummary();
+    }
+  };
+
 
   // Trigger Gemini Key Points
   const handleFetchKeyPoints = async () => {
@@ -848,14 +933,14 @@ function ArticleCard({ article, isLead }) {
       </div>
 
       {/* AI Controls, Drawer & Comments */}
-      <div>
+      <div class="article-actions">
         {/* Action Buttons Row 1 */}
-        <div class="flex items-center gap-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
+        <div class="article-btn-row flex items-center gap-2 border-t border-gray-200 dark:border-white/10 pt-4 mt-2">
           {/* AI Summary Button */}
           <button
-            onClick={handleFetchSummary}
-            disabled={loadingSummary}
-            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+            onClick={handleSummaryClick}
+            disabled={isMobile ? summaryLoading : loadingSummary}
+            class={`ai-btn article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showSummary
                 ? 'bg-primary text-white shadow-purple-glow border border-transparent'
                 : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-primary/50 text-navy dark:text-gray-200'
@@ -870,7 +955,7 @@ function ArticleCard({ article, isLead }) {
           <button
             onClick={handleFetchKeyPoints}
             disabled={loadingKeyPoints}
-            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+            class={`ai-btn article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showKeyPoints
                 ? 'bg-primary text-white shadow-purple-glow border border-transparent'
                 : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-primary/50 text-navy dark:text-gray-200'
@@ -882,11 +967,10 @@ function ArticleCard({ article, isLead }) {
           </button>
 
           {/* Comments Toggle */}
-          {/* Comments Toggle */}
           <button
             onClick={handleFetchDebate}
             disabled={loadingDebate}
-            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+            class={`ai-btn article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showComments
                 ? 'bg-navy text-accent-neon dark:bg-white/10 dark:text-accent-neon border-transparent'
                 : 'bg-gray-100 dark:bg-white/5 border-transparent hover:border-navy dark:hover:border-white/20 text-navy dark:text-gray-200'
@@ -899,12 +983,12 @@ function ArticleCard({ article, isLead }) {
         </div>
 
         {/* Action Buttons Row 2 — New AI Features */}
-        <div class="flex items-center gap-2 mt-2">
+        <div class="article-btn-row flex items-center gap-2 mt-2">
           {/* Feature 1: 5-Point Summary */}
           <button
             onClick={handleFivePoints}
             disabled={loadingFivePoints}
-            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+            class={`article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showFivePoints
                 ? 'bg-amber-500 text-white border border-transparent'
                 : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-amber-400/60 text-navy dark:text-gray-200'
@@ -919,7 +1003,7 @@ function ArticleCard({ article, isLead }) {
           <button
             onClick={handleMarketImpact}
             disabled={loadingMarketImpact}
-            class={`flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
+            class={`article-btn flex-1 flex items-center justify-center gap-1 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all ${
               showMarketImpact
                 ? 'bg-emerald-600 text-white border border-transparent'
                 : 'bg-gray-100 dark:bg-white/5 border border-transparent hover:border-emerald-500/60 text-navy dark:text-gray-200'
@@ -937,7 +1021,7 @@ function ArticleCard({ article, isLead }) {
               const topic = getArticleTopic();
               trackArticleRead(topic, 3);
             }}
-            class="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all bg-gray-100 dark:bg-white/5 border border-transparent hover:border-gold text-navy dark:text-gray-200"
+            class="article-btn flex-1 flex items-center justify-center gap-1.5 py-2 px-2 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all bg-gray-100 dark:bg-white/5 border border-transparent hover:border-gold text-navy dark:text-gray-200"
           >
             <Share2 size={12} class="text-gold" />
             <span>Share</span>
@@ -968,7 +1052,48 @@ function ArticleCard({ article, isLead }) {
                   )}
                 </div>
                 
-                {loadingSummary ? (
+                {isMobile ? (
+                  <>
+                    {summaryLoading && (
+                      <div style={{
+                        padding: '12px',
+                        color: '#F4A726',
+                        textAlign: 'center',
+                        fontSize: '13px'
+                      }}>
+                        🤖 Generating summary...
+                      </div>
+                    )}
+
+                    {summaryError && (
+                      <div style={{
+                        padding: '12px',
+                        color: '#ff6b6b',
+                        fontSize: '12px',
+                        background: 'rgba(255,107,107,0.1)',
+                        borderRadius: '8px',
+                        marginTop: '8px'
+                      }}>
+                        {summaryError}
+                      </div>
+                    )}
+
+                    {summaryText && (
+                      <div style={{
+                        padding: '12px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        lineHeight: '1.6',
+                        background: 'rgba(244,167,38,0.1)',
+                        borderRadius: '8px',
+                        marginTop: '8px',
+                        border: '1px solid rgba(244,167,38,0.2)'
+                      }}>
+                        {summaryText}
+                      </div>
+                    )}
+                  </>
+                ) : loadingSummary ? (
                   <div class="space-y-1.5 py-1">
                     <div class="h-2.5 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
                     <div class="h-2.5 rounded w-[90%] bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
