@@ -358,9 +358,21 @@ function ArticleCard({ article, isLead }) {
       }
     } catch(e) {}
 
+    const GEMINI_KEYS = [
+      import.meta.env.VITE_GEMINI_API_KEY,
+      import.meta.env.VITE_GEMINI_API_KEY_2,
+      import.meta.env.VITE_GEMINI_API_KEY_3,
+      import.meta.env.VITE_GEMINI_API_KEY_4
+    ].filter(Boolean);
+
+    const keyIndex = retryCount % GEMINI_KEYS.length;
+    const apiKey = GEMINI_KEYS[keyIndex];
+
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      console.log('API Key exists:', !!apiKey);
+      console.log('Using Key Index:', keyIndex, 'exists:', !!apiKey);
+      if (!apiKey) {
+        throw new Error('No API key found');
+      }
       
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
       
@@ -377,10 +389,9 @@ function ArticleCard({ article, isLead }) {
       console.log('Response status:', res.status);
       
       if (res.status === 429) {
-        console.log('Rate limited!');
-        if (retryCount < 1) {
-          setAiContent('⏳ High demand... Auto-retrying in 35 seconds...');
-          await new Promise(resolve => setTimeout(resolve, 35000));
+        console.log('Rate limited on key index:', keyIndex);
+        if (retryCount < GEMINI_KEYS.length - 1) {
+          setAiContent(`⏳ Switching API keys due to high demand (attempt ${retryCount + 1})...`);
           return callGeminiAI(prompt, cacheKey, retryCount + 1);
         }
         return '⏳ Rate limited. Please wait 1 minute.';
@@ -389,6 +400,10 @@ function ArticleCard({ article, isLead }) {
       if (!res.ok) {
         const errText = await res.text();
         console.error('API Error:', res.status, errText);
+        if (retryCount < GEMINI_KEYS.length - 1) {
+          setAiContent(`⏳ Switching API keys due to error (attempt ${retryCount + 1})...`);
+          return callGeminiAI(prompt, cacheKey, retryCount + 1);
+        }
         return `❌ API Error ${res.status}. Try again.`;
       }
       
@@ -402,6 +417,10 @@ function ArticleCard({ article, isLead }) {
       
       if (!result) {
         console.error('No result in response:', data);
+        if (retryCount < GEMINI_KEYS.length - 1) {
+          setAiContent(`⏳ Switching API keys due to empty response (attempt ${retryCount + 1})...`);
+          return callGeminiAI(prompt, cacheKey, retryCount + 1);
+        }
         return '❌ No response from AI. Try again.';
       }
       
@@ -415,6 +434,10 @@ function ArticleCard({ article, isLead }) {
       return result;
     } catch (err) {
       console.error('callGeminiAI error:', err);
+      if (retryCount < GEMINI_KEYS.length - 1) {
+        setAiContent(`⏳ Switching API keys due to network error (attempt ${retryCount + 1})...`);
+        return callGeminiAI(prompt, cacheKey, retryCount + 1);
+      }
       return `❌ Error: ${err.message}`;
     }
   };
