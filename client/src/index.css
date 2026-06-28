@@ -522,35 +522,25 @@ html {
 }
 
 /* Mobile News Card Button Layout and Visibility Fixes */
-@media (max-width: 768px) {
-  .article-actions {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
-  .ai-btn {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    min-width: 0 !important;
-    flex: 1 1 auto !important;
-  }
+.article-actions {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
 
-  .article-btn-row {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr 1fr !important;
-    gap: 4px !important;
-  }
-  
-  .article-btn {
-    font-size: 10px !important;
-    padding: 6px 4px !important;
-    text-align: center !important;
-    border-radius: 6px !important;
-  }
+.article-actions div {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
+
+.article-actions button {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .ai-btn {

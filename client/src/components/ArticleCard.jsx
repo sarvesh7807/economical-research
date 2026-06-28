@@ -563,9 +563,12 @@ function ArticleCard({ article, isLead }) {
       ref={articleRef}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setReadProgress(0); }}
-      class={`glass-card p-5 flex flex-col justify-between relative group overflow-hidden rounded-3xl transition-all ${
-        isLead ? 'w-full min-h-[500px]' : 'w-full h-[480px] shrink-0'
-      }`}
+      class="glass-card p-5 flex flex-col justify-between relative group rounded-3xl transition-all w-full shrink-0"
+      style={{
+        overflow: 'visible',
+        height: 'auto',
+        maxHeight: 'none'
+      }}
     >
       {/* Simulated Reading Progressive Bar */}
       <div 
