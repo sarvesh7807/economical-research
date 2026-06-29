@@ -6,6 +6,97 @@ import { getCachedOrFetchAI } from '../utils/aiCache';
 import ShareModal from './ShareModal';
 import { getPremiumArticleImage } from '../utils/imageSystem';
 
+let currentKeyIndex = 0
+let lastCallTime = 0
+
+const callGeminiAI = async (
+  prompt, cacheKey, retryCount = 0) => {
+  
+  // Cache check first
+  try {
+    const cached = localStorage.getItem(
+      `ai_${cacheKey}`)
+    if (cached) {
+      const { result, time } = JSON.parse(cached)
+      if (Date.now() - time < 86400000) {
+        return result
+      }
+    }
+  } catch(e) {}
+
+  // Enforce 3 sec between calls
+  const now = Date.now()
+  const wait = 3000 - (now - lastCallTime)
+  if (wait > 0) {
+    await new Promise(r => setTimeout(r, wait))
+  }
+  lastCallTime = Date.now()
+
+  // Rotate through all 4 keys
+  const GEMINI_KEYS = [
+    import.meta.env.VITE_GEMINI_API_KEY,
+    import.meta.env.VITE_GEMINI_API_KEY_2,
+    import.meta.env.VITE_GEMINI_API_KEY_3,
+    import.meta.env.VITE_GEMINI_API_KEY_4
+  ].filter(Boolean)
+
+  const apiKey = GEMINI_KEYS[
+    retryCount % GEMINI_KEYS.length]
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({
+        contents: [{ 
+          parts: [{ text: prompt }] 
+        }],
+        generationConfig: { 
+          maxOutputTokens: 300
+        }
+      })
+    })
+
+    if (res.status === 429) {
+      if (retryCount < GEMINI_KEYS.length - 1) {
+        await new Promise(r => 
+          setTimeout(r, 5000))
+        return callGeminiAI(
+          prompt, cacheKey, retryCount + 1)
+      }
+      return '⏳ AI busy. Try again in 1 minute.'
+    }
+
+    if (!res.ok) {
+      return '❌ Error. Please try again.'
+    }
+
+    const data = await res.json()
+    const result = data.candidates?.[0]
+      ?.content?.parts?.[0]?.text || 
+      'No response.'
+
+    try {
+      localStorage.setItem(
+        `ai_${cacheKey}`,
+        JSON.stringify({ 
+          result, 
+          time: Date.now() 
+        })
+      )
+    } catch(e) {}
+
+    return result
+
+  } catch (err) {
+    return '❌ Connection error. Try again.'
+  }
+}
+
 function ArticleCard({ article, isLead }) {
   const [translatedTitle, setTranslatedTitle] = useState(article?.title || '')
   const [translatedDescription, setTranslatedDescription] = useState(article?.description || '')
@@ -339,106 +430,6 @@ function ArticleCard({ article, isLead }) {
         article_source: article.source?.name || 'Unknown',
         article_category: activeCategory || article.category || 'world'
       });
-    }
-  };
-
-  const callGeminiAI = async (prompt, cacheKey, retryCount = 0) => {
-    console.log('callGeminiAI called, retryCount:', retryCount);
-    
-    // Check localStorage cache first
-    try {
-      const cached = localStorage.getItem(`ai_cache_${cacheKey}`);
-      if (cached) {
-        const { result, timestamp } = JSON.parse(cached);
-        const ageInHours = (Date.now() - timestamp) / 3600000;
-        if (ageInHours < 24) {
-          console.log('Cache hit:', result.slice(0, 50));
-          return result;
-        }
-      }
-    } catch(e) {}
-
-    const GEMINI_KEYS = [
-      import.meta.env.VITE_GEMINI_API_KEY,
-      import.meta.env.VITE_GEMINI_API_KEY_2,
-      import.meta.env.VITE_GEMINI_API_KEY_3,
-      import.meta.env.VITE_GEMINI_API_KEY_4
-    ].filter(Boolean);
-
-    const keyIndex = retryCount % GEMINI_KEYS.length;
-    const apiKey = GEMINI_KEYS[keyIndex];
-
-    try {
-      console.log('Using Key Index:', keyIndex, 'exists:', !!apiKey);
-      if (!apiKey) {
-        throw new Error('No API key found');
-      }
-      
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-      
-      console.log('Calling Gemini API...');
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 500 }
-        })
-      });
-      
-      console.log('Response status:', res.status);
-      
-      if (res.status === 429) {
-        console.log('Rate limited on key index:', keyIndex);
-        if (retryCount < GEMINI_KEYS.length - 1) {
-          setAiContent(`⏳ Switching API keys due to high demand (attempt ${retryCount + 1})...`);
-          return callGeminiAI(prompt, cacheKey, retryCount + 1);
-        }
-        return '⏳ Rate limited. Please wait 1 minute.';
-      }
-      
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error('API Error:', res.status, errText);
-        if (retryCount < GEMINI_KEYS.length - 1) {
-          setAiContent(`⏳ Switching API keys due to error (attempt ${retryCount + 1})...`);
-          return callGeminiAI(prompt, cacheKey, retryCount + 1);
-        }
-        return `❌ API Error ${res.status}. Try again.`;
-      }
-      
-      const data = await res.json();
-      console.log('API Response received:', JSON.stringify(data).slice(0, 200));
-      
-      const result = data.candidates?.[0]
-        ?.content?.parts?.[0]?.text;
-      
-      console.log('Extracted result:', result?.slice(0, 100));
-      
-      if (!result) {
-        console.error('No result in response:', data);
-        if (retryCount < GEMINI_KEYS.length - 1) {
-          setAiContent(`⏳ Switching API keys due to empty response (attempt ${retryCount + 1})...`);
-          return callGeminiAI(prompt, cacheKey, retryCount + 1);
-        }
-        return '❌ No response from AI. Try again.';
-      }
-      
-      try {
-        localStorage.setItem(
-          `ai_cache_${cacheKey}`,
-          JSON.stringify({ result, timestamp: Date.now() })
-        );
-      } catch(e) {}
-      
-      return result;
-    } catch (err) {
-      console.error('callGeminiAI error:', err);
-      if (retryCount < GEMINI_KEYS.length - 1) {
-        setAiContent(`⏳ Switching API keys due to network error (attempt ${retryCount + 1})...`);
-        return callGeminiAI(prompt, cacheKey, retryCount + 1);
-      }
-      return `❌ Error: ${err.message}`;
     }
   };
 
@@ -979,19 +970,18 @@ function ArticleCard({ article, isLead }) {
           )}
 
           {!aiLoading && aiContent && (
-            <div style={{
-              padding: '14px',
-              background: 'rgba(244,167,38,0.08)',
-              border: '1px solid rgba(244,167,38,0.25)',
-              borderRadius: '10px',
-              marginTop: '8px',
+            <p style={{
               color: '#fff',
               fontSize: '13px',
               lineHeight: '1.9',
-              whiteSpace: 'pre-wrap'
+              marginTop: '10px',
+              padding: '0',
+              whiteSpace: 'pre-wrap',
+              borderLeft: '3px solid #F4A726',
+              paddingLeft: '10px'
             }}>
               {aiContent}
-            </div>
+            </p>
           )}
         </div>
 
