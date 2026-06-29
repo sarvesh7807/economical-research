@@ -9,94 +9,6 @@ import { getPremiumArticleImage } from '../utils/imageSystem';
 let currentKeyIndex = 0
 let lastCallTime = 0
 
-const callGeminiAI = async (
-  prompt, cacheKey, retryCount = 0) => {
-  
-  // Cache check first
-  try {
-    const cached = localStorage.getItem(
-      `ai_${cacheKey}`)
-    if (cached) {
-      const { result, time } = JSON.parse(cached)
-      if (Date.now() - time < 86400000) {
-        return result
-      }
-    }
-  } catch(e) {}
-
-  // Enforce 3 sec between calls
-  const now = Date.now()
-  const wait = 3000 - (now - lastCallTime)
-  if (wait > 0) {
-    await new Promise(r => setTimeout(r, wait))
-  }
-  lastCallTime = Date.now()
-
-  // Rotate through all 4 keys
-  const GEMINI_KEYS = [
-    import.meta.env.VITE_GEMINI_API_KEY,
-    import.meta.env.VITE_GEMINI_API_KEY_2,
-    import.meta.env.VITE_GEMINI_API_KEY_3,
-    import.meta.env.VITE_GEMINI_API_KEY_4
-  ].filter(Boolean)
-
-  const apiKey = GEMINI_KEYS[
-    retryCount % GEMINI_KEYS.length]
-
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`
-    
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({
-        contents: [{ 
-          parts: [{ text: prompt }] 
-        }],
-        generationConfig: { 
-          maxOutputTokens: 300
-        }
-      })
-    })
-
-    if (res.status === 429) {
-      if (retryCount < GEMINI_KEYS.length - 1) {
-        await new Promise(r => 
-          setTimeout(r, 5000))
-        return callGeminiAI(
-          prompt, cacheKey, retryCount + 1)
-      }
-      return '⏳ AI busy. Try again in 1 minute.'
-    }
-
-    if (!res.ok) {
-      return '❌ Error. Please try again.'
-    }
-
-    const data = await res.json()
-    const result = data.candidates?.[0]
-      ?.content?.parts?.[0]?.text || 
-      'No response.'
-
-    try {
-      localStorage.setItem(
-        `ai_${cacheKey}`,
-        JSON.stringify({ 
-          result, 
-          time: Date.now() 
-        })
-      )
-    } catch(e) {}
-
-    return result
-
-  } catch (err) {
-    return '❌ Connection error. Try again.'
-  }
-}
-
 function ArticleCard({ article, isLead }) {
   const [translatedTitle, setTranslatedTitle] = useState(article?.title || '')
   const [translatedDescription, setTranslatedDescription] = useState(article?.description || '')
@@ -432,6 +344,94 @@ function ArticleCard({ article, isLead }) {
       });
     }
   };
+
+  const callGeminiAI = async (prompt, cacheKey, retryCount = 0) => {
+    // Cache check first
+    try {
+      const cached = localStorage.getItem(`ai_${cacheKey}`)
+      if (cached) {
+        const { result, time } = JSON.parse(cached)
+        if (Date.now() - time < 86400000) {
+          return result
+        }
+      }
+    } catch(e) {}
+
+    // Enforce 3 sec between calls
+    const now = Date.now()
+    const wait = 3000 - (now - lastCallTime)
+    if (wait > 0) {
+      await new Promise(r => setTimeout(r, wait))
+    }
+    lastCallTime = Date.now()
+
+    // Rotate through all 4 keys
+    const GEMINI_KEYS = [
+      import.meta.env.VITE_GEMINI_API_KEY,
+      import.meta.env.VITE_GEMINI_API_KEY_2,
+      import.meta.env.VITE_GEMINI_API_KEY_3,
+      import.meta.env.VITE_GEMINI_API_KEY_4
+    ].filter(Boolean)
+
+    const apiKey = GEMINI_KEYS[retryCount % GEMINI_KEYS.length]
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({
+          contents: [{ 
+            parts: [{ text: prompt }] 
+          }],
+          generationConfig: { 
+            maxOutputTokens: 300
+          }
+        })
+      })
+
+      if (res.status === 429 || res.status === 503) {
+        if (retryCount < GEMINI_KEYS.length - 1) {
+          if (res.status === 503) {
+            setAiContent('🔄 Server busy, retrying...')
+          }
+          await new Promise(r => setTimeout(r, 10000))
+          return callGeminiAI(prompt, cacheKey, retryCount + 1)
+        }
+        if (res.status === 503) {
+          return '🔄 AI server temporarily unavailable. Please try again in few minutes.'
+        }
+        return '⏳ AI busy. Please try again in 2 minutes.'
+      }
+
+      if (!res.ok) {
+        return '❌ Error. Please try again.'
+      }
+
+      const data = await res.json()
+      const result = data.candidates?.[0]
+        ?.content?.parts?.[0]?.text || 
+        'No response.'
+
+      try {
+        localStorage.setItem(
+          `ai_${cacheKey}`,
+          JSON.stringify({ 
+            result, 
+            time: Date.now() 
+          })
+        )
+      } catch(e) {}
+
+      return result
+
+    } catch (err) {
+      return '❌ Connection error. Try again.'
+    }
+  }
 
   const handleSummary = async () => {
     if (activeAI === 'summary') {
