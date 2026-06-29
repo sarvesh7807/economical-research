@@ -1,40 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, List, ChevronDown, ChevronUp, AlertCircle, Calendar, ShieldCheck, Bookmark, Lock, MessageSquare, Clock, Languages, TrendingUp, FileText, Share2 } from 'lucide-react';
-import CommentsSection from './CommentsSection';
-import { getCachedOrFetchAI } from '../utils/aiCache';
+import { Calendar, Lock } from 'lucide-react';
 import ShareModal from './ShareModal';
 import { getPremiumArticleImage } from '../utils/imageSystem';
-
-let currentKeyIndex = 0
-let lastCallTime = 0
 
 function ArticleCard({ article, isLead }) {
   const [translatedTitle, setTranslatedTitle] = useState(article?.title || '')
   const [translatedDescription, setTranslatedDescription] = useState(article?.description || '')
   const [translatedContent, setTranslatedContent] = useState(article?.content || '')
   const [isTranslated, setIsTranslated] = useState(false)
-  const [activeAI, setActiveAI] = useState(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiContent, setAiContent] = useState('')
-  const [cooldown, setCooldown] = useState(0)
-
-  const startCooldown = () => {
-    setCooldown(5)
-    const timer = setInterval(() => {
-      setCooldown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const { title, description, content, source, author, url, urlToImage, publishedAt } = article;
-  const { saveBookmark, deleteBookmark, isBookmarked, logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
+  const { logReadingEvent, settings, subscription, trackArticleRead } = useAuth();
   
   // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
@@ -48,16 +26,6 @@ function ArticleCard({ article, isLead }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-
-
-  // Sentiment and Trust rating
-  const [analysis, setAnalysis] = useState(null);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-
-  // Progressive Reading attention bar
-  const [hovered, setHovered] = useState(false);
-  const [readProgress, setReadProgress] = useState(0);
-
   // Paywall locks
   const [paywallActive, setPaywallActive] = useState(false);
   const [paywallType, setPaywallType] = useState('reads'); // 'reads' or 'summaries'
@@ -70,52 +38,14 @@ function ArticleCard({ article, isLead }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Hover state for reading tracking
+  const [hovered, setHovered] = useState(false);
 
   // Caching helpers
   const getArticleId = (urlStr) => {
     if (!urlStr) return 'unknown_article';
     return urlStr.replace(/[^a-zA-Z0-9]/g, '_');
   };
-
-  const callGeminiAPI = async (type) => {
-    let endpoint = '';
-    let body = {};
-    
-    if (type === 'summary') {
-      endpoint = '/api/ai/summarize';
-      body = { title, description, content, source: source?.name || 'Unknown Source' };
-    } else if (type === 'keypoints') {
-      endpoint = '/api/ai/keypoints';
-      body = { title, description, content, source: source?.name || 'Unknown Source' };
-    } else if (type === 'fivepoints') {
-      endpoint = '/api/ai/five-points';
-      body = { title, description, content };
-    } else if (type === 'marketimpact') {
-      endpoint = '/api/ai/market-impact';
-      body = { title, description, content };
-    } else if (type === 'debate') {
-      endpoint = '/api/ai/debate';
-      body = { title, description, content };
-    }
-    
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    
-    if (response.status === 429) {
-      throw { status: 429 };
-    }
-    
-    if (!response.ok) {
-      throw new Error('API failed');
-    }
-    
-    return await response.json();
-  };
-
-
 
   const [imgError, setImgError] = useState(false);
   const imageUrl = getPremiumArticleImage(imgError ? { ...article, urlToImage: null } : article);
@@ -185,55 +115,6 @@ function ArticleCard({ article, isLead }) {
     setIsPaused(false);
   };
 
-  const bookmarked = isBookmarked(url);
-
-  // Fetch Sentiment and Trust score on hover or interaction
-  useEffect(() => {
-    if (!hovered && !activeAI) return;
-    if (analysis || loadingAnalysis) return;
-
-    setLoadingAnalysis(true);
-    fetch('/api/ai/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, content })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setAnalysis(data);
-        setLoadingAnalysis(false);
-      })
-      .catch(err => {
-        console.error('Analysis error:', err);
-        setLoadingAnalysis(false);
-      });
-  }, [title, hovered, activeAI, analysis, loadingAnalysis]);
-
-  // Progressive Reading attention bar simulation
-  useEffect(() => {
-    if (!hovered) return;
-    const estTimeSec = getEstimatedReadingTime() * 10; // 10s per minute read time simulation
-    const stepTime = (estTimeSec * 1000) / 100;
-    
-    const interval = setInterval(() => {
-      setReadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, stepTime);
-
-    return () => clearInterval(interval);
-  }, [hovered]);
-
-  const getEstimatedReadingTime = () => {
-    const text = (title + ' ' + (description || '') + ' ' + (content || '')).trim();
-    const words = text.split(/\s+/).length;
-    return Math.max(1, Math.ceil(words / 200));
-  };
-
   const getArticleTopic = () => {
     const cat = (article.category || 'world').toLowerCase();
     const text = ((title || '') + ' ' + (description || '') + ' ' + (content || '')).toLowerCase();
@@ -290,33 +171,6 @@ function ArticleCard({ article, isLead }) {
     localStorage.setItem(key, currentCount + 1);
   };
 
-  const handleBookmarkToggle = async () => {
-    if (!user) {
-      window.dispatchEvent(new CustomEvent('open-auth-modal'));
-      return;
-    }
-    
-    if (isBookmarked) {
-      setBookmarked(false);
-      removeBookmark(url);
-      if (window.gtag) {
-        window.gtag('event', 'remove_bookmark', {
-          article_title: title,
-          article_url: url
-        });
-      }
-    } else {
-      setBookmarked(true);
-      saveBookmark(article);
-      if (window.gtag) {
-        window.gtag('event', 'save_bookmark', {
-          article_title: title,
-          article_url: url
-        });
-      }
-    }
-  };
-
   const handleLinkClick = (e) => {
     const paywall = checkPaywallLimit('reads');
     if (paywall.blocked) {
@@ -340,259 +194,19 @@ function ArticleCard({ article, isLead }) {
         article_title: title,
         article_url: url,
         article_source: article.source?.name || 'Unknown',
-        article_category: activeCategory || article.category || 'world'
+        article_category: article.category || 'world'
       });
     }
   };
 
-  const callGeminiAI = async (prompt, cacheKey, retryCount = 0) => {
-    // Cache check first
-    try {
-      const cached = localStorage.getItem(`ai_${cacheKey}`)
-      if (cached) {
-        const { result, time } = JSON.parse(cached)
-        if (Date.now() - time < 86400000) {
-          return result
-        }
-      }
-    } catch(e) {}
-
-    // Enforce 3 sec between calls
-    const now = Date.now()
-    const wait = 3000 - (now - lastCallTime)
-    if (wait > 0) {
-      await new Promise(r => setTimeout(r, wait))
-    }
-    lastCallTime = Date.now()
-
-    // Rotate through all 4 keys
-    const GEMINI_KEYS = [
-      import.meta.env.VITE_GEMINI_API_KEY,
-      import.meta.env.VITE_GEMINI_API_KEY_2,
-      import.meta.env.VITE_GEMINI_API_KEY_3,
-      import.meta.env.VITE_GEMINI_API_KEY_4
-    ].filter(Boolean)
-
-    const apiKey = GEMINI_KEYS[retryCount % GEMINI_KEYS.length]
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`
-      
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({
-          contents: [{ 
-            parts: [{ text: prompt }] 
-          }],
-          generationConfig: { 
-            maxOutputTokens: 300
-          }
-        })
-      })
-
-      if (res.status === 429 || res.status === 503) {
-        if (retryCount < GEMINI_KEYS.length - 1) {
-          if (res.status === 503) {
-            setAiContent('🔄 Server busy, retrying...')
-          }
-          await new Promise(r => setTimeout(r, 10000))
-          return callGeminiAI(prompt, cacheKey, retryCount + 1)
-        }
-        if (res.status === 503) {
-          return '🔄 AI server temporarily unavailable. Please try again in few minutes.'
-        }
-        return '⏳ AI busy. Please try again in 2 minutes.'
-      }
-
-      if (!res.ok) {
-        return '❌ Error. Please try again.'
-      }
-
-      const data = await res.json()
-      const result = data.candidates?.[0]
-        ?.content?.parts?.[0]?.text || 
-        'No response.'
-
-      try {
-        localStorage.setItem(
-          `ai_${cacheKey}`,
-          JSON.stringify({ 
-            result, 
-            time: Date.now() 
-          })
-        )
-      } catch(e) {}
-
-      return result
-
-    } catch (err) {
-      return '❌ Connection error. Try again.'
-    }
-  }
-
-  const handleSummary = async () => {
-    if (activeAI === 'summary') {
-      setActiveAI(null);
-      setAiContent('');
-      return;
-    }
-    setActiveAI('summary');
-    setAiLoading(true);
-    setAiContent('');
-    
-    try {
-      const result = await callGeminiAI(
-        `Summarize in 3-4 clear sentences.
-        Title: ${article.title}
-        Description: ${article.description || 'No description available'}`,
-        `sum_${(article.url || article.title || '').slice(-20)}`
-      );
-      console.log('Summary result:', result?.slice(0, 50));
-      setAiContent(result);
-    } catch(err) {
-      console.error('handleSummary error:', err);
-      setAiContent('❌ Could not load. Try again.');
-    } finally {
-      setAiLoading(false);
-      startCooldown();
-    }
+  const handleCopyLink = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    });
   };
-
-  const handleKeyPoints = async () => {
-    if (activeAI === 'keypoints') {
-      setActiveAI(null);
-      setAiContent('');
-      return;
-    }
-    setActiveAI('keypoints');
-    setAiLoading(true);
-    setAiContent('');
-    
-    try {
-      const result = await callGeminiAI(
-        `List 5 key points:
-        1. Point one
-        2. Point two
-        3. Point three
-        4. Point four
-        5. Point five
-        Title: ${article.title}
-        Description: ${article.description || 'No description available'}`,
-        `key_${(article.url || article.title || '').slice(-20)}`
-      );
-      console.log('KeyPoints result:', result?.slice(0, 50));
-      setAiContent(result);
-    } catch(err) {
-      console.error('handleKeyPoints error:', err);
-      setAiContent('❌ Could not load. Try again.');
-    } finally {
-      setAiLoading(false);
-      startCooldown();
-    }
-  };
-
-  const handleDebate = async () => {
-    if (activeAI === 'debate') {
-      setActiveAI(null);
-      setAiContent('');
-      return;
-    }
-    setActiveAI('debate');
-    setAiLoading(true);
-    setAiContent('');
-    
-    try {
-      const result = await callGeminiAI(
-        `Create debate:
-        FOR:
-        1. Argument one
-        2. Argument two
-
-        AGAINST:
-        1. Argument one
-        2. Argument two
-        Title: ${article.title}`,
-        `deb_${(article.url || article.title || '').slice(-20)}`
-      );
-      console.log('Debate result:', result?.slice(0, 50));
-      setAiContent(result);
-    } catch(err) {
-      console.error('handleDebate error:', err);
-      setAiContent('❌ Could not load. Try again.');
-    } finally {
-      setAiLoading(false);
-      startCooldown();
-    }
-  };
-
-  const handleFivePoints = async () => {
-    if (activeAI === 'fivepoints') {
-      setActiveAI(null);
-      setAiContent('');
-      return;
-    }
-    setActiveAI('fivepoints');
-    setAiLoading(true);
-    setAiContent('');
-    
-    try {
-      const result = await callGeminiAI(
-        `Give exactly 5 points under 15 words each:
-        1. 
-        2. 
-        3. 
-        4. 
-        5. 
-        Title: ${article.title}`,
-        `five_${(article.url || article.title || '').slice(-20)}`
-      );
-      console.log('FivePoints result:', result?.slice(0, 50));
-      setAiContent(result);
-    } catch(err) {
-      console.error('handleFivePoints error:', err);
-      setAiContent('❌ Could not load. Try again.');
-    } finally {
-      setAiLoading(false);
-      startCooldown();
-    }
-  };
-
-  const handleMarketImpact = async () => {
-    if (activeAI === 'market') {
-      setActiveAI(null);
-      setAiContent('');
-      return;
-    }
-    setActiveAI('market');
-    setAiLoading(true);
-    setAiContent('');
-    
-    try {
-      const result = await callGeminiAI(
-        `Analyze market impact:
-        Impact: HIGH/MEDIUM/LOW
-        Direction: POSITIVE/NEGATIVE/NEUTRAL
-        Sectors affected:
-        1. Sector one
-        2. Sector two
-        Title: ${article.title}`,
-        `mkt_${(article.url || article.title || '').slice(-20)}`
-      );
-      console.log('MarketImpact result:', result?.slice(0, 50));
-      setAiContent(result);
-    } catch(err) {
-      console.error('handleMarketImpact error:', err);
-      setAiContent('❌ Could not load. Try again.');
-    } finally {
-      setAiLoading(false);
-      startCooldown();
-    }
-  };
-
-
 
   const getRelativeTime = (dateString) => {
     if (!dateString) return 'Just now';
@@ -608,53 +222,6 @@ function ArticleCard({ article, isLead }) {
     if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
     if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
     return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-  };
-
-  const renderAdSlot = () => {
-    if (subscription?.tier === 'PRO') return null;
-    return (
-      <div class="mt-4 pt-3 border-t border-paper-border dark:border-paper-borderDark text-center">
-        <div class="bg-gray-50 dark:bg-navy-light/10 py-3 px-2 rounded border border-dashed border-gray-300 dark:border-gray-800 text-[10px] text-gray-400 font-semibold tracking-wider select-none uppercase font-mono">
-          ADVERTISEMENT: <span class="text-navy dark:text-gold font-bold">Invest in ER Capital Desks Yield Notes 6.4% APY</span>
-        </div>
-      </div>
-    );
-  };
-
-  // Image error handling
-
-  const categoryFallbacks = {
-    world: [
-      'https://images.unsplash.com/photo-1529245005476-ebdf853c8485?w=800&auto=format&fit=crop', // Better fallback images from unsplash that actually work
-      'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1495465798138-718f86d1a4bd?w=800&auto=format&fit=crop'
-    ],
-    business: [
-      'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&auto=format&fit=crop'
-    ],
-    technology: [
-      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1531297172868-9f1d8b67115e?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&auto=format&fit=crop'
-    ],
-    sports: [
-      'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1495555687398-3f50d6e79e1e?w=800&auto=format&fit=crop'
-    ],
-    entertainment: ['https://images.unsplash.com/photo-1499364615650-ec38552f4f34?w=800&auto=format&fit=crop'],
-    health: ['https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop'],
-    science: ['https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop'],
-    politics: ['https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&auto=format&fit=crop'],
-    default: ['https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&auto=format&fit=crop']
-  };
-
-  const getCategoryFallback = (category, articleId) => {
-    const images = categoryFallbacks[category] || categoryFallbacks.default;
-    const index = articleId ? articleId.length % images.length : 0;
-    return images[index];
   };
 
   if (paywallActive) {
@@ -697,7 +264,7 @@ function ArticleCard({ article, isLead }) {
     <article 
       ref={articleRef}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setReadProgress(0); }}
+      onMouseLeave={() => setHovered(false)}
       class="glass-card p-5 flex flex-col justify-between relative group rounded-3xl transition-all w-full shrink-0"
       style={{
         overflow: 'visible',
@@ -705,12 +272,6 @@ function ArticleCard({ article, isLead }) {
         maxHeight: 'none'
       }}
     >
-      {/* Simulated Reading Progressive Bar */}
-      <div 
-        class="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-primary-glow to-accent-neon transition-all duration-150" 
-        style={{ width: `${readProgress}%` }}
-      ></div>
-
       <div>
         {/* Featured Image - Bleeds to top edge */}
         <div 
@@ -744,18 +305,6 @@ function ArticleCard({ article, isLead }) {
               <Calendar size={10} class="text-primary-glow" />
               {getRelativeTime(publishedAt)}
             </span>
-            <span class="flex items-center gap-1 font-mono text-[9px] bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
-              <Clock size={10} class="text-accent-neon" />
-              {getEstimatedReadingTime()} min read
-            </span>
-
-            <button 
-              onClick={handleBookmarkToggle}
-              class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors focus:outline-none shrink-0"
-              title={bookmarked ? "Remove Bookmark" : "Save Bookmark"}
-            >
-              <Bookmark size={14} class={bookmarked ? "fill-accent-neon text-accent-neon drop-shadow-[0_0_8px_rgba(204,255,0,0.8)]" : "text-gray-400 dark:text-gray-500"} />
-            </button>
 
             {/* Voice News Reader */}
             <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full text-[8.5px] font-sans shrink-0">
@@ -791,27 +340,6 @@ function ArticleCard({ article, isLead }) {
           </div>
         </div>
 
-        {/* Sentiment and Factual Integrity Rating */}
-        {analysis && (
-          <div class="flex items-center gap-2 mb-3 flex-wrap">
-            <span class={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
-              analysis.sentiment === 'Positive' ? 'bg-green-100/50 text-green-700 dark:bg-green-500/20 dark:text-green-300 border border-green-200 dark:border-green-500/30' :
-              analysis.sentiment === 'Negative' ? 'bg-red-100/50 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-200 dark:border-red-500/30' :
-              'bg-gray-100/50 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 border border-gray-200 dark:border-gray-500/30'
-            }`}>
-              {analysis.sentiment}
-            </span>
-            <span class="text-[9px] font-bold text-navy/80 dark:text-primary-glow bg-navy/5 dark:bg-primary/10 border border-navy/10 dark:border-primary/20 px-2 py-1 rounded-full font-mono flex items-center gap-1">
-              <Sparkles size={9} /> Trust Score: {analysis.fakeNewsScore}%
-            </span>
-            {hovered && readProgress >= 100 && (
-              <span class="text-[9px] text-accent-neon font-bold uppercase tracking-wider animate-pulse font-mono bg-accent-neon/10 px-2 py-1 rounded-full border border-accent-neon/30">
-                ✓ COMPLETED
-              </span>
-            )}
-          </div>
-        )}
-
         {/* Article Title */}
         <h3 class={`font-display font-bold leading-tight text-navy dark:text-white hover:text-primary-glow dark:hover:text-primary-glow transition-colors mb-3 ${
           isLead ? 'text-2xl md:text-3xl line-clamp-3' : 'text-xl md:text-2xl line-clamp-2'
@@ -820,13 +348,6 @@ function ArticleCard({ article, isLead }) {
             {title}
           </a>
         </h3>
-
-        {/* Author */}
-        {author && (
-          <p class="text-[11px] text-navy/60 dark:text-gray-400 mb-3 font-mono bg-gray-50 dark:bg-white/5 inline-block px-2 py-1 rounded-md">
-            By <span class="font-bold uppercase tracking-wider text-primary">{author}</span>
-          </p>
-        )}
 
         {/* Article Description */}
         <p class={`text-navy/80 dark:text-gray-300 leading-relaxed font-sans mb-5 ${
@@ -839,154 +360,25 @@ function ArticleCard({ article, isLead }) {
         </p>
       </div>
 
-      {/* AI Controls, Drawer & Comments */}
+      {/* Share & Copy Row */}
       <div class="article-actions" style={{ marginTop: '12px' }}>
-        {/* AI BUTTONS SECTION */}
-        <div style={{
-          paddingTop: '12px',
-          borderTop: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          {/* Row 1 - AI Buttons */}
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '6px',
-            marginBottom: '8px'
-          }}>
-            <button
-              onClick={handleSummary}
-              disabled={aiLoading || cooldown > 0}
-              style={{
-                padding: '6px 10px',
-                background: activeAI === 'summary' ? 
-                  '#F4A726' : 'rgba(244,167,38,0.1)',
-                color: activeAI === 'summary' ? 
-                  '#0A1628' : '#F4A726',
-                border: '1px solid rgba(244,167,38,0.4)',
-                borderRadius: '6px',
-                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
-                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
-                fontSize: '11px',
-                fontWeight: '600',
-                whiteSpace: 'nowrap'
-              }}>
-              {cooldown > 0 ? `⏳ ${cooldown}s` : '🤖 AI Summary'}
-            </button>
-
-            <button
-              onClick={handleKeyPoints}
-              disabled={aiLoading || cooldown > 0}
-              style={{
-                padding: '6px 10px',
-                background: activeAI === 'keypoints' ? 
-                  '#F4A726' : 'rgba(244,167,38,0.1)',
-                color: activeAI === 'keypoints' ? 
-                  '#0A1628' : '#F4A726',
-                border: '1px solid rgba(244,167,38,0.4)',
-                borderRadius: '6px',
-                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
-                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
-                fontSize: '11px',
-                fontWeight: '600',
-                whiteSpace: 'nowrap'
-              }}>
-              {cooldown > 0 ? `⏳ ${cooldown}s` : '📌 Key Points'}
-            </button>
-
-            <button
-              onClick={handleDebate}
-              disabled={aiLoading || cooldown > 0}
-              style={{
-                padding: '6px 10px',
-                background: activeAI === 'debate' ? 
-                  '#F4A726' : 'rgba(244,167,38,0.1)',
-                color: activeAI === 'debate' ? 
-                  '#0A1628' : '#F4A726',
-                border: '1px solid rgba(244,167,38,0.4)',
-                borderRadius: '6px',
-                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
-                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
-                fontSize: '11px',
-                fontWeight: '600',
-                whiteSpace: 'nowrap'
-              }}>
-              {cooldown > 0 ? `⏳ ${cooldown}s` : '⚖️ Debate'}
-            </button>
-
-            <button
-              onClick={handleFivePoints}
-              disabled={aiLoading || cooldown > 0}
-              style={{
-                padding: '6px 10px',
-                background: activeAI === 'fivepoints' ? 
-                  '#F4A726' : 'rgba(244,167,38,0.1)',
-                color: activeAI === 'fivepoints' ? 
-                  '#0A1628' : '#F4A726',
-                border: '1px solid rgba(244,167,38,0.4)',
-                borderRadius: '6px',
-                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
-                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
-                fontSize: '11px',
-                fontWeight: '600',
-                whiteSpace: 'nowrap'
-              }}>
-              {cooldown > 0 ? `⏳ ${cooldown}s` : '📝 5 Points'}
-            </button>
-
-            <button
-              onClick={handleMarketImpact}
-              disabled={aiLoading || cooldown > 0}
-              style={{
-                padding: '6px 10px',
-                background: activeAI === 'market' ? 
-                  '#F4A726' : 'rgba(244,167,38,0.1)',
-                color: activeAI === 'market' ? 
-                  '#0A1628' : '#F4A726',
-                border: '1px solid rgba(244,167,38,0.4)',
-                borderRadius: '6px',
-                cursor: (aiLoading || cooldown > 0) ? 'not-allowed' : 'pointer',
-                opacity: (aiLoading || cooldown > 0) ? 0.65 : 1,
-                fontSize: '11px',
-                fontWeight: '600',
-                whiteSpace: 'nowrap'
-              }}>
-              {cooldown > 0 ? `⏳ ${cooldown}s` : '📊 Market Impact'}
-            </button>
-          </div>
-
-          {/* AI Result Display */}
-          {aiLoading && (
-            <div style={{
-              padding: '14px',
-              background: 'rgba(244,167,38,0.08)',
-              border: '1px solid rgba(244,167,38,0.25)',
-              borderRadius: '10px',
-              marginTop: '8px',
-              color: '#F4A726',
-              fontSize: '13px'
-            }}>
-              🤖 {aiContent || 'AI is thinking...'}
-            </div>
-          )}
-
-          {!aiLoading && aiContent && (
-            <p style={{
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button
+            onClick={handleCopyLink}
+            class="article-btn"
+            style={{
+              padding: '6px 12px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
               color: '#fff',
-              fontSize: '13px',
-              lineHeight: '1.9',
-              marginTop: '10px',
-              padding: '0',
-              whiteSpace: 'pre-wrap',
-              borderLeft: '3px solid #F4A726',
-              paddingLeft: '10px'
-            }}>
-              {aiContent}
-            </p>
-          )}
-        </div>
-
-        {/* Share Button Row */}
-        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: '600'
+            }}
+          >
+            <span>{copiedLink ? '✓ Copied!' : 'Copy Link'}</span>
+          </button>
           <button
             onClick={() => {
               setIsShareModalOpen(true);
@@ -1008,16 +400,6 @@ function ArticleCard({ article, isLead }) {
             <span>Share</span>
           </button>
         </div>
-
-        {/* Comments Section for Debate */}
-        {activeAI === 'debate' && (
-          <div class="mt-4">
-            <CommentsSection articleUrl={url} />
-          </div>
-        )}
-
-        {/* Mock Ad Banner */}
-        {renderAdSlot()}
       </div>
 
       <ShareModal
@@ -1032,7 +414,6 @@ function ArticleCard({ article, isLead }) {
   );
 }
 
-// Wrap in React.memo to prevent unnecessary re-renders of the cards
 export default React.memo(ArticleCard, (prev, next) => {
   return prev.isLead === next.isLead && 
          prev.article.url === next.article.url && 
