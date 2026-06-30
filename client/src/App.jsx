@@ -34,6 +34,117 @@ function AppContent() {
   const [interestModalOpen, setInterestModalOpen] = useState(false);
   const [isInterestUpdate, setIsInterestUpdate] = useState(false);
 
+  const [tickerData, setTickerData] = useState(() => {
+    const cached = localStorage.getItem('er_live_ticker_data');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return {
+      sensexValue: '82,456 +0.4%',
+      usdInr: '83.42',
+      goldPrice: '$2,345',
+      oilPrice: '$78.23',
+      show: true
+    };
+  });
+
+  useEffect(() => {
+    const fetchExchangeRates = async () => {
+      const apiKey = import.meta.env.VITE_EXCHANGE_RATE_KEY || '2428fcb9bd5523c4a06e1cc7';
+      const res = await fetch(
+        `https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`
+      );
+      if (!res.ok) throw new Error('Exchange rate API failed');
+      const data = await res.json();
+      return data.conversion_rates;
+    };
+
+    const fetchMarketData = async () => {
+      try {
+        const symbols = ['^BSESN', '^NSEI', 'GC=F', 'CL=F'];
+        const promises = symbols.map(s => 
+          fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${s}`)
+            .then(r => {
+              if (!r.ok) throw new Error('Yahoo API error');
+              return r.json();
+            })
+            .catch(() => null)
+        );
+        const results = await Promise.all(promises);
+        return results;
+      } catch(e) {
+        return [];
+      }
+    };
+
+    const updateAllRates = async () => {
+      try {
+        const [exchangeRates, marketData] = await Promise.all([
+          fetchExchangeRates().catch(() => null),
+          fetchMarketData().catch(() => [])
+        ]);
+
+        const nextData = { ...tickerData };
+        let hasNewData = false;
+
+        if (exchangeRates && exchangeRates.INR) {
+          nextData.usdInr = Number(exchangeRates.INR).toFixed(2);
+          hasNewData = true;
+        }
+
+        if (marketData && marketData.length > 0) {
+          const sensexChart = marketData[0];
+          if (sensexChart?.chart?.result?.[0]?.meta) {
+            const meta = sensexChart.chart.result[0].meta;
+            const price = meta.regularMarketPrice;
+            const prevClose = meta.previousClose || price;
+            const change = price - prevClose;
+            const pct = (change / prevClose) * 100;
+            const sign = change >= 0 ? '+' : '';
+            nextData.sensexValue = `${Number(price).toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${sign}${pct.toFixed(2)}%`;
+            hasNewData = true;
+          }
+
+          const goldChart = marketData[2];
+          if (goldChart?.chart?.result?.[0]?.meta) {
+            const price = goldChart.chart.result[0].meta.regularMarketPrice;
+            nextData.goldPrice = `$${Number(price).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+            hasNewData = true;
+          }
+
+          const oilChart = marketData[3];
+          if (oilChart?.chart?.result?.[0]?.meta) {
+            const price = oilChart.chart.result[0].meta.regularMarketPrice;
+            nextData.oilPrice = `$${Number(price).toFixed(2)}`;
+            hasNewData = true;
+          }
+        }
+
+        if (hasNewData) {
+          nextData.show = true;
+          setTickerData(nextData);
+          localStorage.setItem('er_live_ticker_data', JSON.stringify(nextData));
+        }
+      } catch (err) {
+        console.error('Error updating market ticker rates:', err);
+      }
+    };
+
+    updateAllRates();
+    const interval = setInterval(updateAllRates, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const navigate = (path) => {
+    if (path === '/pricing' || path === '/billing') {
+      setView('billing');
+    } else {
+      setView('feed');
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -365,91 +476,84 @@ function AppContent() {
     <div class="min-h-screen flex flex-col bg-paper dark:bg-paper-dark text-navy dark:text-gray-100 transition-colors duration-200 relative max-w-full overflow-x-hidden">
       
       {/* Sticky market ticker bar above header */}
-      <div style={{
-        background: '#0A1628',
-        borderBottom: '1px solid rgba(244,167,38,0.3)',
-        padding: '8px 16px',
-        display: 'flex',
-        gap: '24px',
-        overflowX: 'auto',
-        fontSize: '12px',
-        color: '#fff',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50
-      }}>
-        <span>📈 Sensex: <strong style={{color:'#4CAF50'}}>82,456 +0.4%</strong></span>
-        <span>💱 USD/INR: <strong>83.42</strong></span>
-        <span>🥇 Gold: <strong>$2,345</strong></span>
-        <span>🛢️ Crude: <strong>$78.23</strong></span>
-      </div>
+      {tickerData.show && (
+        <div style={{
+          background: '#0A1628',
+          borderBottom: '1px solid rgba(244,167,38,0.3)',
+          padding: '8px 16px',
+          display: 'flex',
+          gap: '24px',
+          overflowX: 'auto',
+          fontSize: '12px',
+          color: '#fff',
+          whiteSpace: 'nowrap',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50
+        }}>
+          <span>📈 Sensex: <strong>{tickerData.sensexValue}</strong></span>
+          <span>💱 USD/INR: <strong>{tickerData.usdInr}</strong></span>
+          <span>🥇 Gold: <strong>{tickerData.goldPrice}</strong></span>
+          <span>🛢️ Crude: <strong>{tickerData.oilPrice}</strong></span>
+        </div>
+      )}
 
-      {/* Hero Section & Stats Bar (Homepage only) */}
+      {/* Hero Section Redesign (Homepage only) */}
       {view === 'feed' && activeCategory === 'world' && !searchQuery && (
-        <>
-          {/* Hero Section */}
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            background: 'linear-gradient(135deg, #0A1628, #1A3A5C)'
+        <div style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          background: 'linear-gradient(135deg, #0A1628, #1A3A5C)'
+        }}>
+          <h1 style={{
+            fontFamily: 'Georgia, serif',
+            fontSize: '42px',
+            color: '#fff',
+            marginBottom: '16px'
           }}>
-            <h1 style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: '42px',
-              color: '#fff',
-              marginBottom: '16px'
-            }}>
-              Global Economic Intelligence
-            </h1>
-            <p style={{
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: '18px',
-              maxWidth: '600px',
-              margin: '0 auto 32px'
-            }}>
-              Economical Research provides deep economic intelligence, market analysis and research insights for investors, businesses and policy makers worldwide.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button 
-                onClick={() => setView('billing')}
-                style={{
-                  background: '#F4A726',
-                  color: '#0A1628',
-                  padding: '14px 28px',
-                  borderRadius: '6px',
-                  fontWeight: '700',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Start Free
-              </button>
-              <button 
-                onClick={() => setView('billing')}
-                style={{
-                  background: 'transparent',
-                  color: '#F4A726',
-                  padding: '14px 28px',
-                  borderRadius: '6px',
-                  fontWeight: '700',
-                  border: '1px solid #F4A726',
-                  cursor: 'pointer'
-                }}
-              >
-                See PRO Plans
-              </button>
-            </div>
+            Global Economic Intelligence
+          </h1>
+          <p style={{
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: '18px',
+            maxWidth: '600px',
+            margin: '0 auto 32px'
+          }}>
+            Trusted insights for investors, businesses and policy makers worldwide
+          </p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => setView('billing')}
+              style={{
+                background: '#F4A726',
+                color: '#0A1628',
+                padding: '14px 28px',
+                borderRadius: '6px',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >Start Free</button>
+            <button 
+              onClick={() => navigate('/pricing')} 
+              style={{
+                background: 'transparent',
+                color: '#F4A726',
+                padding: '14px 28px',
+                borderRadius: '6px',
+                fontWeight: '700',
+                border: '1px solid #F4A726',
+                cursor: 'pointer'
+              }}
+            >See PRO Plans</button>
           </div>
-
-          {/* Stats Bar */}
+          
           <div style={{
             display: 'flex',
             justifyContent: 'center',
             gap: '40px',
-            padding: '20px',
-            borderTop: '1px solid rgba(244,167,38,0.2)',
-            borderBottom: '1px solid rgba(244,167,38,0.2)',
-            background: '#0A1628'
+            marginTop: '40px',
+            flexWrap: 'wrap'
           }}>
             <div style={{textAlign: 'center'}}>
               <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>50+</p>
@@ -464,7 +568,7 @@ function AppContent() {
               <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Intelligence Reports</p>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Masthead Header */}
