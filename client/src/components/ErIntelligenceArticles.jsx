@@ -4,19 +4,19 @@ import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/fir
 
 const FALLBACK_ARTICLES = [
   {
-    id: 'fb-1',
+    id: 'fb-global',
     title: 'Decoding the 2026 Macro Landscape: Growth, Inflation, and Central Bank Trajectories',
     content: 'As we enter the mid-point of 2026, global financial systems are witnessing structural shifts. Major central banks are pivoting away from aggressive tightening, though structural inflation factors—such as supply-chain reorganization and energy transition investments—keep core inflation rates slightly above pre-pandemic levels. Observers predict moderate growth in G7 economies, with regional disparities widening depending on fiscal policy headroom.\n\nFurthermore, liquidity patterns indicate a return to value-oriented assets, with global bond yields stabilizing near decade highs. This has prompted multi-asset allocators to lock in longer-term fixed income instruments before anticipated policy easings. In the corporate landscape, productivity gains from artificial intelligence are starting to manifest in operating margins, offsetting elevated wage growth indices.',
     readTime: '5 min read'
   },
   {
-    id: 'fb-2',
+    id: 'fb-emerging',
     title: 'Emerging Market Resilience: Capital Flows and Sovereign Debt Pressures',
     content: 'Emerging market (EM) economies continue to showcase varied resilience in a high-rate global environment. While commodity-exporting nations in Latin America and the Middle East leverage strong trade terms, countries heavily reliant on foreign-currency borrowing are facing refinancing challenges. Economists suggest that localized monetary policies in Brazil and Mexico have successfully anchored local currencies, paving the way for selective capital inflows.\n\nInstitutional capital flows are progressively moving towards high-governance and energy-surplus markets. Nonetheless, credit risks remain high in lower-income frontier markets facing food inflation and localized debt restructuring. Forward-looking strategies focus on building domestic bond markets to minimize exchange rate exposures in future cycles.',
     readTime: '4 min read'
   },
   {
-    id: 'fb-3',
+    id: 'fb-india',
     title: "India's Economic Momentum: Domestic Consumption and Capital Expenditures",
     content: "India continues to stand out as a key growth driver in the Indo-Pacific region, with projected GDP growth hovering around 6.5%. The momentum is largely driven by resilient domestic consumption patterns and robust public sector capital expenditures (Capex). Observers point out that the digitization of the financial system has substantially lowered credit costs, encouraging micro and small enterprise investments.\n\nHowever, structural challenges persist, particularly in agricultural yields affected by volatile monsoon behaviors and employment generation for the urban youth. Analysts suggest that the ongoing shift towards advanced manufacturing and global capability centers (GCCs) will play a pivotal role in maintaining the current growth trajectory through the decade.",
     readTime: '3 min read'
@@ -45,8 +45,17 @@ export default function ErIntelligenceArticles() {
         });
 
         // Check if we have articles generated recently (within the last 24 hours)
-        const isRecent = articlesList.length === 3 && 
-          (Date.now() - new Date(articlesList[0].createdAt).getTime()) < 24 * 3600000;
+        let isRecent = false;
+        if (articlesList.length === 3 && articlesList[0]?.createdAt) {
+          try {
+            const createdTime = new Date(articlesList[0].createdAt).getTime();
+            if (!isNaN(createdTime)) {
+              isRecent = (Date.now() - createdTime) < 24 * 3600000;
+            }
+          } catch (e) {
+            isRecent = false;
+          }
+        }
 
         if (isRecent) {
           setErArticles(articlesList);
@@ -66,6 +75,7 @@ export default function ErIntelligenceArticles() {
         const newArticles = await Promise.all(
           topics.map(async (topic) => {
             try {
+              if (!apiKey) throw new Error("API Key missing");
               const prompt = `You are a senior economic editor at "Economical Research". Write a professional intelligence briefing on "${topic.name}". Return ONLY a JSON object with keys "title" (a compelling headline), "content" (two long, rich paragraphs of detailed macro analysis), and "readTime" (e.g. "4 min read"). Do not include markdown code block backticks. Make sure it is valid JSON.`;
               
               const res = await fetch(url, {
@@ -86,17 +96,17 @@ export default function ErIntelligenceArticles() {
 
               // Save to Firestore
               const docRef = await addDoc(collection(db, 'er_original_articles'), {
-                title: parsed.title,
-                content: parsed.content,
-                readTime: parsed.readTime,
+                title: parsed?.title || topic.name,
+                content: parsed?.content || 'Briefing details are being compiled.',
+                readTime: parsed?.readTime || '5 min read',
                 createdAt: new Date().toISOString()
               });
 
               return {
                 id: docRef.id,
-                title: parsed.title,
-                content: parsed.content,
-                readTime: parsed.readTime
+                title: parsed?.title || topic.name,
+                content: parsed?.content || 'Briefing details are being compiled.',
+                readTime: parsed?.readTime || '5 min read'
               };
             } catch (err) {
               console.error('Failed to generate article for topic', topic.name, err);
@@ -127,6 +137,10 @@ export default function ErIntelligenceArticles() {
     );
   }
 
+  if (!erArticles || erArticles.length === 0) {
+    return null;
+  }
+
   return (
     <section className="mb-8">
       <div style={{
@@ -149,10 +163,10 @@ export default function ErIntelligenceArticles() {
       </div>
 
       <div className="space-y-4">
-        {erArticles.map(article => (
+        {erArticles && erArticles.length > 0 && erArticles.map((article, idx) => (
           <div 
-            key={article.id} 
-            onClick={() => setSelectedArticle(article)}
+            key={article?.id || `er-art-${idx}`} 
+            onClick={() => article && setSelectedArticle(article)}
             style={{
               background: 'linear-gradient(145deg, #1A3A5C, #0A1628)',
               border: '1px solid rgba(244,167,38,0.2)',
@@ -163,10 +177,10 @@ export default function ErIntelligenceArticles() {
             className="hover:scale-[1.01] transition-transform duration-200 shadow-md group"
           >
             <h3 style={{color: '#fff', fontSize: '15px'}} className="font-display font-bold group-hover:text-gold transition-colors">
-              {article.title}
+              {article?.title || 'Untitled Briefing'}
             </h3>
             <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginTop: '6px'}} className="font-sans">
-              By ER Research Desk · {article.readTime}
+              By ER Research Desk · {article?.readTime || '5 min read'}
             </p>
           </div>
         ))}
@@ -187,13 +201,13 @@ export default function ErIntelligenceArticles() {
             </div>
             <div className="p-6 overflow-y-auto space-y-4 font-serif text-sm leading-relaxed text-gray-200">
               <h2 className="text-xl md:text-2xl font-display font-black text-white leading-tight">
-                {selectedArticle.title}
+                {selectedArticle?.title || 'Untitled Briefing'}
               </h2>
               <div className="text-xs font-sans text-gray-400 pb-2 border-b border-white/5">
-                By ER Research Desk · Published: Daily Update · {selectedArticle.readTime}
+                By ER Research Desk · Published: Daily Update · {selectedArticle?.readTime || '5 min read'}
               </div>
               <div className="whitespace-pre-line space-y-4 pt-2">
-                {selectedArticle.content}
+                {selectedArticle?.content || 'No content details available.'}
               </div>
             </div>
             <div className="px-6 py-4 border-t border-white/10 bg-navy-light/10 text-right">

@@ -4,6 +4,7 @@ import Chart from 'chart.js/auto';
 import ArticleCard from './ArticleCard';
 import ResearchMode from './ResearchMode';
 import ErIntelligenceArticles from './ErIntelligenceArticles';
+import ErrorBoundary from './ErrorBoundary';
 import { useAuth } from '../contexts/AuthContext';
 import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, ClipboardList, ArrowRight } from 'lucide-react';
 import { db } from '../lib/firebase';
@@ -1003,7 +1004,9 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                       fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
                     />
                   )}
-                  <ErIntelligenceArticles />
+                  <ErrorBoundary>
+                    <ErIntelligenceArticles />
+                  </ErrorBoundary>
                   <NewsSection title="Global Affairs" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Markets & Business" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Economics & Finance" category="finance" fetchUrl={`/api/news?category=business&q=finance&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
