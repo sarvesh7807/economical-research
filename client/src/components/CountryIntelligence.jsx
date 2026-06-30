@@ -81,6 +81,8 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
   const [data, setData] = useState(STATIC_COUNTRIES_DATA);
 
   useEffect(() => {
+    // restcountries.com is CORS-blocked from the browser - use static data instead
+    // Only fetch live GDP growth from World Bank API (supports CORS)
     const fetchCountryGDP = async (countryCode) => {
       try {
         const res = await fetch(
@@ -97,34 +99,18 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
       }
     };
 
-    const fetchCountryInfo = async (countryCode) => {
-      try {
-        const res = await fetch(
-          `https://restcountries.com/v3.1/alpha/${countryCode}`
-        );
-        const json = await res.json();
-        return json[0];
-      } catch(e) {
-        return null;
-      }
-    };
-
     const loadAllData = async () => {
       try {
         const results = await Promise.all(
           COUNTRY_CODES.map(async (code) => {
-            const [info, gdp] = await Promise.all([
-              fetchCountryInfo(code),
-              fetchCountryGDP(code)
-            ]);
-            if (info) {
-              const defaultData = STATIC_COUNTRIES_DATA.find(d => d.country.cca2 === code);
-              return { 
-                country: info, 
-                gdpGrowth: gdp || (defaultData ? defaultData.gdpGrowth : '3.50') 
-              };
-            }
-            return null;
+            const staticEntry = STATIC_COUNTRIES_DATA.find(d => d.country.cca2 === code);
+            if (!staticEntry) return null;
+            // Try to get live GDP growth from World Bank; fall back to static
+            const gdp = await fetchCountryGDP(code);
+            return {
+              country: staticEntry.country,
+              gdpGrowth: gdp || staticEntry.gdpGrowth
+            };
           })
         );
 
@@ -133,7 +119,7 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
           setData(filtered);
         }
       } catch (err) {
-        console.error("Background fetch for country data failed, keeping static fallback:", err);
+        console.error("Background fetch for country GDP failed, keeping static fallback:", err);
       }
     };
 

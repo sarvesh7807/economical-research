@@ -42,6 +42,8 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     userAlerts
   } = useAuth();
   
+  const totalBadgeCount = Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0;
+  
   const [time, setTime] = useState(new Date());
   const [tickerNews, setTickerNews] = useState([]);
   const [tickerIndex, setTickerIndex] = useState(0);
