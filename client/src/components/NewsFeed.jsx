@@ -573,59 +573,103 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     const isPro = subscription?.tier === 'PRO';
     
     return (
-      <div class="glass-card p-5 rounded-md">
-        <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
-          <div class="flex items-center gap-2">
-            <Sparkles size={14} class="text-accent-pink" />
-            <h3 class="font-display text-sm font-black text-navy dark:text-accent-pink uppercase tracking-wider">
-              Deep Research Desk
-            </h3>
-          </div>
-          <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">PRO MODE</span>
+      <section style={{ padding: '0 24px', width: '100%' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '20px',
+          paddingBottom: '10px',
+          borderBottom: '2px solid #F4A726'
+        }}>
+          <h2 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '22px',
+            color: '#fff',
+            margin: 0
+          }}>Deep Research Desk</h2>
         </div>
         
-        {isPro ? (
-          <form onSubmit={handleResearchSubmit} class="space-y-2">
-            <p class="text-[10px] text-gray-500 leading-relaxed font-sans mb-1">
-              Synthesize comprehensive research briefs mapping core market signals.
-            </p>
-            <div class="flex gap-2">
-              <input
-                type="text"
-                placeholder="Enter topic (e.g. GDP, Supply Chains)..."
-                value={researchInput}
-                onChange={(e) => setResearchInput(e.target.value)}
-                class="flex-grow bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white"
-              />
+        <div style={{
+          background: 'var(--navy-medium)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '8px',
+          padding: '24px',
+          width: '100%'
+        }}>
+          {isPro ? (
+            <form onSubmit={handleResearchSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>
+                Synthesize comprehensive research briefs mapping core market signals.
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <input
+                  type="text"
+                  placeholder="Enter topic (e.g. GDP, Supply Chains)..."
+                  value={researchInput}
+                  onChange={(e) => setResearchInput(e.target.value)}
+                  style={{
+                    flexGrow: 1,
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    padding: '10px 16px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={!researchInput.trim()}
+                  style={{
+                    background: '#F4A726',
+                    color: '#0A1628',
+                    padding: '10px 24px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Compile
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', textAlign: 'center', padding: '12px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FF5252', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase' }}>
+                <Lock size={14} />
+                <span>Access Restricted</span>
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: 0, maxWidth: '500px' }}>
+                Deep Research compiles extensive intelligence briefs. Upgrading to PRO lifts this block.
+              </p>
               <button
-                type="submit"
-                disabled={!researchInput.trim()}
-                class="bg-navy hover:bg-navy-light text-accent-neon px-4 py-2 rounded-md text-[10px] uppercase font-bold shrink-0 transition-all hover:shadow-neon"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, var(--gold-primary), var(--gold-light))',
+                  color: 'var(--navy-darkest)',
+                  fontWeight: '700',
+                  padding: '10px 24px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  textTransform: 'uppercase'
+                }}
+                className="hover:scale-105 transition-transform"
               >
-                Compile
+                Upgrade to PRO
               </button>
             </div>
-          </form>
-        ) : (
-          <div class="text-center py-2 space-y-2.5">
-            <div class="flex items-center justify-center gap-1 text-red-500 font-bold text-[10px] uppercase">
-              <Lock size={11} />
-              <span>Access Restricted</span>
-            </div>
-            <p class="text-[10px] text-gray-400 font-sans leading-normal">
-              Deep Research compiles extensive intelligence briefs. Upgrading to PRO lifts this block.
-            </p>
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
-              }}
-              class="w-full bg-gradient-to-r from-primary to-accent-purple hover:from-primary-glow hover:to-accent-pink text-white font-bold text-[10px] uppercase py-2.5 rounded-md tracking-wider transition-all shadow-purple-glow hover:scale-105"
-            >
-              Upgrade to PRO
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
     );
   };
 
@@ -879,9 +923,52 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       {/* Main Layout Area */}
       {isHomepage ? (
         <div>
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left/Middle: News Sections (Home) */}
-            <div class="col-span-1 lg:col-span-2 space-y-6">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            maxWidth: '1200px',
+            margin: '0 auto',
+            gap: '40px'
+          }}>
+            {/* 3. ER Intelligence (3 featured articles) */}
+            <div style={{ padding: '0 24px', width: '100%' }}>
+              <ErrorBoundary>
+                <ErIntelligenceArticles />
+              </ErrorBoundary>
+            </div>
+
+            {/* 4. Trending Dispatch Wire */}
+            <TrendingWidget />
+
+            {/* 5. Deep Research Desk */}
+            {renderResearchDesk()}
+
+            {/* 6. Promise Outcome Tracker */}
+            {isHomepage && <OutcomeTrackerWidget />}
+
+            {/* 7. Economic Trend Outlook */}
+            {isHomepage && <EconomicTrendsWidget />}
+
+            {/* 8. Global Market Signals */}
+            <MarketSignalsWidget />
+
+            {/* Sponsored Briefing (inline banner style) */}
+            <div style={{ padding: '0 24px', width: '100%' }}>
+              {renderSidePanel()}
+            </div>
+
+            {/* 9. MAIN NEWS FEED */}
+            <div style={{ padding: '0 24px', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+              <h2 style={{
+                fontFamily: 'Playfair Display, serif',
+                fontSize: '22px',
+                color: '#fff',
+                marginBottom: '20px',
+                paddingBottom: '10px',
+                borderBottom: '2px solid #F4A726'
+              }}>Latest News</h2>
+
               {activeCategory === 'foryou' ? (
                 personalizedNews.length === 0 ? (
                   <div class="text-center py-16 border border-dashed border-paper-border dark:border-paper-borderDark rounded bg-white dark:bg-paper-cardDark">
@@ -973,8 +1060,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                   </div>
                 )
               ) : (
-                <div class="space-y-2">
-                  {/* Homepage Personalized Section (Step 4) */}
+                <div class="space-y-6">
+                  {/* Homepage Personalized Section */}
                   {personalizedNews.length > 0 && (
                     <section className="mb-8 p-6 rounded-md bg-gradient-to-br from-gold/10 via-[#0A1628]/10 to-gold/5 border border-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.05)] relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gold/5 blur-2xl pointer-events-none"></div>
@@ -1004,9 +1091,6 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                       fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
                     />
                   )}
-                  <ErrorBoundary>
-                    <ErIntelligenceArticles />
-                  </ErrorBoundary>
                   <NewsSection title="Global Affairs" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Markets & Business" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Economics & Finance" category="finance" fetchUrl={`/api/news?category=business&q=finance&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
@@ -1018,17 +1102,6 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                   <NewsSection title="Health News" category="health" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                 </div>
               )}
-            </div>
-            {/* Right Side: Research Desk & Side Panel */}
-            <div class="col-span-1 space-y-6">
-              {renderResearchDesk()}
-              {isHomepage && <OutcomeTrackerWidget />}
-              {isHomepage && <EconomicTrendsWidget />}
-              {renderSidePanel()}
-              <div class="sticky top-6 space-y-6">
-                <TrendingWidget />
-                <MarketSignalsWidget />
-              </div>
             </div>
           </div>
         </div>
@@ -1303,21 +1376,30 @@ function TrendingWidget() {
   }, []);
 
   return (
-    <div class="glass-card p-5 rounded-md text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
-      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
-        <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
-          <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
-            Trending Dispatch Wire
-          </h3>
+    <section style={{ padding: '0 24px', width: '100%' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '20px',
+        paddingBottom: '10px',
+        borderBottom: '2px solid #F4A726'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF5252' }} className="animate-pulse"></span>
+          <h2 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '22px',
+            color: '#fff',
+            margin: 0
+          }}>Trending Dispatch Wire</h2>
         </div>
-        <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">HOT</span>
       </div>
 
       {loading ? (
-        <div class="space-y-3.5">
+        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} class="flex gap-3 items-center">
+            <div key={i} style={{ width: '280px', shrink: 0, padding: '16px', background: 'var(--navy-medium)', border: '1px solid var(--border-subtle)', borderRadius: '6px', display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div class="w-12 h-12 rounded-md bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
               <div class="flex-grow space-y-2">
                 <div class="h-3 w-5/6 rounded bg-gray-205 dark:bg-gray-800 animate-shimmer"></div>
@@ -1329,7 +1411,7 @@ function TrendingWidget() {
       ) : articles.length === 0 ? (
         <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No trending news available right now.</p>
       ) : (
-        <div class="space-y-3.5">
+        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
           {articles.map((article, index) => {
             const timeAgo = article.publishedAt
               ? `${Math.max(1, Math.round((Date.now() - new Date(article.publishedAt).getTime()) / 3600000))}h ago`
@@ -1341,22 +1423,35 @@ function TrendingWidget() {
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex gap-3 items-center group/item hover:bg-gray-50 dark:hover:bg-white/5 p-1.5 -m-1.5 rounded-md transition-all"
+                style={{
+                  width: '280px',
+                  shrink: 0,
+                  padding: '16px',
+                  background: 'var(--navy-medium)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                  transition: 'transform 0.2s'
+                }}
+                className="hover:scale-[1.02] hover:border-gold group"
               >
                 <img
                   src={article.urlToImage}
                   alt=""
-                  class="w-12 h-12 rounded-md object-cover shrink-0 border border-gray-100 dark:border-white/5 group-hover/item:scale-105 transition-transform"
+                  style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px', shrink: 0 }}
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
                 />
-                <div class="min-w-0 flex-grow">
-                  <h4 class="text-navy dark:text-white text-[11.5px] font-bold leading-snug group-hover/item:text-primary dark:group-hover/item:text-gold transition-colors line-clamp-2">
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <h4 style={{ color: '#fff', fontSize: '12px', margin: 0, lineHeight: '1.4', fontWeight: 'bold' }} className="group-hover:text-gold transition-colors line-clamp-2">
                     {article.title}
                   </h4>
-                  <div class="flex items-center gap-1.5 mt-1 text-[8.5px] font-mono text-gray-400 uppercase font-semibold">
-                    <span class="truncate">{article.source?.name || 'Wire'}</span>
+                  <div style={{ display: 'flex', gap: '6px', fontSize: '9px', fontFamily: 'IBM Plex Mono, monospace', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                    <span className="truncate">{article.source?.name || 'Wire'}</span>
                     <span>•</span>
                     <span>{timeAgo}</span>
                   </div>
@@ -1366,7 +1461,7 @@ function TrendingWidget() {
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -1451,17 +1546,34 @@ function EconomicTrendsWidget() {
   }, []);
 
   return (
-    <div class="glass-card p-5 rounded-md text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
-      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
-        <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
-          📈 Economic Trend Outlook
-        </h3>
-        <span class="text-[9px] font-mono font-bold text-gray-405 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full font-bold">ANNUAL</span>
+    <section style={{ padding: '0 24px', width: '100%' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '20px',
+        paddingBottom: '10px',
+        borderBottom: '2px solid #F4A726'
+      }}>
+        <h2 style={{
+          fontFamily: 'Playfair Display, serif',
+          fontSize: '22px',
+          color: '#fff',
+          margin: 0
+        }}>Economic Trend Outlook</h2>
       </div>
-      <div style={{ height: '180px', position: 'relative' }}>
+      <div style={{ 
+        background: 'var(--navy-medium)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '8px',
+        padding: '24px',
+        width: '100%',
+        height: '280px',
+        position: 'relative'
+      }}>
         <canvas ref={canvasRef} />
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -1476,31 +1588,55 @@ function MarketSignalsWidget() {
   ];
 
   return (
-    <div class="glass-card p-5 rounded-md text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
-      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
-        <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-          <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
-            Global Market Signals
-          </h3>
+    <section style={{ padding: '0 24px', width: '100%' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '20px',
+        paddingBottom: '10px',
+        borderBottom: '2px solid #F4A726'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00C896' }} className="animate-pulse"></span>
+          <h2 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '22px',
+            color: '#fff',
+            margin: 0
+          }}>Global Market Signals</h2>
         </div>
-        <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">REALTIME</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
         {signals.map((sig, i) => (
-          <div key={i} class="bg-gray-50 dark:bg-white/5 p-3 rounded-md border border-white/5 hover:border-gold/30 dark:hover:border-gold/30 transition-all duration-300">
-            <span class="text-[8.5px] font-bold text-gray-400 uppercase tracking-wider block mb-1 truncate">{sig.name}</span>
-            <div class="flex justify-between items-baseline gap-1">
-              <span class="text-[11px] font-bold text-navy dark:text-white font-mono">{sig.value}</span>
-              <span class={`text-[8.5px] font-bold font-mono ${sig.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+          <div 
+            key={i} 
+            style={{ 
+              width: '280px', 
+              shrink: 0, 
+              padding: '16px', 
+              background: 'var(--navy-medium)', 
+              border: '1px solid var(--border-subtle)', 
+              borderRadius: '6px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              height: '80px'
+            }}
+            className="hover:border-gold/30 transition-all duration-300"
+          >
+            <span style={{ fontSize: '9px', fontWeight: '750', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sig.name}</span>
+            <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'baseline', marginTop: '8px' }}>
+              <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', fontFamily: 'IBM Plex Mono, monospace' }}>{sig.value}</span>
+              <span style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'IBM Plex Mono, monospace', color: sig.isPositive ? 'var(--success)' : 'var(--danger)' }}>
                 {sig.change}
               </span>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -1533,54 +1669,86 @@ function OutcomeTrackerWidget() {
   };
 
   return (
-    <div class="glass-card p-5 rounded-md">
-      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
-        <div class="flex items-center gap-2">
-          <ClipboardList size={14} class="text-gold" />
-          <h3 class="font-display text-sm font-black text-navy dark:text-gold uppercase tracking-wider">
-            Promise Outcome Tracker
-          </h3>
+    <section style={{ padding: '0 24px', width: '100%' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        marginBottom: '20px',
+        paddingBottom: '10px',
+        borderBottom: '2px solid #F4A726'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ClipboardList size={18} class="text-gold" />
+          <h2 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '22px',
+            color: '#fff',
+            margin: 0
+          }}>Promise Outcome Tracker</h2>
         </div>
-        <span class="text-[9px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full">AUDIT</span>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('change-view', { detail: 'outcome-tracker' }))}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px',
+            color: '#F4A726',
+            cursor: 'pointer',
+            padding: '4px 12px',
+            fontSize: '10px',
+            fontWeight: '700',
+            textTransform: 'uppercase'
+          }}
+          className="hover:bg-white/10"
+        >
+          View Full Ledger →
+        </button>
       </div>
 
       {loading ? (
-        <div class="flex items-center justify-center py-6 text-xs text-gray-400 gap-1.5">
-          <Loader size={12} class="animate-spin text-gold" />
-          <span>Compiling audits...</span>
+        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ width: '280px', shrink: 0, height: '90px', background: 'var(--navy-medium)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="animate-pulse"/>
+          ))}
         </div>
       ) : stories.length === 0 ? (
         <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No announcements currently tracked.</p>
       ) : (
-        <div class="space-y-3">
+        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
           {stories.map(story => (
             <div
               key={story.id}
               onClick={() => window.dispatchEvent(new CustomEvent('change-view-detail', { detail: story.id }))}
-              class="group rounded-md p-3 border border-white/5 cursor-pointer hover:border-yellow-400/20 transition-all text-left"
-              style={{ background: 'rgba(255,255,255,0.01)' }}
+              style={{
+                width: '280px',
+                shrink: 0,
+                padding: '16px',
+                background: 'var(--navy-medium)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'transform 0.2s'
+              }}
+              className="hover:scale-[1.02] hover:border-gold group"
             >
-              <div class="flex items-center justify-between gap-2 mb-1.5">
-                <span class="text-[8px] font-bold text-yellow-400/80 uppercase tracking-wide truncate">{story.category}</span>
-                <span class={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${getStatusColor(story.currentStage)}`}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--gold-primary)', textTransform: 'uppercase' }}>{story.category}</span>
+                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${getStatusColor(story.currentStage)}`}>
                   {story.currentStage}
                 </span>
               </div>
-              <h4 class="text-white text-[11.5px] font-bold leading-snug group-hover:text-yellow-300 transition-colors line-clamp-2">
+              <h4 style={{ color: '#fff', fontSize: '13px', margin: 0, fontWeight: '700', lineHeight: '1.4' }} className="group-hover:text-gold transition-colors line-clamp-2">
                 {story.title}
               </h4>
             </div>
           ))}
-          
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('change-view', { detail: 'outcome-tracker' }))}
-            class="w-full mt-2 flex items-center justify-center gap-1 py-2 text-[10px] font-bold uppercase tracking-wider text-yellow-400 hover:text-yellow-300 transition-colors border border-dashed border-white/10 hover:border-yellow-400/25 rounded-md bg-white/5"
-          >
-            <span>View Full Audit Ledger</span>
-            <ArrowRight size={10} />
-          </button>
         </div>
       )}
-    </div>
+    </section>
   );
 }

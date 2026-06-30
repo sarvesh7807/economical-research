@@ -665,40 +665,6 @@ function AppContent() {
               ))}
             </div>
           </section>
-
-          {/* Emerging Markets Intelligence Section */}
-          <div style={{ background: '#0A1628', borderTop: '1px solid rgba(244,167,38,0.1)' }}>
-            <div className="max-w-7xl mx-auto px-4 md:px-6">
-              <section style={{padding: '40px 20px'}}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '24px',
-                  paddingBottom: '12px',
-                  borderBottom: '2px solid var(--gold-primary)'
-                }}>
-                  <h2 style={{
-                    fontFamily: 'Playfair Display, serif',
-                    fontSize: '24px',
-                    color: '#fff',
-                    margin: 0,
-                    fontWeight: '700'
-                  }}>🌍 Emerging Markets Intelligence</h2>
-                </div>
-                <p style={{color: 'rgba(255,255,255,0.6)', marginBottom: '24px', fontSize: '14px'}}>
-                  Economic data across global markets
-                </p>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '16px'
-                }}>
-                  <CountryIntelligence setView={setView} setSearchQuery={handleSearchSubmit} />
-                </div>
-              </section>
-            </div>
-          </div>
         </>
       )}
 
@@ -823,6 +789,42 @@ function AppContent() {
           )}
         </React.Suspense>
       </main>
+
+      {/* Emerging Markets Intelligence Section (Relocated to bottom) */}
+      {view === 'feed' && activeCategory === 'world' && !searchQuery && (
+        <div style={{ background: '#0A1628', borderTop: '1px solid rgba(244,167,38,0.1)' }}>
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <section style={{padding: '40px 20px'}}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '24px',
+                paddingBottom: '12px',
+                borderBottom: '2px solid var(--gold-primary)'
+              }}>
+                <h2 style={{
+                  fontFamily: 'Playfair Display, serif',
+                  fontSize: '24px',
+                  color: '#fff',
+                  margin: 0,
+                  fontWeight: '700'
+                }}>🌍 Emerging Markets Intelligence</h2>
+              </div>
+              <p style={{color: 'rgba(255,255,255,0.6)', marginBottom: '24px', fontSize: '14px'}}>
+                Economic data across global markets
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px'
+              }}>
+                <CountryIntelligence setView={setView} setSearchQuery={handleSearchSubmit} />
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       {view !== 'assistant' && (
