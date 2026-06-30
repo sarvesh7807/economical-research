@@ -4,7 +4,7 @@ import { Calendar, Lock } from 'lucide-react';
 import ShareModal from './ShareModal';
 import { getPremiumArticleImage } from '../utils/imageSystem';
 
-function ArticleCard({ article, isLead }) {
+function ArticleCard({ article, isLead, layout = 'grid' }) {
   const [translatedTitle, setTranslatedTitle] = useState(article?.title || '')
   const [translatedDescription, setTranslatedDescription] = useState(article?.description || '')
   const [translatedContent, setTranslatedContent] = useState(article?.content || '')
@@ -33,6 +33,21 @@ function ArticleCard({ article, isLead }) {
   // Comments/Share settings
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const articleRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (articleRef.current) observer.observe(articleRef.current);
+    return () => observer.disconnect();
+  }, [articleRef]);
 
   // Voice Reader States
   const [isPlaying, setIsPlaying] = useState(false);
@@ -260,19 +275,198 @@ function ArticleCard({ article, isLead }) {
     );
   }
 
+  if (layout === 'list') {
+    return (
+      <div 
+        ref={articleRef}
+        style={{
+          display: 'flex',
+          gap: '16px',
+          padding: '16px',
+          borderBottom: '1px solid rgba(244,167,38,0.1)',
+          alignItems: 'flex-start',
+          transition: 'opacity 0.5s ease, transform 0.5s ease, background 0.2s ease',
+          cursor: 'pointer',
+          position: 'relative',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+          background: 'transparent'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(244,167,38,0.03)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+        }}
+        className="group news-feed-container"
+      >
+        <div style={{ position: 'relative', width: '140px', height: '95px', overflow: 'hidden', flexShrink: 0, borderRadius: '4px', background: 'var(--navy-darkest)' }}>
+          <img 
+            src={imageUrl} 
+            alt={title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'brightness(0.85)',
+              transition: 'transform 0.7s ease-out'
+            }}
+            className="group-hover:scale-110"
+            onError={() => setImgError(true)}
+          />
+        </div>
+        
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{
+              fontSize: '10px',
+              color: '#F4A726',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}>{getArticleTopic()}</span>
+          </div>
+          
+          <h3 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '16px',
+            color: '#fff',
+            margin: '6px 0',
+            lineHeight: '1.35',
+            fontWeight: '700'
+          }} className="hover:text-gold transition-colors">
+            <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
+              {title}
+            </a>
+          </h3>
+          
+          <p style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '13px',
+            lineHeight: '1.5',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            margin: 0
+          }}>
+            {description || 'Full report details are available in the linked release archive.'}
+          </p>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '8px',
+            fontSize: '11px',
+            fontFamily: 'IBM Plex Mono, monospace',
+            color: 'rgba(255,255,255,0.35)'
+          }} className="flex-wrap gap-2">
+            <div>
+              <span>{source?.name || 'Unknown'}</span>
+              <span style={{ margin: '0 8px' }}>·</span>
+              <span>{getRelativeTime(publishedAt)}</span>
+            </div>
+
+            {/* Voice News Reader & Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} className="font-sans">
+              <span className="flex items-center gap-1 shrink-0" style={{ fontSize: '9px' }}>
+                {!isPlaying ? (
+                  <button
+                    onClick={handleListen}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', padding: 0 }}
+                    className="hover:text-gold"
+                    title="Listen to Article"
+                  >
+                    🔊 Listen
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <button
+                      onClick={handlePause}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.35)', padding: 0 }}
+                      className="hover:text-gold"
+                      title={isPaused ? "Resume" : "Pause"}
+                    >
+                      {isPaused ? '▶' : '⏸'}
+                    </button>
+                    <button
+                      onClick={handleStop}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0 }}
+                      title="Stop"
+                    >
+                      ⏹
+                    </button>
+                  </span>
+                )}
+              </span>
+
+              {/* Share & Copy Link */}
+              <button
+                onClick={handleCopyLink}
+                style={{
+                  padding: '2px 8px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '3px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  fontWeight: '600'
+                }}
+                className="hover:bg-white/10"
+              >
+                {copiedLink ? '✓' : 'Copy'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsShareModalOpen(true);
+                  const topic = getArticleTopic();
+                  trackArticleRead(topic, 3);
+                }}
+                style={{
+                  padding: '2px 8px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '3px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '10px',
+                  fontWeight: '600'
+                }}
+                className="hover:bg-white/10"
+              >
+                Share
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ShareModal
+          open={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          shareUrl={url}
+          shareTitle={`Check out this article on Economical Research: "${title}"`}
+          downloadFilename={`economical-research-report-${getArticleId(url)}`}
+          captureRef={articleRef}
+        />
+      </div>
+    );
+  }
+
   return (
     <article 
       ref={articleRef}
       onMouseEnter={(e) => {
         setHovered(true);
         e.currentTarget.style.borderColor = 'var(--gold-primary)';
-        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.transform = layout === 'featured' ? 'scale(1.005) translateY(-4px)' : 'translateY(-4px)';
         e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.4)';
       }}
       onMouseLeave={(e) => {
         setHovered(false);
         e.currentTarget.style.borderColor = 'var(--border-subtle)';
-        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.transform = layout === 'featured' ? 'scale(1) translateY(0)' : 'translateY(0)';
         e.currentTarget.style.boxShadow = 'none';
       }}
       style={{
@@ -280,16 +474,19 @@ function ArticleCard({ article, isLead }) {
         border: '1px solid var(--border-subtle)',
         borderRadius: '8px',
         overflow: 'hidden',
-        transition: 'all 0.3s ease',
+        transition: 'opacity 0.5s ease, transform 0.5s ease, border-color 0.3s ease, box-shadow 0.3s ease',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         position: 'relative',
         width: '100%',
-        shrink: 0
+        shrink: 0,
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+        gridColumn: layout === 'featured' ? 'span 2' : 'auto'
       }}
-      className="group"
+      className="group news-feed-container"
     >
       <div>
         {/* Featured Image */}

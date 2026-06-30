@@ -257,6 +257,51 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
 
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
   const { user, subscription, guestId, userPreferences, addNotification } = useAuth();
+
+  const [layoutMode, setLayoutMode] = useState(() => {
+    return localStorage.getItem('layoutMode') || 'grid';
+  });
+
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem('layoutMode', layoutMode);
+  }, [layoutMode]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0) {
+        setScrollProgress((scrolled / maxScroll) * 100);
+      } else {
+        setScrollProgress(0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const getArticleDayGroup = (publishedAt) => {
+    if (!publishedAt) return 'Older Reports';
+    try {
+      const date = new Date(publishedAt);
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+      
+      if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+      } else {
+        return date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      }
+    } catch (e) {
+      return 'Archive Reports';
+    }
+  };
   
   const [weather, setWeather] = useState(() => {
     const cached = localStorage.getItem('er_weather_data');
@@ -601,34 +646,121 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   if (loading) {
     return (
       <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
-        <div class="border-double-bottom-navy pb-3 mb-6">
-          <div class="h-6 w-48 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '24px',
+          paddingBottom: '12px',
+          borderBottom: '2px solid var(--gold-primary)'
+        }}>
+          <div class="h-6 w-48 rounded bg-[#1A3A5C] animate-pulse"></div>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div class="col-span-1 md:col-span-2 lg:col-span-2 border border-paper-border dark:border-paper-borderDark p-5 space-y-4">
-            <div class="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-            <div class="h-6 w-3/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-            <div class="h-44 w-full rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-            <div class="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-            <div class="space-y-2">
-              <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-            </div>
-          </div>
-          
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} class="border border-paper-border dark:border-paper-borderDark p-5 space-y-4">
-              <div class="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="h-5 w-5/6 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="h-36 w-full rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="space-y-2">
-                <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-                <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+        {layoutMode === 'list' ? (
+          <div class="space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} style={{
+                display: 'flex',
+                gap: '16px',
+                padding: '16px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: '8px',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                <div style={{
+                  width: '140px',
+                  height: '95px',
+                  background: 'linear-gradient(90deg, #1A3A5C 25%, #234567 50%, #1A3A5C 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 1.5s infinite',
+                  borderRadius: '4px'
+                }}/>
+                <div style={{flex: 1}}>
+                  <div style={{
+                    height: '12px',
+                    width: '30%',
+                    background: 'rgba(244,167,38,0.15)',
+                    marginBottom: '10px',
+                    borderRadius: '2px'
+                  }}/>
+                  <div style={{
+                    height: '18px',
+                    width: '80%',
+                    background: 'rgba(255,255,255,0.1)',
+                    marginBottom: '10px',
+                    borderRadius: '2px'
+                  }}/>
+                  <div style={{
+                    height: '14px',
+                    width: '95%',
+                    background: 'rgba(255,255,255,0.05)',
+                    marginBottom: '6px',
+                    borderRadius: '2px'
+                  }}/>
+                </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '20px',
+            padding: '20px 0'
+          }}>
+            {/* Featured Skeleton Card */}
+            <div style={{
+              gridColumn: window.innerWidth >= 768 ? 'span 2' : 'span 1',
+              background: 'var(--navy-medium)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              padding: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }} className="news-feed-container">
+              <div style={{
+                width: '100%',
+                height: '240px',
+                background: 'linear-gradient(90deg, #1A3A5C 25%, #234567 50%, #1A3A5C 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.5s infinite',
+                borderRadius: '4px'
+              }}/>
+              <div style={{ height: '14px', width: '20%', background: 'rgba(244,167,38,0.15)', borderRadius: '2px' }}/>
+              <div style={{ height: '22px', width: '70%', background: 'rgba(255,255,255,0.1)', borderRadius: '2px' }}/>
+              <div style={{ height: '16px', width: '90%', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}/>
             </div>
-          ))}
-        </div>
+            
+            {/* Standard Skeleton Cards */}
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{
+                background: 'var(--navy-medium)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }} className="news-feed-container">
+                <div style={{
+                  width: '100%',
+                  height: '180px',
+                  background: 'linear-gradient(90deg, #1A3A5C 25%, #234567 50%, #1A3A5C 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 1.5s infinite',
+                  borderRadius: '4px'
+                }}/>
+                <div style={{ height: '12px', width: '30%', background: 'rgba(244,167,38,0.15)', borderRadius: '2px' }}/>
+                <div style={{ height: '18px', width: '80%', background: 'rgba(255,255,255,0.1)', borderRadius: '2px' }}/>
+                <div style={{ height: '14px', width: '90%', background: 'rgba(255,255,255,0.05)', borderRadius: '2px' }}/>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -654,6 +786,19 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   return (
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
+      {/* Scroll Progress Bar */}
+      {scrollProgress > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0,
+          height: '2px',
+          background: '#F4A726',
+          width: `${scrollProgress}%`,
+          zIndex: 9999,
+          transition: 'width 0.1s'
+        }}/>
+      )}
+
       {/* Feed Title and Header */}
       <div style={{
         display: 'flex',
@@ -674,6 +819,44 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           {getFeedTitle()}
         </h2>
         <div class="flex items-center gap-3">
+          {/* Layout Mode Toggle */}
+          <div style={{ display: 'flex', gap: '4px', border: '1px solid rgba(255,255,255,0.1)', padding: '2px', borderRadius: '4px', background: 'rgba(255,255,255,0.02)' }}>
+            <button 
+              onClick={() => setLayoutMode('grid')}
+              style={{
+                padding: '3px 8px',
+                background: layoutMode === 'grid' ? 'var(--gold-primary)' : 'transparent',
+                color: layoutMode === 'grid' ? 'var(--navy-darkest)' : 'var(--text-secondary)',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontSize: '9px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transition: 'all 0.2s ease'
+              }}
+              title="Grid View"
+            >Grid</button>
+            <button 
+              onClick={() => setLayoutMode('list')}
+              style={{
+                padding: '3px 8px',
+                background: layoutMode === 'list' ? 'var(--gold-primary)' : 'transparent',
+                color: layoutMode === 'list' ? 'var(--navy-darkest)' : 'var(--text-secondary)',
+                border: 'none',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                fontSize: '9px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transition: 'all 0.2s ease'
+              }}
+              title="List View"
+            >List</button>
+          </div>
+
           <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded shadow-neon">
             <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
             <span>Sync: {timeLeft}s</span>
@@ -711,14 +894,81 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                       Select Interests
                     </button>
                   </div>
+                ) : layoutMode === 'list' ? (
+                  <div className="space-y-2 news-feed-container">
+                    {personalizedNews.map((article, idx) => {
+                      const currentGroup = getArticleDayGroup(article.publishedAt);
+                      const prevGroup = idx > 0 ? getArticleDayGroup(personalizedNews[idx - 1].publishedAt) : null;
+                      const showDivider = currentGroup !== prevGroup;
+                      return (
+                        <React.Fragment key={`${article.url}-${idx}`}>
+                          {showDivider && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              margin: '24px 0 16px',
+                              color: 'rgba(255,255,255,0.3)',
+                              fontSize: '11px',
+                              fontFamily: 'IBM Plex Mono, monospace',
+                              textTransform: 'uppercase',
+                              letterSpacing: '1px'
+                            }}>
+                              <span>{currentGroup}</span>
+                              <div style={{
+                                flex: 1,
+                                height: '1px',
+                                background: 'rgba(255,255,255,0.1)'
+                              }}/>
+                            </div>
+                          )}
+                          <ArticleCard article={article} layout="list" />
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                 ) : (
-                  <div className="space-y-6">
-                    <ArticleCard article={personalizedNews[0]} isLead={true} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {personalizedNews.slice(1).map((article, idx) => (
-                        <ArticleCard key={`${article.url}-${idx}`} article={article} />
-                      ))}
-                    </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gap: '20px',
+                    padding: '20px 0'
+                  }} className="news-feed-container">
+                    {personalizedNews.map((article, idx) => {
+                      const currentGroup = getArticleDayGroup(article.publishedAt);
+                      const prevGroup = idx > 0 ? getArticleDayGroup(personalizedNews[idx - 1].publishedAt) : null;
+                      const showDivider = currentGroup !== prevGroup;
+                      return (
+                        <React.Fragment key={`${article.url}-${idx}`}>
+                          {showDivider && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              margin: '24px 0 16px',
+                              color: 'rgba(255,255,255,0.3)',
+                              fontSize: '11px',
+                              fontFamily: 'IBM Plex Mono, monospace',
+                              textTransform: 'uppercase',
+                              letterSpacing: '1px',
+                              gridColumn: '1 / -1'
+                            }}>
+                              <span>{currentGroup}</span>
+                              <div style={{
+                                flex: 1,
+                                height: '1px',
+                                background: 'rgba(255,255,255,0.1)'
+                              }}/>
+                            </div>
+                          )}
+                          <ArticleCard 
+                            article={article} 
+                            layout={idx === 0 ? 'featured' : 'grid'} 
+                            isLead={idx === 0} 
+                          />
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
                 )
               ) : (
@@ -807,29 +1057,85 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                     : 'No wire articles match the current filter parameters.'}
                 </p>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {visibleCount > 0 && feedArticles.length > 0 && (
-                  <ArticleCard article={feedArticles[0]} isLead={true} />
-                )}
-                
-                {visibleCount > 1 && feedArticles.length > 1 && (
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {feedArticles.slice(1, Math.min(5, visibleCount)).map((article, idx) => (
-                      <ArticleCard key={`${article.url}-${idx}`} article={article} />
-                    ))}
-                  </div>
-                )}
-                
-                {visibleCount > 5 && feedArticles.length > 5 && (
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    {feedArticles.slice(5, visibleCount).map((article, idx) => (
-                      <ArticleCard key={`${article.url}-${idx + 5}`} article={article} />
-                    ))}
-                  </div>
-                )}
+            ) : layoutMode === 'list' ? (
+              <div className="space-y-2 news-feed-container">
+                {feedArticles.slice(0, visibleCount).map((article, idx) => {
+                  const currentGroup = getArticleDayGroup(article.publishedAt);
+                  const prevGroup = idx > 0 ? getArticleDayGroup(feedArticles[idx - 1].publishedAt) : null;
+                  const showDivider = currentGroup !== prevGroup;
+                  
+                  return (
+                    <React.Fragment key={`${article.url}-${idx}`}>
+                      {showDivider && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          margin: '24px 0 16px',
+                          color: 'rgba(255,255,255,0.3)',
+                          fontSize: '11px',
+                          fontFamily: 'IBM Plex Mono, monospace',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px'
+                        }}>
+                          <span>{currentGroup}</span>
+                          <div style={{
+                            flex: 1,
+                            height: '1px',
+                            background: 'rgba(255,255,255,0.1)'
+                          }}/>
+                        </div>
+                      )}
+                      <ArticleCard article={article} layout="list" />
+                    </React.Fragment>
+                  );
+                })}
               </div>
-            )}
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '20px',
+                padding: '20px 0'
+              }} className="news-feed-container">
+                {feedArticles.slice(0, visibleCount).map((article, idx) => {
+                  const currentGroup = getArticleDayGroup(article.publishedAt);
+                  const prevGroup = idx > 0 ? getArticleDayGroup(feedArticles[idx - 1].publishedAt) : null;
+                  const showDivider = currentGroup !== prevGroup;
+                  
+                  return (
+                    <React.Fragment key={`${article.url}-${idx}`}>
+                      {showDivider && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          margin: '24px 0 16px',
+                          color: 'rgba(255,255,255,0.3)',
+                          fontSize: '11px',
+                          fontFamily: 'IBM Plex Mono, monospace',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px',
+                          gridColumn: '1 / -1'
+                        }}>
+                          <span>{currentGroup}</span>
+                          <div style={{
+                            flex: 1,
+                            height: '1px',
+                            background: 'rgba(255,255,255,0.1)'
+                          }}/>
+                        </div>
+                      )}
+                      <ArticleCard 
+                        article={article} 
+                        layout={idx === 0 ? 'featured' : 'grid'} 
+                        isLead={idx === 0} 
+                      />
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}}
 
             {/* Loader Element for Infinite Scroll or Load More button */}
             {hasMore && feedArticles.length > 0 && (

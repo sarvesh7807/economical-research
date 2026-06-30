@@ -566,5 +566,24 @@ html {
   border-radius: 6px !important;
 }
 
+html {
+  scroll-behavior: smooth;
+}
 
+.news-feed-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244,167,38,0.3) transparent;
+}
 
+.news-feed-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.news-feed-container::-webkit-scrollbar-thumb {
+  background: rgba(244,167,38,0.3);
+  border-radius: 10px;
+}
+
+.news-feed-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(244,167,38,0.5);
+}
