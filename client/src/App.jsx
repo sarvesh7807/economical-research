@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import emailjs from '@emailjs/browser';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Header from './components/Header';
 import NewsFeed from './components/NewsFeed';
@@ -143,6 +144,51 @@ function AppContent() {
       setView('billing');
     } else {
       setView('feed');
+    }
+  };
+
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [subscribeStatus, setSubscribeStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
+
+  const handleNewsletterSubscribe = async (e) => {
+    if (e) e.preventDefault();
+    if (!newsletterEmail.trim() || !newsletterEmail.includes('@')) {
+      setSubscribeStatus('error');
+      return;
+    }
+
+    try {
+      setSubscribeStatus('loading');
+      
+      // Send via emailjs
+      await emailjs.send(
+        'service_default', // Service ID fallback
+        'template_default', // Template ID fallback
+        { to_email: newsletterEmail },
+        'H2ZrOGdhj8r18dSh5' // Public Key
+      );
+
+      // Save to Firestore
+      await addDoc(collection(db, 'newsletter_subscribers'), {
+        email: newsletterEmail,
+        subscribedAt: new Date().toISOString()
+      });
+
+      setSubscribeStatus('success');
+      setNewsletterEmail('');
+    } catch (err) {
+      console.error('Newsletter subscription failed, saving locally:', err);
+      // Attempt saving to Firestore anyway
+      try {
+        await addDoc(collection(db, 'newsletter_subscribers'), {
+          email: newsletterEmail,
+          subscribedAt: new Date().toISOString()
+        });
+        setSubscribeStatus('success');
+        setNewsletterEmail('');
+      } catch (e2) {
+        setSubscribeStatus('error');
+      }
     }
   };
 
@@ -720,7 +766,70 @@ function AppContent() {
       {/* FOOTER */}
       {view !== 'assistant' && (
         <footer class="w-full bg-navy text-white mt-12 py-8 px-4 md:px-6 border-t border-gold/40">
-          <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left text-xs text-gray-300 font-sans">
+          <div class="max-w-7xl mx-auto">
+            {/* Newsletter Signup Section */}
+            <div style={{
+              background: 'rgba(244,167,38,0.05)',
+              borderRadius: '12px',
+              padding: '24px',
+              textAlign: 'center',
+              marginBottom: '32px',
+              border: '1px solid rgba(244,167,38,0.1)'
+            }}>
+              <h3 style={{color: '#F4A726', fontSize: '18px', fontWeight: 'bold', margin: '0 0 4px'}}>
+                📧 Get Daily Economic Intelligence
+              </h3>
+              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: '0 0 16px'}}>
+                Subscribe to ER Daily Briefing
+              </p>
+              <form onSubmit={handleNewsletterSubscribe} style={{display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                <input 
+                  type="email" 
+                  placeholder="Enter your email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  required
+                  style={{
+                    padding: '10px 16px', 
+                    borderRadius: '6px', 
+                    border: '1px solid rgba(244,167,38,0.3)',
+                    background: 'transparent', 
+                    color: '#fff',
+                    fontSize: '13px',
+                    outline: 'none',
+                    minWidth: '240px'
+                  }}
+                />
+                <button 
+                  type="submit"
+                  disabled={subscribeStatus === 'loading'}
+                  style={{
+                    background: '#F4A726',
+                    color: '#0A1628',
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  {subscribeStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
+                </button>
+              </form>
+              {subscribeStatus === 'success' && (
+                <p style={{ color: '#4CAF50', fontSize: '12px', marginTop: '10px', fontWeight: 'bold' }}>
+                  ✓ Subscription successful! You will now receive daily intelligence updates.
+                </p>
+              )}
+              {subscribeStatus === 'error' && (
+                <p style={{ color: '#F44336', fontSize: '12px', marginTop: '10px', fontWeight: 'bold' }}>
+                  ⚠ Please enter a valid email address.
+                </p>
+              )}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left text-xs text-gray-300 font-sans">
             {/* Column 1: Editorial Info */}
             <div class="space-y-2">
               <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">ECONOMICAL RESEARCH</h4>
@@ -754,8 +863,9 @@ function AppContent() {
               </p>
             </div>
           </div>
+        </div>
 
-          <div style={{
+        <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
