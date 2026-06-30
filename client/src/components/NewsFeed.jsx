@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Chart from 'chart.js/auto';
 import ArticleCard from './ArticleCard';
 import ResearchMode from './ResearchMode';
 import { useAuth } from '../contexts/AuthContext';
@@ -892,6 +893,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             <div class="col-span-1 space-y-6">
               {renderResearchDesk()}
               {isHomepage && <OutcomeTrackerWidget />}
+              {isHomepage && <EconomicTrendsWidget />}
               {renderSidePanel()}
               <div class="sticky top-6 space-y-6">
                 <TrendingWidget />
@@ -1178,6 +1180,101 @@ function TrendingWidget() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function EconomicTrendsWidget() {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+
+    const themeIsDark = document.documentElement.classList.contains('dark');
+    const gridColor = themeIsDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = themeIsDark ? '#9CA3AF' : '#4B5563';
+
+    chartRef.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['2020', '2021', '2022', '2023', '2024', '2025', '2026 (Est)'],
+        datasets: [
+          {
+            label: 'US GDP Growth (%)',
+            data: [-3.4, 5.7, 2.1, 2.5, 2.7, 2.0, 1.8],
+            borderColor: '#F4A726', // Gold
+            backgroundColor: 'rgba(244, 167, 38, 0.1)',
+            borderWidth: 2,
+            tension: 0.35,
+            fill: true
+          },
+          {
+            label: 'India GDP Growth (%)',
+            data: [-6.6, 8.7, 7.2, 7.0, 7.8, 7.2, 6.8],
+            borderColor: '#4CAF50', // Green
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            borderWidth: 2,
+            tension: 0.35,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: textColor,
+              font: { family: 'Inter, sans-serif', size: 9, weight: 'bold' }
+            }
+          },
+          tooltip: {
+            backgroundColor: themeIsDark ? '#0A1628' : '#FFFFFF',
+            titleColor: themeIsDark ? '#FFFFFF' : '#0A1628',
+            bodyColor: '#F4A726',
+            borderColor: 'rgba(244, 167, 38, 0.3)',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 9 } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { size: 9 } }
+          }
+        }
+      }
+    });
+
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, []);
+
+  return (
+    <div class="glass-card p-5 rounded-3xl text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+      <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
+        <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
+          📈 Economic Trend Outlook
+        </h3>
+        <span class="text-[9px] font-mono font-bold text-gray-405 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-full font-bold">ANNUAL</span>
+      </div>
+      <div style={{ height: '180px', position: 'relative' }}>
+        <canvas ref={canvasRef} />
+      </div>
     </div>
   );
 }

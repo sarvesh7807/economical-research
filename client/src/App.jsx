@@ -365,6 +365,109 @@ function AppContent() {
   return (
     <div class="min-h-screen flex flex-col bg-paper dark:bg-paper-dark text-navy dark:text-gray-100 transition-colors duration-200 relative max-w-full overflow-x-hidden">
       
+      {/* Sticky market ticker bar above header */}
+      <div style={{
+        background: '#0A1628',
+        borderBottom: '1px solid rgba(244,167,38,0.3)',
+        padding: '8px 16px',
+        display: 'flex',
+        gap: '24px',
+        overflowX: 'auto',
+        fontSize: '12px',
+        color: '#fff',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50
+      }}>
+        <span>📈 Sensex: <strong style={{color:'#4CAF50'}}>82,456 +0.4%</strong></span>
+        <span>💱 USD/INR: <strong>83.42</strong></span>
+        <span>🥇 Gold: <strong>$2,345</strong></span>
+        <span>🛢️ Crude: <strong>$78.23</strong></span>
+      </div>
+
+      {/* Hero Section & Stats Bar (Homepage only) */}
+      {view === 'feed' && activeCategory === 'world' && !searchQuery && (
+        <>
+          {/* Hero Section */}
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'linear-gradient(135deg, #0A1628, #1A3A5C)'
+          }}>
+            <h1 style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: '42px',
+              color: '#fff',
+              marginBottom: '16px'
+            }}>
+              Global Economic Intelligence
+            </h1>
+            <p style={{
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: '18px',
+              maxWidth: '600px',
+              margin: '0 auto 32px'
+            }}>
+              Trusted insights for investors, businesses and policy makers worldwide
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setView('billing')}
+                style={{
+                  background: '#F4A726',
+                  color: '#0A1628',
+                  padding: '14px 28px',
+                  borderRadius: '6px',
+                  fontWeight: '700',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Start Free
+              </button>
+              <button 
+                onClick={() => setView('billing')}
+                style={{
+                  background: 'transparent',
+                  color: '#F4A726',
+                  padding: '14px 28px',
+                  borderRadius: '6px',
+                  fontWeight: '700',
+                  border: '1px solid #F4A726',
+                  cursor: 'pointer'
+                }}
+              >
+                See PRO Plans
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '40px',
+            padding: '20px',
+            borderTop: '1px solid rgba(244,167,38,0.2)',
+            borderBottom: '1px solid rgba(244,167,38,0.2)',
+            background: '#0A1628'
+          }}>
+            <div style={{textAlign: 'center'}}>
+              <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>50+</p>
+              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Countries Covered</p>
+            </div>
+            <div style={{textAlign: 'center'}}>
+              <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>AI</p>
+              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Powered Research</p>
+            </div>
+            <div style={{textAlign: 'center'}}>
+              <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>Daily</p>
+              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Intelligence Reports</p>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Masthead Header */}
       <ErrorBoundary>
         <Header 

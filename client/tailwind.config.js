@@ -25,13 +25,13 @@ export default {
         },
         navy: {
           light: '#172a45',
-          DEFAULT: '#0a192f',
+          DEFAULT: '#0A1628',
           dark: '#020c1b',
           accent: '#1e3a8a',
         },
         gold: {
           light: '#f5d061',
-          DEFAULT: '#d4af37',
+          DEFAULT: '#F4A726',
           dark: '#b08d1a',
         },
         paper: {
@@ -44,10 +44,10 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'system-ui', 'sans-serif'],
-        display: ['Syne', 'sans-serif'],
+        sans: ['Inter', 'Outfit', 'system-ui', 'sans-serif'],
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
         mono: ['"Space Grotesk"', 'monospace'],
-        serif: ['"Space Grotesk"', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       boxShadow: {
         '3d-light': '10px 10px 20px #d1d1d1, -10px -10px 20px #ffffff',
