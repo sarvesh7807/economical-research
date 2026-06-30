@@ -12,6 +12,7 @@ import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
 import SocialLinks from './components/SocialLinks';
 import InterestSelectorModal from './components/InterestSelectorModal';
+import CountryIntelligence from './components/CountryIntelligence';
 
 // Lazy load secondary modules to reduce initial JS execution time
 const Profile = React.lazy(() => import('./components/Profile'));
@@ -500,75 +501,98 @@ function AppContent() {
 
       {/* Hero Section Redesign (Homepage only) */}
       {view === 'feed' && activeCategory === 'world' && !searchQuery && (
-        <div style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          background: 'linear-gradient(135deg, #0A1628, #1A3A5C)'
-        }}>
-          <h1 style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: '42px',
-            color: '#fff',
-            marginBottom: '16px'
-          }}>
-            Global Economic Intelligence
-          </h1>
-          <p style={{
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: '18px',
-            maxWidth: '600px',
-            margin: '0 auto 32px'
-          }}>
-            Trusted insights for investors, businesses and policy makers worldwide
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button 
-              onClick={() => setView('billing')}
-              style={{
-                background: '#F4A726',
-                color: '#0A1628',
-                padding: '14px 28px',
-                borderRadius: '6px',
-                fontWeight: '700',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >Start Free</button>
-            <button 
-              onClick={() => navigate('/pricing')} 
-              style={{
-                background: 'transparent',
-                color: '#F4A726',
-                padding: '14px 28px',
-                borderRadius: '6px',
-                fontWeight: '700',
-                border: '1px solid #F4A726',
-                cursor: 'pointer'
-              }}
-            >See PRO Plans</button>
-          </div>
-          
+        <>
           <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '40px',
-            marginTop: '40px',
-            flexWrap: 'wrap'
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'linear-gradient(135deg, #0A1628, #1A3A5C)'
           }}>
-            <div style={{textAlign: 'center'}}>
-              <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>50+</p>
-              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Countries Covered</p>
+            <h1 style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: '42px',
+              color: '#fff',
+              marginBottom: '16px'
+            }}>
+              Global Economic Intelligence
+            </h1>
+            <p style={{
+              color: 'rgba(255,255,255,0.7)',
+              fontSize: '18px',
+              maxWidth: '600px',
+              margin: '0 auto 32px'
+            }}>
+              Trusted insights for investors, businesses and policy makers worldwide
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => setView('billing')}
+                style={{
+                  background: '#F4A726',
+                  color: '#0A1628',
+                  padding: '14px 28px',
+                  borderRadius: '6px',
+                  fontWeight: '700',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >Start Free</button>
+              <button 
+                onClick={() => navigate('/pricing')} 
+                style={{
+                  background: 'transparent',
+                  color: '#F4A726',
+                  padding: '14px 28px',
+                  borderRadius: '6px',
+                  fontWeight: '700',
+                  border: '1px solid #F4A726',
+                  cursor: 'pointer'
+                }}
+              >See PRO Plans</button>
             </div>
-            <div style={{textAlign: 'center'}}>
-              <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>AI</p>
-              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Powered Research</p>
-            </div>
-            <div style={{textAlign: 'center'}}>
-              <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>Daily</p>
-              <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Intelligence Reports</p>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '40px',
+              marginTop: '40px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{textAlign: 'center'}}>
+                <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>50+</p>
+                <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Countries Covered</p>
+              </div>
+              <div style={{textAlign: 'center'}}>
+                <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>AI</p>
+                <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Powered Research</p>
+              </div>
+              <div style={{textAlign: 'center'}}>
+                <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>Daily</p>
+                <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Intelligence Reports</p>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Emerging Markets Intelligence Section */}
+          <div style={{ background: '#0A1628', borderTop: '1px solid rgba(244,167,38,0.1)' }}>
+            <div className="max-w-7xl mx-auto px-4 md:px-6">
+              <section style={{padding: '40px 20px'}}>
+                <h2 style={{color: '#fff', marginBottom: '8px', fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: 'bold'}} className="flex items-center gap-2">
+                  🌍 Emerging Markets Intelligence
+                </h2>
+                <p style={{color: 'rgba(255,255,255,0.6)', marginBottom: '24px', fontSize: '14px'}}>
+                  Economic data across global markets
+                </p>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px'
+                }}>
+                  <CountryIntelligence setView={setView} setSearchQuery={handleSearchSubmit} />
+                </div>
+              </section>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Masthead Header */}
