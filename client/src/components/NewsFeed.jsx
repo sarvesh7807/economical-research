@@ -180,18 +180,20 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
           <span>{title}</span>
           <span class="w-1.5 h-1.5 rounded-full bg-gold animate-ping"></span>
         </h3>
-        <div class="flex overflow-x-auto gap-5 pb-4 scrollbar-none">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} class="w-[340px] shrink-0 border border-paper-border dark:border-paper-borderDark p-5 space-y-4 rounded-md bg-white dark:bg-black/20">
-              <div class="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="h-5 w-5/6 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="h-36 w-full rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-              <div class="space-y-2">
-                <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
-                <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+          <div class="flex overflow-x-auto gap-5 pb-4 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} class="w-[340px] shrink-0 border border-paper-border dark:border-paper-borderDark p-5 space-y-4 rounded-md bg-white dark:bg-black/20">
+                <div class="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+                <div class="h-5 w-5/6 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+                <div class="h-36 w-full rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+                <div class="space-y-2">
+                  <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+                  <div class="h-3 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -235,12 +237,13 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
           </p>
         </div>
       ) : (
-        <div class="relative">
+        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
           <div 
             ref={scrollRef}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             class="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth"
+            style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
           >
             {articles.map((article, idx) => (
               <div key={`${article.url}-${idx}`} class="w-[340px] shrink-0">
@@ -1071,8 +1074,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider mb-6">
                         Based on your reading history
                       </p>
-                      <div className="relative">
-                        <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth">
+                      <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+                        <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none scroll-smooth" style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}>
                           {personalizedNews.map((article, i) => (
                             <div key={i} className="w-[340px] shrink-0">
                               <ArticleCard article={article} />
@@ -1376,7 +1379,7 @@ function TrendingWidget() {
   }, []);
 
   return (
-    <section style={{ padding: '0 24px', width: '100%' }}>
+    <section style={{ padding: '0 24px', width: '100%', boxSizing: 'border-box', maxWidth: '100vw' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -1397,21 +1400,24 @@ function TrendingWidget() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} style={{ width: '280px', shrink: 0, padding: '16px', background: 'var(--navy-medium)', border: '1px solid var(--border-subtle)', borderRadius: '6px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div class="w-12 h-12 rounded-md bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
-              <div class="flex-grow space-y-2">
-                <div class="h-3 w-5/6 rounded bg-gray-205 dark:bg-gray-800 animate-shimmer"></div>
-                <div class="h-2 w-1/3 rounded bg-gray-250 dark:bg-gray-800 animate-shimmer"></div>
+        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} style={{ width: '280px', flexShrink: 0, padding: '16px', background: 'var(--navy-medium)', border: '1px solid var(--border-subtle)', borderRadius: '6px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div class="w-12 h-12 rounded-md bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
+                <div class="flex-grow space-y-2">
+                  <div class="h-3 w-5/6 rounded bg-gray-205 dark:bg-gray-800 animate-shimmer"></div>
+                  <div class="h-2 w-1/3 rounded bg-gray-250 dark:bg-gray-800 animate-shimmer"></div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : articles.length === 0 ? (
         <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No trending news available right now.</p>
       ) : (
-        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
+        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
           {articles.map((article, index) => {
             const timeAgo = article.publishedAt
               ? `${Math.max(1, Math.round((Date.now() - new Date(article.publishedAt).getTime()) / 3600000))}h ago`
@@ -1425,7 +1431,7 @@ function TrendingWidget() {
                 rel="noopener noreferrer"
                 style={{
                   width: '280px',
-                  shrink: 0,
+                  flexShrink: 0,
                   padding: '16px',
                   background: 'var(--navy-medium)',
                   border: '1px solid var(--border-subtle)',
@@ -1459,6 +1465,7 @@ function TrendingWidget() {
               </a>
             );
           })}
+          </div>
         </div>
       )}
     </section>
@@ -1546,7 +1553,7 @@ function EconomicTrendsWidget() {
   }, []);
 
   return (
-    <section style={{ padding: '0 24px', width: '100%' }}>
+    <section style={{ padding: '0 24px', width: '100%', boxSizing: 'border-box', maxWidth: '100vw' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -1569,7 +1576,8 @@ function EconomicTrendsWidget() {
         padding: '24px',
         width: '100%',
         height: '280px',
-        position: 'relative'
+        position: 'relative',
+        boxSizing: 'border-box'
       }}>
         <canvas ref={canvasRef} />
       </div>
@@ -1588,7 +1596,7 @@ function MarketSignalsWidget() {
   ];
 
   return (
-    <section style={{ padding: '0 24px', width: '100%' }}>
+    <section style={{ padding: '0 24px', width: '100%', boxSizing: 'border-box', maxWidth: '100vw' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -1608,33 +1616,35 @@ function MarketSignalsWidget() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
-        {signals.map((sig, i) => (
-          <div 
-            key={i} 
-            style={{ 
-              width: '280px', 
-              shrink: 0, 
-              padding: '16px', 
-              background: 'var(--navy-medium)', 
-              border: '1px solid var(--border-subtle)', 
-              borderRadius: '6px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              height: '80px'
-            }}
-            className="hover:border-gold/30 transition-all duration-300"
-          >
-            <span style={{ fontSize: '9px', fontWeight: '750', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sig.name}</span>
-            <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'baseline', marginTop: '8px' }}>
-              <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', fontFamily: 'IBM Plex Mono, monospace' }}>{sig.value}</span>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'IBM Plex Mono, monospace', color: sig.isPositive ? 'var(--success)' : 'var(--danger)' }}>
-                {sig.change}
-              </span>
+      <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+          {signals.map((sig, i) => (
+            <div 
+              key={i} 
+              style={{ 
+                width: '280px', 
+                flexShrink: 0, 
+                padding: '16px', 
+                background: 'var(--navy-medium)', 
+                border: '1px solid var(--border-subtle)', 
+                borderRadius: '6px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                height: '80px'
+              }}
+              className="hover:border-gold/30 transition-all duration-300"
+            >
+              <span style={{ fontSize: '9px', fontWeight: '750', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{sig.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '8px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', fontFamily: 'IBM Plex Mono, monospace' }}>{sig.value}</span>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'IBM Plex Mono, monospace', color: sig.isPositive ? 'var(--success)' : 'var(--danger)' }}>
+                  {sig.change}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1669,7 +1679,7 @@ function OutcomeTrackerWidget() {
   };
 
   return (
-    <section style={{ padding: '0 24px', width: '100%' }}>
+    <section style={{ padding: '0 24px', width: '100%', boxSizing: 'border-box', maxWidth: '100vw' }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -1708,45 +1718,49 @@ function OutcomeTrackerWidget() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{ width: '280px', shrink: 0, height: '90px', background: 'var(--navy-medium)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="animate-pulse"/>
-          ))}
+        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ width: '280px', flexShrink: 0, height: '90px', background: 'var(--navy-medium)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="animate-pulse"/>
+            ))}
+          </div>
         </div>
       ) : stories.length === 0 ? (
         <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No announcements currently tracked.</p>
       ) : (
-        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }} className="news-feed-container">
-          {stories.map(story => (
-            <div
-              key={story.id}
-              onClick={() => window.dispatchEvent(new CustomEvent('change-view-detail', { detail: story.id }))}
-              style={{
-                width: '280px',
-                shrink: 0,
-                padding: '16px',
-                background: 'var(--navy-medium)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'transform 0.2s'
-              }}
-              className="hover:scale-[1.02] hover:border-gold group"
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--gold-primary)', textTransform: 'uppercase' }}>{story.category}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${getStatusColor(story.currentStage)}`}>
-                  {story.currentStage}
-                </span>
+        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+            {stories.map(story => (
+              <div
+                key={story.id}
+                onClick={() => window.dispatchEvent(new CustomEvent('change-view-detail', { detail: story.id }))}
+                style={{
+                  width: '280px',
+                  flexShrink: 0,
+                  padding: '16px',
+                  background: 'var(--navy-medium)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  transition: 'transform 0.2s'
+                }}
+                className="hover:scale-[1.02] hover:border-gold group"
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '9px', fontWeight: '700', color: 'var(--gold-primary)', textTransform: 'uppercase' }}>{story.category}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${getStatusColor(story.currentStage)}`}>
+                    {story.currentStage}
+                  </span>
+                </div>
+                <h4 style={{ color: '#fff', fontSize: '13px', margin: 0, fontWeight: '700', lineHeight: '1.4' }} className="group-hover:text-gold transition-colors line-clamp-2">
+                  {story.title}
+                </h4>
               </div>
-              <h4 style={{ color: '#fff', fontSize: '13px', margin: 0, fontWeight: '700', lineHeight: '1.4' }} className="group-hover:text-gold transition-colors line-clamp-2">
-                {story.title}
-              </h4>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </section>

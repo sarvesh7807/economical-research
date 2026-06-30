@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================
+   GLOBAL BOX-SIZING RESET
+   ========================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* =========================================
+   GLOBAL OVERFLOW-X CONTROL (mobile safety)
+   ========================================= */
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100%;
+}
+
+#root {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100%;
+}
+
 :root {
   --navy-darkest: #060D17;
   --navy-dark: #0A1628;
@@ -568,6 +590,32 @@ html {
 
 html {
   scroll-behavior: smooth;
+}
+
+/* =========================================
+   MOBILE SECTION PADDING FIX
+   Prevents sections from exceeding viewport width
+   ========================================= */
+@media (max-width: 768px) {
+  section, .section-wrapper {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* =========================================
+   MARKET TICKER OVERFLOW FIX
+   ========================================= */
+.market-ticker {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
 }
 
 .news-feed-container {
