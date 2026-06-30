@@ -80,7 +80,7 @@ export default function ResearchMode({ topic, onClose }) {
         <body>
           <div style="text-align: center; border-bottom: 3px double #0A1628; padding-bottom: 10px; margin-bottom: 30px;">
             <h1 style="margin: 0; font-size: 28px; letter-spacing: 2px;">ECONOMICAL RESEARCH</h1>
-            <p style="margin: 5px 0 0 0; font-size: 10px; font-style: italic; letter-spacing: 3px; text-transform: uppercase;">Your World. Your News. Researched.</p>
+            <p style="margin: 5px 0 0 0; font-size: 10px; font-style: italic; letter-spacing: 3px; text-transform: uppercase;">Global Economic Intelligence. Powered by Research.</p>
           </div>
           <div>
             ${report.replace(/\n/g, '<br/>').replace(/# (.*)/g, '<h1>$1</h1>').replace(/## (.*)/g, '<h2>$1</h2>').replace(/### (.*)/g, '<h3>$1</h3>')}

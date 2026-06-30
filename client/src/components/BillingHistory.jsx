@@ -61,7 +61,7 @@ export default function BillingHistory({ setView }) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text("Your World. Your News. Researched.", 20, 31);
+    doc.text("Global Economic Intelligence. Powered by Research.", 20, 31);
     doc.text("er-news-sarvesh.vercel.app", 20, 36);
 
     doc.setFont('helvetica', 'bold');

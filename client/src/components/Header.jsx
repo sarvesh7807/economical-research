@@ -381,20 +381,16 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
 
   const categories = [
     { id: 'foryou', name: 'For You ⭐' },
-    { id: 'world', name: 'World' },
+    { id: 'world', name: 'Global Affairs' },
     { id: 'india', name: 'India' },
-    { id: 'politics', name: 'Politics' },
-    { id: 'tech', name: 'Tech & AI' },
-    { id: 'business', name: 'Business' },
-    { id: 'finance', name: 'Finance' },
-    { id: 'sports', name: 'Sports' },
-    { id: 'entertainment', name: 'Entertainment' },
-    { id: 'science', name: 'Science' },
-    { id: 'environment', name: 'Environment' },
+    { id: 'politics', name: 'Policy & Regulation' },
+    { id: 'tech', name: 'Tech & Innovation' },
+    { id: 'business', name: 'Markets & Business' },
+    { id: 'finance', name: 'Economics & Finance' },
+    { id: 'science', name: 'Research & Science' },
+    { id: 'environment', name: 'Climate & Energy' },
     { id: 'health', name: 'Health' },
     { id: 'education', name: 'Education' },
-    { id: 'travel', name: 'Travel' },
-    { id: 'lifestyle', name: 'Lifestyle' },
     { id: 'law', name: 'Law & Crime' },
     { id: 'research', name: 'Research' }
   ];
@@ -773,7 +769,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           ECONOMICAL RESEARCH
         </h1>
         <p class="mt-2 text-xs sm:text-sm font-serif italic text-navy/70 dark:text-white/80 tracking-widest uppercase font-semibold">
-          &ldquo;Your World. Your News. Researched.&rdquo;
+          &ldquo;Global Economic Intelligence. Powered by Research.&rdquo;
         </p>
       </div>
 
@@ -793,19 +789,6 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           >
             <Newspaper size={13} class="text-gold" />
             <span>E-Paper</span>
-          </button>
-
-          {/* Live TV navbar action */}
-          <button
-            onClick={() => setView('livetv')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'livetv'
-                ? 'border-navy dark:border-gold text-red-655'
-                : 'border-transparent text-red-655 hover:text-red-750'
-            }`}
-          >
-            <Tv size={13} class="animate-pulse" />
-            <span>Live satellite TV</span>
           </button>
 
           {/* ER Assistant navbar action */}
@@ -994,20 +977,16 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           <div style={{ paddingBottom: '40px' }}>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('foryou'); setView('feed'); setIsMenuOpen(false); }}>For You ⭐</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Home</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>World News</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Global Affairs</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('india'); setView('feed'); setIsMenuOpen(false); }}>India News</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('politics'); setView('feed'); setIsMenuOpen(false); }}>Politics</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('tech'); setView('feed'); setIsMenuOpen(false); }}>Technology</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('business'); setView('feed'); setIsMenuOpen(false); }}>Business</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('finance'); setView('feed'); setIsMenuOpen(false); }}>Finance</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('sports'); setView('feed'); setIsMenuOpen(false); }}>Sports</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('entertainment'); setView('feed'); setIsMenuOpen(false); }}>Entertainment</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('science'); setView('feed'); setIsMenuOpen(false); }}>Science</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('environment'); setView('feed'); setIsMenuOpen(false); }}>Environment</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('politics'); setView('feed'); setIsMenuOpen(false); }}>Policy & Regulation</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('tech'); setView('feed'); setIsMenuOpen(false); }}>Tech & Innovation</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('business'); setView('feed'); setIsMenuOpen(false); }}>Markets & Business</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('finance'); setView('feed'); setIsMenuOpen(false); }}>Economics & Finance</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('science'); setView('feed'); setIsMenuOpen(false); }}>Research & Science</button>
+            <button class="mobile-menu-item" onClick={() => { onCategoryChange('environment'); setView('feed'); setIsMenuOpen(false); }}>Climate & Energy</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('health'); setView('feed'); setIsMenuOpen(false); }}>Health</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('education'); setView('feed'); setIsMenuOpen(false); }}>Education</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('travel'); setView('feed'); setIsMenuOpen(false); }}>Travel</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('lifestyle'); setView('feed'); setIsMenuOpen(false); }}>Lifestyle</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('law'); setView('feed'); setIsMenuOpen(false); }}>Law & Crime</button>
             <button class="mobile-menu-item" onClick={() => { onCategoryChange('research'); setView('feed'); setIsMenuOpen(false); }}>Research</button>
             
@@ -1016,7 +995,6 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <button class="mobile-menu-item" onClick={() => { setView('world-map'); setIsMenuOpen(false); }}>World News Map</button>
             <button class="mobile-menu-item" onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}>Outcome Tracker</button>
             <button class="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
-            <button class="mobile-menu-item" onClick={() => { setView('livetv'); setIsMenuOpen(false); }}>Live TV</button>
             <button class="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Deep Research Desk</button>
             <button class="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
             

@@ -19,7 +19,6 @@ const Settings = React.lazy(() => import('./components/Settings'));
 const Billing = React.lazy(() => import('./components/Billing'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 const EPaper = React.lazy(() => import('./components/EPaper'));
-const LiveTV = React.lazy(() => import('./components/LiveTV'));
 const LegalPages = React.lazy(() => import('./components/LegalPages'));
 const ErAssistantFull = React.lazy(() => import('./components/ErAssistantFull'));
 const FakeNewsChecker = React.lazy(() => import('./components/FakeNewsChecker'));
@@ -408,7 +407,7 @@ function AppContent() {
               maxWidth: '600px',
               margin: '0 auto 32px'
             }}>
-              Trusted insights for investors, businesses and policy makers worldwide
+              Economical Research provides deep economic intelligence, market analysis and research insights for investors, businesses and policy makers worldwide.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button 
@@ -566,12 +565,6 @@ function AppContent() {
             <EPaper 
               setView={setView}
             />
-          ) : view === 'livetv' ? (
-            <ErrorBoundary>
-              <LiveTV 
-                setView={setView}
-              />
-            </ErrorBoundary>
           ) : ['about', 'contact', 'terms', 'privacy'].includes(view) ? (
             <LegalPages 
               setView={setView}
@@ -603,7 +596,7 @@ function AppContent() {
             {/* Column 1: Editorial Info */}
             <div class="space-y-2">
               <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">ECONOMICAL RESEARCH</h4>
-              <p class="italic text-gray-400">&ldquo;Your World. Your News. Researched.&rdquo;</p>
+              <p class="italic text-gray-400">&ldquo;Global Economic Intelligence. Powered by Research.&rdquo;</p>
               <p class="leading-relaxed">
                 A premium intelligence wire providing structural economic, political, and technical news briefings synthesized with analytical clarity.
               </p>
@@ -613,12 +606,12 @@ function AppContent() {
             <div class="space-y-2">
               <h4 class="font-serif font-black text-gold text-sm uppercase tracking-wide">WIRE DESKS</h4>
               <div class="grid grid-cols-2 gap-1 font-semibold text-left">
-                <button onClick={() => handleCategoryChange('world')} class="hover:text-gold text-left uppercase">World Bulletin</button>
+                <button onClick={() => handleCategoryChange('world')} class="hover:text-gold text-left uppercase">Global Affairs</button>
                 <button onClick={() => handleCategoryChange('india')} class="hover:text-gold text-left uppercase">India Reports</button>
-                <button onClick={() => handleCategoryChange('politics')} class="hover:text-gold text-left uppercase">Political Desk</button>
-                <button onClick={() => handleCategoryChange('tech')} class="hover:text-gold text-left uppercase">Technology</button>
-                <button onClick={() => handleCategoryChange('business')} class="hover:text-gold text-left uppercase">Business</button>
-                <button onClick={() => handleCategoryChange('finance')} class="hover:text-gold text-left uppercase">Monetary Desk</button>
+                <button onClick={() => handleCategoryChange('politics')} class="hover:text-gold text-left uppercase">Policy & Regulation</button>
+                <button onClick={() => handleCategoryChange('tech')} class="hover:text-gold text-left uppercase">Tech & Innovation</button>
+                <button onClick={() => handleCategoryChange('business')} class="hover:text-gold text-left uppercase">Markets & Business</button>
+                <button onClick={() => handleCategoryChange('finance')} class="hover:text-gold text-left uppercase">Economics & Finance</button>
               </div>
             </div>
 

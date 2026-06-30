@@ -374,69 +374,6 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   const [timeLeft, setTimeLeft] = useState(120);
   const [visibleCount, setVisibleCount] = useState(10); // Progressive rendering count
 
-  const INITIAL_CHANNELS = [
-    { name: 'Al Jazeera', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', id: 'UCNye-wNBqNL5ZzHSJj3l8Bg' },
-    { name: 'BBC News', channelId: 'UC16niRr50-MSBwiO3YDb3RA', id: 'UC16niRr50-MSBwiO3YDb3RA' },
-    { name: 'Sky News', channelId: 'UCoMdktPbSTixAyNGwb-UYkQ', id: 'UCoMdktPbSTixAyNGwb-UYkQ' },
-    { name: 'DW News', channelId: 'UCknLrEdhRCp1aegoMqRaCZg', id: 'UCknLrEdhRCp1aegoMqRaCZg' },
-    { name: 'NDTV 24x7', channelId: 'UCZFMm1mMw0F81Z37aaEzTUA', id: 'UCZFMm1mMw0F81Z37aaEzTUA' },
-    { name: 'Republic World', channelId: 'UCwqusr8YDwM-3mEYTDeJHzw', id: 'UCwqusr8YDwM-3mEYTDeJHzw' }
-  ];
-
-  const [liveChannels, setLiveChannels] = useState(INITIAL_CHANNELS);
-  const [activeStream, setActiveStream] = useState(INITIAL_CHANNELS[0].id);
-  const [isPlayingLive, setIsPlayingLive] = useState(false);
-
-  // Fetch Live YouTube Video IDs
-  useEffect(() => {
-    const fetchLiveStreams = async () => {
-      try {
-        const cached = localStorage.getItem('er_youtube_live_streams_v2');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.channels) && parsed.channels.length > 0 && parsed.timestamp) {
-              if (Date.now() - parsed.timestamp < 3600 * 1000 * 6) { // 6 hours TTL
-                setLiveChannels(parsed.channels);
-                if (parsed.channels[0] && parsed.channels[0].id) {
-                  setActiveStream(parsed.channels[0].id);
-                }
-                return;
-              }
-            }
-          } catch (e) {
-            console.error('Error parsing cached live streams:', e);
-          }
-        }
-
-        const updatedChannels = await Promise.all(INITIAL_CHANNELS.map(async (ch) => {
-          try {
-            const url = `/api/youtube-live?channelId=${ch.channelId}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (data.videoId) {
-              return { ...ch, id: data.videoId };
-            }
-          } catch (err) {
-            console.error('Failed to fetch live stream for', ch.name, err);
-          }
-          return ch; // fallback
-        }));
-
-        setLiveChannels(updatedChannels);
-        setActiveStream(updatedChannels[0].id);
-        
-        localStorage.setItem('er_youtube_live_streams_v2', JSON.stringify({
-          timestamp: Date.now(),
-          channels: updatedChannels
-        }));
-      } catch (e) {
-        console.error('YouTube API Error:', e);
-      }
-    };
-    fetchLiveStreams();
-  }, []);
-
   // Research Desk states
   const [researchInput, setResearchInput] = useState('');
   const [activeResearchTopic, setActiveResearchTopic] = useState(null);
@@ -538,104 +475,20 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     }
     const catTitles = {
       foryou: 'RECOMMENDED FOR YOU',
-      world: 'WORLD BULLETIN',
+      world: 'GLOBAL AFFAIRS',
       india: 'INDIA CORRESPONDENCE',
-      politics: 'POLITICAL DESK',
-      tech: 'TECHNOLOGY & LOGIC',
-      business: 'BUSINESS TELEGRAM',
-      finance: 'MONETARY AND FISCAL RECORD',
-      sports: 'ATHLETIC CHRONICLE',
-      entertainment: 'CULTURE & EXHIBITIONS',
-      science: 'SCIENTIFIC INQUIRY',
-      environment: 'ENVIRONMENTAL DESK',
+      politics: 'POLICY & REGULATION',
+      tech: 'TECH & INNOVATION',
+      business: 'MARKETS & BUSINESS',
+      finance: 'ECONOMICS & FINANCE',
+      science: 'RESEARCH & SCIENCE',
+      environment: 'CLIMATE & ENERGY',
       health: 'HEALTH & HYGIENE',
       education: 'EDUCATIONAL LEDGER',
-      travel: 'DISCOVERY AND EXCURSIONS',
-      lifestyle: 'LIFESTYLE & SOCIETY',
       law: 'LAW & CRIMINOLOGY DESK',
       research: 'ACADEMIC WIRE REPORTS'
     };
     return catTitles[activeCategory.toLowerCase()] || 'DAILY BULLETIN';
-  };
-
-  const renderLiveTV = () => {
-    return (
-      <div class="hidden lg:block glass-card p-5 rounded-3xl mb-8 border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
-        <div class="flex flex-col md:flex-row gap-6 items-stretch">
-          {/* Player Container */}
-          <div class="w-full md:w-[280px] shrink-0 aspect-video rounded-2xl overflow-hidden bg-black border border-gray-200 dark:border-white/10 relative shadow-lg">
-            {!isPlayingLive && (
-              <div 
-                class="absolute inset-0 flex items-center justify-center bg-black/40 z-10 cursor-pointer"
-                onClick={() => setIsPlayingLive(true)}
-              >
-                <div class="bg-red-655 hover:bg-red-700 rounded-full p-3 hover:scale-105 transition-all shadow-lg flex items-center justify-center">
-                  <Play size={24} class="text-white ml-0.5" />
-                </div>
-              </div>
-            )}
-            <iframe 
-              src={activeStream && activeStream.startsWith('UC')
-                ? `https://www.youtube.com/embed/live_stream?channel=${activeStream}&autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
-                : `https://www.youtube.com/embed/${activeStream}?autoplay=${isPlayingLive ? 1 : 0}&mute=1&playsinline=1&rel=0`
-              }
-              title="Live Broadcast"
-              class="absolute top-0 left-0 w-full h-full border-0"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              muted={true}
-              loading="lazy"
-            ></iframe>
-          </div>
-
-          {/* Info & Selectors */}
-          <div class="flex-grow flex flex-col justify-between py-1 text-left">
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
-                <h4 class="font-display text-[10px] font-black uppercase text-red-500 tracking-wider">
-                  Live Satellite Broadcast Desk
-                </h4>
-                <span class="text-[8px] font-mono font-bold text-gray-400 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase">
-                  Sat Feed
-                </span>
-              </div>
-              
-              <h3 class="font-display text-base font-black text-navy dark:text-gold uppercase tracking-tight mb-1">
-                Now Monitoring: {(Array.isArray(liveChannels) ? liveChannels : []).find(c => c && c.id === activeStream)?.name || 'Live Broadcast'}
-              </h3>
-              <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-serif line-clamp-2 max-w-2xl">
-                Direct satellite feed compiled for macro intelligence monitoring. Switch channels below to monitor real-time broadcasts.
-              </p>
-            </div>
-
-            <div class="grid grid-cols-6 gap-2 mt-4">
-              {Array.isArray(liveChannels) && liveChannels.map((stream) => {
-                if (!stream) return null;
-                const isSelected = activeStream === stream.id;
-                return (
-                  <button
-                    key={stream.channelId || stream.id}
-                    onClick={() => setActiveStream(stream.id)}
-                    class={`py-2 px-1.5 rounded-xl text-[9.5px] font-black uppercase tracking-wider text-center transition-all ${
-                      isSelected
-                        ? 'bg-primary text-white shadow-purple-glow scale-105 border border-primary-glow/30'
-                        : 'bg-gray-100 dark:bg-white/5 text-navy dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10'
-                    }`}
-                  >
-                    {stream.name ? stream.name.replace(' English', '').replace(' Live', '') : 'Channel'}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   const handleResearchSubmit = (e) => {
@@ -789,22 +642,13 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           {getFeedTitle()}
         </h2>
         <div class="flex items-center gap-3">
-          {isHomepage ? (
-            <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full">
-              <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-              <span>Live Broadcast Desk</span>
-            </span>
-          ) : (
-            <>
-              <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full shadow-neon">
-                <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
-                <span>Sync: {timeLeft}s</span>
-              </span>
-              <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
-                {feedArticles.length} Bulletins
-              </span>
-            </>
-          )}
+          <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full shadow-neon">
+            <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
+            <span>Sync: {timeLeft}s</span>
+          </span>
+          <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
+            {feedArticles.length} Bulletins
+          </span>
         </div>
       </div>
 
@@ -819,7 +663,6 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
       {/* Main Layout Area */}
       {isHomepage ? (
         <div>
-          {renderLiveTV()}
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left/Middle: News Sections (Home) */}
             <div class="col-span-1 lg:col-span-2 space-y-6">
@@ -878,14 +721,15 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                       fetchUrl={`/api/news?country=${detectedCountry}&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} 
                     />
                   )}
-                  <NewsSection title="World News" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Global Affairs" category="world" fetchUrl={`/api/news?category=world&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Markets & Business" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Economics & Finance" category="finance" fetchUrl={`/api/news?category=business&q=finance&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Policy & Regulation" category="politics" fetchUrl={`/api/news?q=politics&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Tech & Innovation" category="tech" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Research & Science" category="science" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
+                  <NewsSection title="Climate & Energy" category="environment" fetchUrl={`/api/news?q=environment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="India News" category="india" fetchUrl={`/api/news?category=india&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                  <NewsSection title="Business News" category="business" fetchUrl={`/api/news?category=business&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                  <NewsSection title="Technology News" category="tech" fetchUrl={`/api/news?category=tech&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                  <NewsSection title="Sports News" category="sports" fetchUrl={`/api/news?category=sports&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                   <NewsSection title="Health News" category="health" fetchUrl={`/api/news?category=health&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                  <NewsSection title="Science News" category="science" fetchUrl={`/api/news?category=science&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
-                  <NewsSection title="Entertainment News" category="entertainment" fetchUrl={`/api/news?category=entertainment&pageSize=8${localStorage.getItem('userLanguage') ? `&language=${localStorage.getItem('userLanguage')}` : ''}`} />
                 </div>
               )}
             </div>
