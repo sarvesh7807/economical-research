@@ -108,7 +108,7 @@ export default function OutcomeTracker({ setView }) {
             { label: 'Successfully Completed', val: completedCount, icon: <CheckCircle className="text-green-400" size={16} /> },
             { label: 'Failed / Shelved', val: failedCount, icon: <AlertCircle className="text-red-400" size={16} /> }
           ].map((stat, idx) => (
-            <div key={idx} className="p-4 rounded-2xl border border-white/10 backdrop-blur-sm shadow-sm" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div key={idx} className="p-4 rounded-md border border-white/10 backdrop-blur-sm shadow-sm" style={{ background: 'rgba(255,255,255,0.03)' }}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[9px] font-black text-white/40 uppercase tracking-widest block">{stat.label}</span>
                 {stat.icon}
@@ -119,7 +119,7 @@ export default function OutcomeTracker({ setView }) {
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="p-4 rounded-2xl border border-white/10 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-md border border-white/10 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between" style={{ background: 'rgba(255,255,255,0.02)' }}>
           
           {/* Keyword Search */}
           <div className="relative w-full md:w-80">
@@ -129,7 +129,7 @@ export default function OutcomeTracker({ setView }) {
               placeholder="Search announcements..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-yellow-400/40 focus:ring-1 focus:ring-yellow-400/20"
+              className="w-full pl-9 pr-4 py-2 rounded-md text-xs bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-yellow-400/40 focus:ring-1 focus:ring-yellow-400/20"
             />
           </div>
 
@@ -140,7 +140,7 @@ export default function OutcomeTracker({ setView }) {
               <select
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(e.target.value)}
-                className="bg-[#0A1628] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-400/40"
+                className="bg-[#0A1628] border border-white/10 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-400/40"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat} className="bg-[#0A1628]">{cat}</option>
@@ -154,7 +154,7 @@ export default function OutcomeTracker({ setView }) {
               <select
                 value={selectedStatus}
                 onChange={e => setSelectedStatus(e.target.value)}
-                className="bg-[#0A1628] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-400/40"
+                className="bg-[#0A1628] border border-white/10 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-400/40"
               >
                 <option value="All" className="bg-[#0A1628]">All Outcomes</option>
                 <option value="in_progress" className="bg-[#0A1628]">In Progress</option>
@@ -172,7 +172,7 @@ export default function OutcomeTracker({ setView }) {
             <span>RETRIEVING DISPATCH AUDITS...</span>
           </div>
         ) : filteredStories.length === 0 ? (
-          <div className="py-20 text-center border border-dashed border-white/10 rounded-3xl bg-white/5">
+          <div className="py-20 text-center border border-dashed border-white/10 rounded-md bg-white/5">
             <ClipboardList size={40} className="mx-auto text-white/20 mb-3" />
             <h3 className="font-serif text-lg font-black text-white/70 mb-1 uppercase tracking-wide">No tracked stories found</h3>
             <p className="text-xs text-white/45 max-w-sm mx-auto">No announcements match your current search and filter settings. Try altering your parameters.</p>
@@ -185,7 +185,7 @@ export default function OutcomeTracker({ setView }) {
                 <div
                   key={story.id}
                   onClick={() => setView('outcome-detail', story.id)}
-                  className="group rounded-2xl p-5 border border-white/5 transition-all duration-300 hover:scale-[1.01] hover:border-yellow-400/35 cursor-pointer flex flex-col justify-between"
+                  className="group rounded-md p-5 border border-white/5 transition-all duration-300 hover:scale-[1.01] hover:border-yellow-400/35 cursor-pointer flex flex-col justify-between"
                   style={{
                     background: 'linear-gradient(180deg, rgba(26,58,92,0.25) 0%, rgba(10,22,40,0.55) 100%)',
                     boxShadow: '0 4px 30px rgba(0, 0, 0, 0.25)'

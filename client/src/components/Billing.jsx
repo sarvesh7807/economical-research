@@ -473,7 +473,7 @@ export default function Billing({ setView }) {
       </div>
 
       {/* 3. CURRENT PLAN PANEL */}
-      <div class="glass-card p-6 md:p-8 rounded-3xl mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-3d-light dark:shadow-3d-dark border border-white/20">
+      <div class="glass-card p-6 md:p-8 rounded-md mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-3d-light dark:shadow-3d-dark border border-white/20">
         <div>
           <span class="text-xs uppercase font-bold text-gray-500 block font-mono mb-2">Current Active Desk Profile</span>
           <div class="flex items-center gap-3 mt-1">
@@ -504,7 +504,7 @@ export default function Billing({ setView }) {
           <button
             onClick={handleCancel}
             disabled={loading}
-            class="px-6 py-3 bg-red-50 hover:bg-red-500 dark:bg-red-500/10 dark:hover:bg-red-500 text-red-600 hover:text-white border border-red-200 dark:border-red-500/30 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm hover:shadow-lg"
+            class="px-6 py-3 bg-red-50 hover:bg-red-500 dark:bg-red-500/10 dark:hover:bg-red-500 text-red-600 hover:text-white border border-red-200 dark:border-red-500/30 rounded-md text-xs font-black uppercase tracking-widest transition-all shadow-sm hover:shadow-lg"
           >
             {loading ? 'Processing...' : 'Cancel subscription'}
           </button>
@@ -541,8 +541,8 @@ export default function Billing({ setView }) {
               key={plan.id}
               class={`glass-card p-6 md:p-8 flex flex-col justify-between relative transition-all duration-300 hover:-translate-y-2 ${
                 plan.isPopular 
-                  ? 'rounded-3xl border-2 border-primary shadow-purple-glow ring-2 ring-primary/20 scale-105 z-10' 
-                  : 'rounded-3xl border border-gray-200 dark:border-white/10 shadow-lg'
+                  ? 'rounded-md border-2 border-primary shadow-purple-glow ring-2 ring-primary/20 scale-105 z-10' 
+                  : 'rounded-md border border-gray-200 dark:border-white/10 shadow-lg'
               }`}
             >
               {plan.isPopular && (
@@ -577,7 +577,7 @@ export default function Billing({ setView }) {
               {plan.id === 'BASIC' ? (
                 <button
                   disabled
-                  class="w-full bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 font-bold text-xs uppercase py-4 rounded-xl cursor-not-allowed font-mono tracking-widest"
+                  class="w-full bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 font-bold text-xs uppercase py-4 rounded-md cursor-not-allowed font-mono tracking-widest"
                 >
                   {isCurrentPlan ? 'Current Plan' : 'Free tier'}
                 </button>
@@ -585,7 +585,7 @@ export default function Billing({ setView }) {
                 <button
                   onClick={() => isCurrentPlan ? null : handleCheckout(plan.id)}
                   disabled={loading || isCurrentPlan}
-                  class={`w-full text-xs font-black uppercase py-4 rounded-xl tracking-widest transition-all font-mono ${
+                  class={`w-full text-xs font-black uppercase py-4 rounded-md tracking-widest transition-all font-mono ${
                     isCurrentPlan
                       ? 'bg-gray-100 dark:bg-white/5 text-gray-500 cursor-not-allowed border border-transparent'
                       : plan.isPopular
@@ -603,9 +603,22 @@ export default function Billing({ setView }) {
 
       {/* 6. FEATURE COMPARISON TABLE */}
       <div class="mb-14 select-none">
-        <h3 class="font-serif text-base font-black text-navy dark:text-gold uppercase tracking-wider mb-4 border-b border-paper-border dark:border-paper-borderDark pb-2 flex items-center gap-1.5">
-          <span>Plan Feature comparison</span>
-        </h3>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '24px',
+          paddingBottom: '12px',
+          borderBottom: '2px solid var(--gold-primary)'
+        }}>
+          <h2 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '20px',
+            color: '#fff',
+            margin: 0,
+            fontWeight: '700'
+          }}>Plan Feature Comparison</h2>
+        </div>
         
         <div class="border border-paper-border dark:border-paper-borderDark rounded-lg overflow-hidden font-sans">
           <div class="overflow-x-auto">
@@ -764,11 +777,22 @@ export default function Billing({ setView }) {
 
       {/* 9. BILLING HISTORY INVOICE LEDGER */}
       <div class="bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded-lg p-5 shadow-sm">
-        <div class="border-b border-paper-border dark:border-paper-borderDark pb-2 mb-4 select-none">
-          <h3 class="font-serif text-sm font-black text-navy dark:text-gold uppercase tracking-wider flex items-center gap-1.5">
-            <Receipt size={14} />
-            <span>Filing Ledger & Invoice Records</span>
-          </h3>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '24px',
+          paddingBottom: '12px',
+          borderBottom: '2px solid var(--gold-primary)'
+        }} className="select-none">
+          <Receipt size={16} style={{ color: 'var(--gold-primary)' }} />
+          <h2 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: '20px',
+            color: '#fff',
+            margin: 0,
+            fontWeight: '700'
+          }}>Filing Ledger & Invoice Records</h2>
         </div>
 
         {loadingInvoices ? (
@@ -815,7 +839,7 @@ export default function Billing({ setView }) {
       {/* 8. INSTANT SUCCESS MODAL OVERLAY */}
       {showSuccessPopup && (
         <div class="fixed inset-0 z-50 bg-[#07111E]/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div class="glass-card max-w-md w-full p-8 rounded-3xl border border-gold/30 text-center relative overflow-hidden shadow-2xl bg-navy/80">
+          <div class="glass-card max-w-md w-full p-8 rounded-md border border-gold/30 text-center relative overflow-hidden shadow-2xl bg-navy/80">
             {/* Confetti effect is triggered on load */}
             <div class="absolute -top-12 -left-12 w-24 h-24 bg-gold/10 rounded-full blur-2xl"></div>
             <div class="absolute -bottom-12 -right-12 w-24 h-24 bg-primary/20 rounded-full blur-2xl"></div>
@@ -835,7 +859,7 @@ export default function Billing({ setView }) {
               Your premium subscription profile is now fully active. All reading limits and AI assistant paywalls have been lifted.
             </p>
             
-            <div class="bg-white/5 border border-white/10 rounded-xl p-3 mb-6 text-[10px] font-mono text-gray-400">
+            <div class="bg-white/5 border border-white/10 rounded-md p-3 mb-6 text-[10px] font-mono text-gray-400">
               Receipt statement has been sent to your email.
             </div>
 

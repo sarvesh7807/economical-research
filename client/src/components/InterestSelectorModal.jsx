@@ -53,7 +53,7 @@ export default function InterestSelectorModal({ isOpen, onClose, isUpdate = fals
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-sans">
-      <div className="relative w-full max-w-2xl overflow-hidden border border-white/10 rounded-3xl bg-[#0A1628]/90 text-white shadow-2xl shadow-purple-950/20 max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-2xl overflow-hidden border border-white/10 rounded-md bg-[#0A1628]/90 text-white shadow-2xl shadow-purple-950/20 max-h-[90vh] flex flex-col">
         
         {/* Background glow effects */}
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#3b82f6]/10 blur-[120px] pointer-events-none"></div>
@@ -92,7 +92,7 @@ export default function InterestSelectorModal({ isOpen, onClose, isUpdate = fals
                 <button
                   key={cat.id}
                   onClick={() => handleToggle(cat.id)}
-                  className={`relative p-4 rounded-2xl text-left border transition-all duration-300 flex flex-col justify-between h-24 hover:scale-[1.02] active:scale-[0.98] group overflow-hidden ${
+                  className={`relative p-4 rounded-md text-left border transition-all duration-300 flex flex-col justify-between h-24 hover:scale-[1.02] active:scale-[0.98] group overflow-hidden ${
                     isSelected
                       ? 'border-gold bg-gold/10 text-white shadow-[0_0_15px_rgba(212,175,55,0.3)]'
                       : 'border-white/5 bg-white/5 hover:border-white/20 text-gray-300'

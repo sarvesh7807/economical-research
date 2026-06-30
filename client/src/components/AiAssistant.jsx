@@ -439,7 +439,7 @@ Always be helpful, professional, and concise. Format responses clearly using mar
 
       {/* 2. CHAT DRAWER */}
       {isOpen && (
-        <div class="fixed bottom-0 right-0 w-full h-full sm:bottom-20 sm:right-6 sm:w-96 sm:h-[480px] sm:rounded-2xl bg-white dark:bg-paper-cardDark border-t sm:border border-paper-border dark:border-paper-borderDark shadow-2xl z-40 flex flex-col overflow-hidden font-sans select-none animate-fade-in">
+        <div class="fixed bottom-0 right-0 w-full h-full sm:bottom-20 sm:right-6 sm:w-96 sm:h-[480px] sm:rounded-md bg-white dark:bg-paper-cardDark border-t sm:border border-paper-border dark:border-paper-borderDark shadow-2xl z-40 flex flex-col overflow-hidden font-sans select-none animate-fade-in">
           {/* Header */}
           <div class="bg-navy text-white px-4 py-3 flex flex-col gap-2 border-b border-gold/20 shrink-0 select-none">
             <div class="flex items-center justify-between">
@@ -502,7 +502,7 @@ Always be helpful, professional, and concise. Format responses clearly using mar
                   )}
                   <div class="flex flex-col">
                     <div 
-                      class={`px-3 py-2 rounded-2xl text-[11px] leading-relaxed shadow-sm border ${
+                      class={`px-3 py-2 rounded-md text-[11px] leading-relaxed shadow-sm border ${
                         isUser
                           ? 'bg-gold text-navy font-bold rounded-tr-none border-gold/30 ml-auto'
                           : msg.isPaywall 
@@ -551,7 +551,7 @@ Always be helpful, professional, and concise. Format responses clearly using mar
                   ER
                 </div>
                 <div class="flex flex-col">
-                  <div class="px-4 py-2 bg-navy text-gold border border-gold/25 rounded-2xl rounded-tl-none text-xs flex items-center gap-1 shadow-md">
+                  <div class="px-4 py-2 bg-navy text-gold border border-gold/25 rounded-md rounded-tl-none text-xs flex items-center gap-1 shadow-md">
                     <span class="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                     <span class="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                     <span class="w-1.5 h-1.5 bg-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>

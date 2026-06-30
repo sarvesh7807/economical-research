@@ -65,7 +65,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
         </div>
 
         {error && (
-          <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-xl mb-6 text-sm">
+          <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-md mb-6 text-sm">
             {error}
           </div>
         )}
@@ -82,7 +82,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
+                class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
               />
             </div>
           )}
@@ -97,7 +97,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
+              class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
             />
           </div>
 
@@ -111,14 +111,14 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
+              class="w-full pl-10 pr-4 py-3.5 bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white text-sm"
             />
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            class="w-full py-4 mt-4 bg-gradient-to-r from-navy to-primary dark:from-primary dark:to-accent-purple text-white font-bold rounded-xl shadow-lg hover:shadow-purple-glow hover:scale-[1.02] transition-all text-sm uppercase tracking-wider"
+            class="w-full py-4 mt-4 bg-gradient-to-r from-navy to-primary dark:from-primary dark:to-accent-purple text-white font-bold rounded-md shadow-lg hover:shadow-purple-glow hover:scale-[1.02] transition-all text-sm uppercase tracking-wider"
           >
             {loading ? 'Processing...' : isLogin ? 'Sign In →' : 'Create Account →'}
           </button>
@@ -133,7 +133,7 @@ export default function AuthModal({ isOpen, onClose, mode = 'login' }) {
         <button 
           onClick={handleGoogle} 
           disabled={loading}
-          class="w-full py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-navy dark:text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-white/10 transition-all group"
+          class="w-full py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-navy dark:text-white font-bold rounded-md flex items-center justify-center gap-3 hover:bg-gray-50 dark:hover:bg-white/10 transition-all group"
         >
           <Chrome size={20} class="text-blue-500 group-hover:scale-110 transition-transform" />
           <span class="text-sm">Continue with Google</span>

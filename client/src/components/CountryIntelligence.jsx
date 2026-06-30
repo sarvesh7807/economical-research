@@ -148,7 +148,7 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
           style={{
             background: 'linear-gradient(145deg, #1A3A5C, #0A1628)',
             border: '1px solid rgba(244,167,38,0.2)',
-            borderRadius: '12px',
+            borderRadius: '6px',
             padding: '20px',
             minWidth: '200px'
           }}

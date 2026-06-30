@@ -181,7 +181,7 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
         </h3>
         <div class="flex overflow-x-auto gap-5 pb-4 scrollbar-none">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} class="w-[340px] shrink-0 border border-paper-border dark:border-paper-borderDark p-5 space-y-4 rounded-3xl bg-white dark:bg-black/20">
+            <div key={i} class="w-[340px] shrink-0 border border-paper-border dark:border-paper-borderDark p-5 space-y-4 rounded-md bg-white dark:bg-black/20">
               <div class="h-3 w-1/4 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
               <div class="h-5 w-5/6 rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
               <div class="h-36 w-full rounded bg-gray-200 dark:bg-gray-800 animate-shimmer"></div>
@@ -198,20 +198,37 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
 
   return (
     <div class="mb-8">
-      <h3 class="font-display text-lg font-black text-navy dark:text-gold uppercase tracking-wider mb-4 border-b border-gray-150 dark:border-white/10 pb-1.5 flex items-center justify-between">
-        <div class="flex items-center gap-2">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        marginBottom: '20px',
+        paddingBottom: '8px',
+        borderBottom: '2px solid var(--gold-primary)'
+      }}>
+        <h3 style={{
+          fontFamily: 'Playfair Display, serif',
+          fontSize: '18px',
+          color: '#fff',
+          margin: 0,
+          fontWeight: '700',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
           <span>{title}</span>
           <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-        </div>
+        </h3>
         {error && (
           <span class="text-[10px] text-red-500 font-mono font-bold animate-pulse">
             ⚠️ Refreshing news...
           </span>
         )}
-      </h3>
+      </div>
 
       {articles.length === 0 && !isLoading ? (
-        <div class="py-8 text-center border border-dashed border-paper-border dark:border-paper-borderDark rounded-2xl bg-white/50 dark:bg-black/10">
+        <div class="py-8 text-center border border-dashed border-paper-border dark:border-paper-borderDark rounded-md bg-white/50 dark:bg-black/10">
           <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">
             {category && category.toLowerCase() === 'sports' ? 'No Sports Articles Available' : 'No wire articles available for this section.'}
           </p>
@@ -510,7 +527,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     const isPro = subscription?.tier === 'PRO';
     
     return (
-      <div class="glass-card p-5 rounded-3xl">
+      <div class="glass-card p-5 rounded-md">
         <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
           <div class="flex items-center gap-2">
             <Sparkles size={14} class="text-accent-pink" />
@@ -532,12 +549,12 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 placeholder="Enter topic (e.g. GDP, Supply Chains)..."
                 value={researchInput}
                 onChange={(e) => setResearchInput(e.target.value)}
-                class="flex-grow bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white"
+                class="flex-grow bg-white dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-md px-3 py-2 text-[11px] focus:outline-none focus:ring-2 focus:ring-primary text-navy dark:text-white"
               />
               <button
                 type="submit"
                 disabled={!researchInput.trim()}
-                class="bg-navy hover:bg-navy-light text-accent-neon px-4 py-2 rounded-xl text-[10px] uppercase font-bold shrink-0 transition-all hover:shadow-neon"
+                class="bg-navy hover:bg-navy-light text-accent-neon px-4 py-2 rounded-md text-[10px] uppercase font-bold shrink-0 transition-all hover:shadow-neon"
               >
                 Compile
               </button>
@@ -556,7 +573,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('change-view', { detail: 'billing' }));
               }}
-              class="w-full bg-gradient-to-r from-primary to-accent-purple hover:from-primary-glow hover:to-accent-pink text-white font-bold text-[10px] uppercase py-2.5 rounded-xl tracking-wider transition-all shadow-purple-glow hover:scale-105"
+              class="w-full bg-gradient-to-r from-primary to-accent-purple hover:from-primary-glow hover:to-accent-pink text-white font-bold text-[10px] uppercase py-2.5 rounded-md tracking-wider transition-all shadow-purple-glow hover:scale-105"
             >
               Upgrade to PRO
             </button>
@@ -568,9 +585,9 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
 
   const renderSidePanel = () => {
     return (
-      <div class="glass-card p-5 rounded-3xl text-center relative overflow-hidden group">
+      <div class="glass-card p-5 rounded-md text-center relative overflow-hidden group">
         <div class="absolute inset-0 bg-gradient-to-br from-primary-glow/20 to-accent-pink/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-        <div class="bg-gray-50 dark:bg-white/5 py-8 px-5 border border-gray-200 dark:border-white/10 rounded-2xl relative z-10 backdrop-blur-sm">
+        <div class="bg-gray-50 dark:bg-white/5 py-8 px-5 border border-gray-200 dark:border-white/10 rounded-md relative z-10 backdrop-blur-sm">
           <span class="text-[9px] font-bold text-accent-pink uppercase tracking-widest block mb-3 animate-pulse">- SPONSORED BRIEFING -</span>
           <h4 class="font-display text-sm font-black text-navy dark:text-white uppercase tracking-wide mb-2">Global Capital Yields</h4>
           <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-sans">
@@ -638,16 +655,30 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
   return (
     <div class="max-w-7xl mx-auto px-4 md:px-6 py-8">
       {/* Feed Title and Header */}
-      <div class="border-b border-gray-200 dark:border-white/10 pb-4 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 class="font-display text-3xl md:text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-navy to-primary dark:from-white dark:to-gray-400 uppercase drop-shadow-md">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        marginBottom: '24px',
+        paddingBottom: '12px',
+        borderBottom: '2px solid var(--gold-primary)'
+      }} className="flex-col sm:flex-row">
+        <h2 style={{
+          fontFamily: 'Playfair Display, serif',
+          fontSize: '24px',
+          color: '#fff',
+          margin: 0,
+          fontWeight: '700'
+        }}>
           {getFeedTitle()}
         </h2>
         <div class="flex items-center gap-3">
-          <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded-full shadow-neon">
+          <span class="flex items-center gap-1.5 text-[10px] text-white font-bold uppercase tracking-wider bg-navy dark:bg-white/10 px-3 py-1.5 rounded shadow-neon">
             <RefreshCw size={12} class="animate-spin text-accent-neon shrink-0" />
             <span>Sync: {timeLeft}s</span>
           </span>
-          <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded-full">
+          <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest shrink-0 bg-gray-100 dark:bg-white/5 px-3 py-1.5 rounded">
             {feedArticles.length} Bulletins
           </span>
         </div>
@@ -694,7 +725,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                 <div class="space-y-2">
                   {/* Homepage Personalized Section (Step 4) */}
                   {personalizedNews.length > 0 && (
-                    <section className="mb-8 p-6 rounded-3xl bg-gradient-to-br from-gold/10 via-[#0A1628]/10 to-gold/5 border border-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.05)] relative overflow-hidden">
+                    <section className="mb-8 p-6 rounded-md bg-gradient-to-br from-gold/10 via-[#0A1628]/10 to-gold/5 border border-gold/30 shadow-[0_0_20px_rgba(212,175,55,0.05)] relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-gold/5 blur-2xl pointer-events-none"></div>
                       <h2 className="font-display text-xl md:text-2xl font-black tracking-tight text-gold uppercase mb-1 flex items-center gap-2">
                         ⭐ Your Personalized Feed
@@ -963,7 +994,7 @@ function TrendingWidget() {
   }, []);
 
   return (
-    <div class="glass-card p-5 rounded-3xl text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+    <div class="glass-card p-5 rounded-md text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
       <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
@@ -978,7 +1009,7 @@ function TrendingWidget() {
         <div class="space-y-3.5">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} class="flex gap-3 items-center">
-              <div class="w-12 h-12 rounded-xl bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
+              <div class="w-12 h-12 rounded-md bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
               <div class="flex-grow space-y-2">
                 <div class="h-3 w-5/6 rounded bg-gray-205 dark:bg-gray-800 animate-shimmer"></div>
                 <div class="h-2 w-1/3 rounded bg-gray-250 dark:bg-gray-800 animate-shimmer"></div>
@@ -1001,12 +1032,12 @@ function TrendingWidget() {
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex gap-3 items-center group/item hover:bg-gray-50 dark:hover:bg-white/5 p-1.5 -m-1.5 rounded-2xl transition-all"
+                class="flex gap-3 items-center group/item hover:bg-gray-50 dark:hover:bg-white/5 p-1.5 -m-1.5 rounded-md transition-all"
               >
                 <img
                   src={article.urlToImage}
                   alt=""
-                  class="w-12 h-12 rounded-xl object-cover shrink-0 border border-gray-100 dark:border-white/5 group-hover/item:scale-105 transition-transform"
+                  class="w-12 h-12 rounded-md object-cover shrink-0 border border-gray-100 dark:border-white/5 group-hover/item:scale-105 transition-transform"
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
@@ -1111,7 +1142,7 @@ function EconomicTrendsWidget() {
   }, []);
 
   return (
-    <div class="glass-card p-5 rounded-3xl text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+    <div class="glass-card p-5 rounded-md text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
       <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
         <h3 class="font-display text-xs font-black text-navy dark:text-gold uppercase tracking-wider">
           📈 Economic Trend Outlook
@@ -1136,7 +1167,7 @@ function MarketSignalsWidget() {
   ];
 
   return (
-    <div class="glass-card p-5 rounded-3xl text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
+    <div class="glass-card p-5 rounded-md text-left border border-white/5 bg-white/5 dark:bg-black/20 backdrop-blur-md">
       <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -1149,7 +1180,7 @@ function MarketSignalsWidget() {
 
       <div class="grid grid-cols-2 gap-3">
         {signals.map((sig, i) => (
-          <div key={i} class="bg-gray-50 dark:bg-white/5 p-3 rounded-2xl border border-white/5 hover:border-gold/30 dark:hover:border-gold/30 transition-all duration-300">
+          <div key={i} class="bg-gray-50 dark:bg-white/5 p-3 rounded-md border border-white/5 hover:border-gold/30 dark:hover:border-gold/30 transition-all duration-300">
             <span class="text-[8.5px] font-bold text-gray-400 uppercase tracking-wider block mb-1 truncate">{sig.name}</span>
             <div class="flex justify-between items-baseline gap-1">
               <span class="text-[11px] font-bold text-navy dark:text-white font-mono">{sig.value}</span>
@@ -1193,7 +1224,7 @@ function OutcomeTrackerWidget() {
   };
 
   return (
-    <div class="glass-card p-5 rounded-3xl">
+    <div class="glass-card p-5 rounded-md">
       <div class="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3 mb-4">
         <div class="flex items-center gap-2">
           <ClipboardList size={14} class="text-gold" />
@@ -1217,7 +1248,7 @@ function OutcomeTrackerWidget() {
             <div
               key={story.id}
               onClick={() => window.dispatchEvent(new CustomEvent('change-view-detail', { detail: story.id }))}
-              class="group rounded-xl p-3 border border-white/5 cursor-pointer hover:border-yellow-400/20 transition-all text-left"
+              class="group rounded-md p-3 border border-white/5 cursor-pointer hover:border-yellow-400/20 transition-all text-left"
               style={{ background: 'rgba(255,255,255,0.01)' }}
             >
               <div class="flex items-center justify-between gap-2 mb-1.5">
@@ -1234,7 +1265,7 @@ function OutcomeTrackerWidget() {
           
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('change-view', { detail: 'outcome-tracker' }))}
-            class="w-full mt-2 flex items-center justify-center gap-1 py-2 text-[10px] font-bold uppercase tracking-wider text-yellow-400 hover:text-yellow-300 transition-colors border border-dashed border-white/10 hover:border-yellow-400/25 rounded-xl bg-white/5"
+            class="w-full mt-2 flex items-center justify-center gap-1 py-2 text-[10px] font-bold uppercase tracking-wider text-yellow-400 hover:text-yellow-300 transition-colors border border-dashed border-white/10 hover:border-yellow-400/25 rounded-md bg-white/5"
           >
             <span>View Full Audit Ledger</span>
             <ArrowRight size={10} />

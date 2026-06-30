@@ -137,7 +137,7 @@ export default function BillingHistory({ setView }) {
       </div>
 
       {/* Current Subscription Summary */}
-      <div class="glass-card p-5 rounded-2xl border border-gold/15 mb-8 bg-navy/5 dark:bg-white/5">
+      <div class="glass-card p-5 rounded-md border border-gold/15 mb-8 bg-navy/5 dark:bg-white/5">
         <h3 class="text-xs font-bold uppercase tracking-wider text-navy dark:text-gold mb-3 flex items-center gap-1.5 font-mono">
           <ShieldCheck size={14} class="text-gold" /> Active Credentials
         </h3>
@@ -168,12 +168,12 @@ export default function BillingHistory({ setView }) {
           <span class="text-[10px] font-mono tracking-widest uppercase">RETRIEVING LEDGER DATA...</span>
         </div>
       ) : error ? (
-        <div class="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-755 dark:text-red-300 p-4 rounded-xl text-xs font-semibold">
+        <div class="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-755 dark:text-red-300 p-4 rounded-md text-xs font-semibold">
           <AlertCircle size={14} />
           <span>{error}</span>
         </div>
       ) : transactions.length === 0 ? (
-        <div class="text-center py-16 border border-dashed border-gray-200 dark:border-white/10 rounded-2xl">
+        <div class="text-center py-16 border border-dashed border-gray-200 dark:border-white/10 rounded-md">
           <Receipt class="mx-auto text-gray-450 w-8 h-8 opacity-40 mb-3" />
           <h4 class="font-bold text-sm text-navy dark:text-gray-200">No Transactions Found</h4>
           <p class="text-[11px] text-gray-500 dark:text-gray-455 mt-1 max-w-xs mx-auto leading-normal">
@@ -181,7 +181,7 @@ export default function BillingHistory({ setView }) {
           </p>
         </div>
       ) : (
-        <div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10 shadow-md">
+        <div class="overflow-x-auto rounded-md border border-gray-200 dark:border-white/10 shadow-md">
           <table class="w-full text-left border-collapse text-xs">
             <thead>
               <tr class="bg-gray-100 dark:bg-navy/40 border-b border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 uppercase tracking-widest font-mono text-[9px]">

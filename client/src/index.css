@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --navy-darkest: #060D17;
+  --navy-dark: #0A1628;
+  --navy-medium: #142B47;
+  --navy-light: #1A3A5C;
+  --gold-primary: #F4A726;
+  --gold-light: #FFD166;
+  --gold-dark: #C8860D;
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255,255,255,0.65);
+  --text-tertiary: rgba(255,255,255,0.4);
+  --border-subtle: rgba(244,167,38,0.15);
+  --success: #00C896;
+  --danger: #FF5252;
+}
+
 @layer base {
   body {
     @apply transition-all duration-500 bg-background-light text-navy dark:bg-background-dark dark:text-gray-100 font-sans tracking-wide selection:bg-accent-neon selection:text-black;
@@ -248,7 +264,7 @@
 .share-action-btn {
   background: linear-gradient(145deg, #1A3A5C, #0A1628);
   border: 1px solid rgba(244,167,38,0.4);
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 12px 16px;
   color: #fff;
   cursor: pointer;
@@ -333,7 +349,7 @@
 .share-modal {
   background: linear-gradient(160deg, #0f2236 0%, #0A1628 60%, #071120 100%);
   border: 1px solid rgba(244,167,38,0.25);
-  border-radius: 20px;
+  border-radius: 6px;
   padding: 28px 24px 24px;
   width: min(420px, 92vw);
   box-shadow:
@@ -354,7 +370,7 @@
     rgba(244,167,38,0.5) 40%,
     rgba(244,167,38,0.5) 60%,
     transparent);
-  border-radius: 20px 20px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 /* --- Mobile profile picture fix --- */
@@ -463,7 +479,7 @@ html {
 .sidebar-section {
   background: linear-gradient(145deg, #1A3A5C, #0A1628);
   border: 1px solid rgba(244,167,38,0.2);
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 16px;
 }
 

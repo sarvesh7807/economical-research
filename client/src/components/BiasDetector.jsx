@@ -122,7 +122,7 @@ Provide the response strictly as a JSON object matching this schema:
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         {/* Input Form Column */}
-        <div className="md:col-span-2 glass-card p-6 rounded-3xl">
+        <div className="md:col-span-2 glass-card p-6 rounded-md">
           <form onSubmit={handleDetect} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-navy dark:text-gold uppercase tracking-wider mb-2">
@@ -133,14 +133,14 @@ Provide the response strictly as a JSON object matching this schema:
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Paste news text or article content here to analyze political bias..."
                 rows={8}
-                className="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-gold text-navy dark:text-white leading-relaxed placeholder-gray-400"
+                className="w-full bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-md p-4 text-sm focus:outline-none focus:ring-2 focus:ring-gold text-navy dark:text-white leading-relaxed placeholder-gray-400"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={loading || !inputText.trim()}
-              className="w-full bg-navy hover:bg-navy-light text-gold font-bold text-xs uppercase py-3 rounded-2xl tracking-widest transition-all shadow-md hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full bg-navy hover:bg-navy-light text-gold font-bold text-xs uppercase py-3 rounded-md tracking-widest transition-all shadow-md hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -155,7 +155,7 @@ Provide the response strictly as a JSON object matching this schema:
         </div>
 
         {/* Info Sidebar Column */}
-        <div className="glass-card p-6 rounded-3xl space-y-4">
+        <div className="glass-card p-6 rounded-md space-y-4">
           <h3 className="font-serif text-sm font-black text-navy dark:text-gold uppercase tracking-wider border-b border-gray-200 dark:border-white/10 pb-2 flex items-center gap-2">
             <HelpCircle size={14} className="text-gold" /> How it works
           </h3>
@@ -172,7 +172,7 @@ Provide the response strictly as a JSON object matching this schema:
 
       {/* Error display */}
       {error && (
-        <div className="mt-6 bg-red-500/10 border border-red-500/35 text-red-700 dark:text-red-300 text-xs font-semibold px-4 py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="mt-6 bg-red-500/10 border border-red-500/35 text-red-700 dark:text-red-300 text-xs font-semibold px-4 py-3 rounded-md flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <span>⚠️ {error}</span>
           </div>
@@ -188,14 +188,14 @@ Provide the response strictly as a JSON object matching this schema:
 
       {/* Results Section */}
       {result && (
-        <div className="mt-8 glass-card p-6 rounded-3xl relative overflow-hidden transition-all duration-300 shadow-xl border border-gold/15">
+        <div className="mt-8 glass-card p-6 rounded-md relative overflow-hidden transition-all duration-300 shadow-xl border border-gold/15">
           {/* Vertical Accent line */}
           <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-navy dark:bg-gold"></div>
 
           <div className="space-y-8">
             {/* Header / Summary */}
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-navy-light/10 dark:bg-white/5 rounded-2xl">
+              <div className="p-3 bg-navy-light/10 dark:bg-white/5 rounded-md">
                 <Scale className="text-gold w-8 h-8 animate-pulse" />
               </div>
               <div className="flex-grow">

@@ -156,7 +156,7 @@ export default function ErIntelligenceArticles() {
             style={{
               background: 'linear-gradient(145deg, #1A3A5C, #0A1628)',
               border: '1px solid rgba(244,167,38,0.2)',
-              borderRadius: '12px',
+              borderRadius: '6px',
               padding: '20px',
               cursor: 'pointer'
             }}
@@ -175,7 +175,7 @@ export default function ErIntelligenceArticles() {
       {/* Full Article Viewer Modal */}
       {selectedArticle && (
         <div className="fixed inset-0 bg-black/75 z-[999] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-navy border border-gold/40 text-white w-full max-w-2xl rounded-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-navy border border-gold/40 text-white w-full max-w-2xl rounded-md max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-navy-light/10">
               <span className="text-[10px] font-black uppercase tracking-widest text-gold bg-gold/10 px-2 py-0.5 rounded">Exclusive Intelligence</span>
               <button 

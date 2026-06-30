@@ -32,7 +32,7 @@ export default function SocialLinks() {
           style={{
             background: 'linear-gradient(145deg, #1A3A5C, #0A1628)',
             border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '50%',
+            borderRadius: '6px',
             width: '42px',
             height: '42px',
             display: 'flex',

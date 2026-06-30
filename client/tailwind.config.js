@@ -44,9 +44,9 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'Outfit', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['"Playfair Display"', 'Georgia', 'serif'],
-        mono: ['"Space Grotesk"', 'monospace'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
         serif: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       boxShadow: {

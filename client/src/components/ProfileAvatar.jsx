@@ -20,7 +20,7 @@ export default function ProfileAvatar({ user, size = 40 }) {
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          borderRadius: '50%',
+          borderRadius: '6px',
           objectFit: 'cover',
           border: '2px solid #F4A726',
           display: 'block',
@@ -42,7 +42,7 @@ export default function ProfileAvatar({ user, size = 40 }) {
     <div style={{
       width: `${size}px`,
       height: `${size}px`,
-      borderRadius: '50%',
+      borderRadius: '6px',
       background: 'linear-gradient(135deg, #F4A726, #D4A843)',
       display: 'flex',
       alignItems: 'center',

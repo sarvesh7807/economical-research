@@ -217,7 +217,7 @@ export default function WorldMap({ setView }) {
         {/* Map Container */}
         <div
           ref={mapRef}
-          className="relative rounded-2xl overflow-hidden"
+          className="relative rounded-md overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, #0A1628 0%, #051020 100%)',
             border: '1px solid rgba(244,167,38,0.25)',
@@ -348,7 +348,7 @@ export default function WorldMap({ setView }) {
 
         {/* News Panel */}
         {selectedCountry && (
-          <div className="mt-6 rounded-2xl overflow-hidden" style={{
+          <div className="mt-6 rounded-md overflow-hidden" style={{
             border: '1px solid rgba(244,167,38,0.2)',
             background: 'rgba(15,31,53,0.95)',
             backdropFilter: 'blur(10px)',
@@ -410,7 +410,7 @@ export default function WorldMap({ setView }) {
             {loading && (
               <div className="p-5 space-y-4">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="rounded-xl p-4 animate-pulse" style={{ background: 'rgba(30,74,122,0.25)' }}>
+                  <div key={i} className="rounded-md p-4 animate-pulse" style={{ background: 'rgba(30,74,122,0.25)' }}>
                     <div className="flex gap-3">
                       <div className="w-20 h-16 rounded-lg bg-white/10 shrink-0"></div>
                       <div className="flex-1 space-y-2">
@@ -460,7 +460,7 @@ export default function WorldMap({ setView }) {
                       href={article.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex gap-3 rounded-xl p-3.5 transition-all duration-200 hover:scale-[1.01]"
+                      className="group flex gap-3 rounded-md p-3.5 transition-all duration-200 hover:scale-[1.01]"
                       style={{
                         background: 'rgba(26,58,92,0.4)',
                         border: '1px solid rgba(255,255,255,0.07)',
@@ -518,7 +518,7 @@ export default function WorldMap({ setView }) {
 
         {/* Quick Country Selector (mobile-friendly fallback) */}
         {!selectedCountry && (
-          <div className="mt-6 rounded-2xl p-5" style={{
+          <div className="mt-6 rounded-md p-5" style={{
             background: 'rgba(15,31,53,0.7)',
             border: '1px solid rgba(255,255,255,0.07)'
           }}>

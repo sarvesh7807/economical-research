@@ -395,119 +395,93 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
     { id: 'research', name: 'Research' }
   ];
 
-  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
-  const activeAlertsCount = userAlerts ? userAlerts.length : 0;
-  const totalBadgeCount = unreadNotificationsCount + activeAlertsCount;
-
   return (
-    <header class="w-full bg-paper dark:bg-paper-dark border-b border-paper-border dark:border-paper-borderDark overflow-hidden">
-      {/* 1. BREAKING NEWS TICKER */}
-      <div class="w-full bg-navy text-white py-1 px-4 text-xs font-semibold overflow-hidden flex items-center h-8">
-        <div class="bg-gold text-navy px-2 py-0.5 mr-3 rounded text-[10px] uppercase font-bold tracking-wider animate-pulse shrink-0">
-          Breaking
-        </div>
-        <div class="relative w-full overflow-hidden h-full flex items-center">
-          {tickerNews.length > 0 ? (
-            <span class="hover:text-gold transition-colors font-medium truncate block max-w-full">
-              ✦ {tickerNews[tickerIndex]?.title}
+    <header style={{
+      background: 'var(--navy-darkest)',
+      borderBottom: '1px solid var(--border-subtle)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      backdropFilter: 'blur(10px)'
+    }}>
+      {/* Top mini bar with market data and toolbar */}
+      <div style={{
+        padding: '6px 24px',
+        fontSize: '11px',
+        fontFamily: 'IBM Plex Mono, monospace',
+        color: 'var(--text-tertiary)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid var(--border-subtle)',
+        letterSpacing: '0.5px'
+      }} className="flex-wrap gap-2">
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }} className="flex-wrap">
+          <span>SENSEX <span style={{color: stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? 'var(--success)' : 'var(--danger)'}}>{stocks.find(s=>s.symbol==='SENSEX')?.price || '82,456.23'} {stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? '▲' : '▼'}{stocks.find(s=>s.symbol==='SENSEX')?.pct || '0.4'}%</span></span>
+          <span>USD/INR <span style={{color:'var(--text-secondary)'}}>83.42</span></span>
+          <span>GOLD <span style={{color:'var(--gold-light)'}}>${stocks.find(s=>s.symbol==='GOLD/OZ')?.price || '2,345.67'}</span></span>
+          <span style={{ color: 'var(--text-tertiary)' }} className="hidden sm:inline">| &nbsp; {formatDate(time)} &nbsp; {getLocalTimeStr()} {getTimezoneAbbr()}</span>
+          {weather && !weather.error && (
+            <span 
+              style={{ color: 'var(--gold-light)', cursor: 'pointer' }} 
+              onClick={handleCityChangePrompt}
+              className="hidden md:inline"
+              title="Click to edit city"
+            >
+              | &nbsp; {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C
             </span>
-          ) : (
-            <span class="text-gray-400">✦ Loading global feeds... ✦ Striving for truth... ✦ Researching world events...</span>
           )}
         </div>
-      </div>
-
-      {/* STOCKS TICKER */}
-      <div class="w-full bg-[#0A1628]/95 border-y border-gold/20 text-white py-1 px-4 text-[10px] overflow-hidden flex items-center h-7 font-mono" translate="no">
-        <div class="whitespace-nowrap flex gap-12 animate-[marquee_35s_linear_infinite] hover:[animation-play-state:paused] cursor-pointer">
-          {stocks.map((stock, idx) => (
-            <span key={idx} class="flex items-center gap-1">
-              <span class="font-bold text-gold">{stock.symbol}:</span>
-              <span class="font-semibold">{stock.price}</span>
-              <span class={`font-bold ${stock.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {stock.pct >= 0 ? '▲' : '▼'} {stock.pct >= 0 ? '+' : ''}{stock.pct}%
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. SUB HEADER (CLOCK & WEATHER & AUTH & THEME & LANGUAGE & BELL) */}
-      <div class="max-w-7xl mx-auto px-4 md:px-6 py-2 flex justify-between items-center text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-paper-border dark:border-paper-borderDark">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-navy dark:text-gold font-bold">LIVE:</span>
-          <span>{formatDate(time)}</span>
-          {weather && !weather.error ? (
-              <>
-                <span class="text-gray-300 dark:text-gray-700">|</span>
-                <span class="flex items-center gap-2 flex-wrap font-semibold">
-                  <span 
-                    class="cursor-pointer hover:underline flex items-center gap-1 text-navy dark:text-gold" 
-                    title="Click to change city preference"
-                    onClick={handleCityChangePrompt}
-                  >
-                    {getWeatherEmoji(weather.description)} {weather.city} <span translate="no">{Math.round(weather.temp)}°C</span> ✏️
-                  </span>
-                  <span class="text-gray-300 dark:text-gray-700">|</span>
-                  <span translate="no">💧 Humidity {weather.humidity}%</span>
-                  {weather.monsoonActive && (
-                    <>
-                      <span class="text-gray-300 dark:text-gray-700">|</span>
-                      <span class="text-blue-500 font-bold animate-pulse flex items-center gap-1">🌧️ Monsoon Active</span>
-                    </>
-                  )}
-                  <span class="text-gray-300 dark:text-gray-700">|</span>
-                  <span class="flex items-center gap-1 font-mono tabular-nums" translate="no">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
-                </span>
-              </>
-          ) : (
-            <>
-              <span class="text-gray-300 dark:text-gray-700">|</span>
-              <span class="flex items-center gap-1 font-mono tabular-nums" translate="no">🕐 {getLocalTimeStr()} {getTimezoneAbbr()}</span>
-            </>
-          )}
-        </div>
-
-        <div class="flex items-center gap-4 flex-wrap justify-end">
+        
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           {/* Custom Language Selector */}
           <div ref={langRef} className="relative" translate="no">
             <button
               onClick={() => setIsLangOpen(!isLangOpen)}
-              className="flex items-center gap-1.5 border border-paper-border dark:border-paper-borderDark rounded px-2 py-0.5 bg-gray-50/55 dark:bg-navy-light/10 text-gray-650 dark:text-gray-300 hover:border-gold/50 transition-all font-bold text-[10px] focus:outline-none"
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '10px'
+              }}
             >
-              <span>🌐</span>
               <span>{languages.find(l => l.code === selectedLang)?.flag}</span>
-              <span className="font-serif">{languages.find(l => l.code === selectedLang)?.name}</span>
-              <span className="text-[7px] opacity-75">▼</span>
+              <span style={{ fontFamily: 'Inter, sans-serif' }}>{languages.find(l => l.code === selectedLang)?.name}</span>
+              <span style={{ fontSize: '7px' }}>▼</span>
             </button>
             {isLangOpen && (
-              <div className="absolute right-0 mt-1.5 w-56 bg-[#0a192f] text-white border border-[#d4af37]/45 rounded-md shadow-2xl z-[100] p-2 font-sans">
-                {/* Search Box */}
+              <div className="absolute right-0 mt-1 w-56 bg-[#060D17] text-white border border-[#F4A726]/40 rounded shadow-2xl z-[100] p-2 font-sans">
                 <div className="relative mb-2">
                   <input
                     type="text"
                     value={langSearch}
                     onChange={(e) => setLangSearch(e.target.value)}
                     placeholder="Search language..."
-                    className="w-full bg-[#112240] text-white border border-[#d4af37]/20 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-[#d4af37] placeholder-gray-400 font-medium"
+                    className="w-full bg-[#0A1628] text-white border border-[#F4A726]/20 rounded px-2 py-1 text-[11px] focus:outline-none focus:border-[#F4A726] placeholder-gray-400 font-medium"
                   />
                 </div>
-                {/* Language list */}
-                <div className="max-h-60 overflow-y-auto scrollbar-none flex flex-col gap-0.5">
+                <div className="max-h-48 overflow-y-auto scrollbar-none flex flex-col gap-0.5">
                   {languages
                     .filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase()) || l.code.includes(langSearch.toLowerCase()))
                     .map((lang) => (
                       <button
                         key={lang.code}
                         onClick={() => handleLanguageChange(lang.code)}
-                        className={`flex items-center justify-between w-full text-left px-2.5 py-1.5 rounded text-[11px] font-semibold transition-all ${
+                        className={`flex items-center justify-between w-full text-left px-2 py-1 rounded text-[10px] font-semibold transition-all ${
                           selectedLang === lang.code
-                            ? 'bg-[#d4af37] text-[#0a192f]'
-                            : 'hover:bg-[#112240] text-gray-200'
+                            ? 'bg-[#F4A726] text-[#060D17]'
+                            : 'hover:bg-[#142B47] text-gray-200 bg-transparent'
                         }`}
+                        style={{ border: 'none', cursor: 'pointer' }}
                       >
                         <span className="flex items-center gap-2">
-                          <span className="text-sm">{lang.flag}</span>
+                          <span className="text-xs">{lang.flag}</span>
                           <span>{lang.name}</span>
                         </span>
                         {selectedLang === lang.code && (
@@ -515,11 +489,6 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                         )}
                       </button>
                     ))}
-                  {languages.filter(l => l.name.toLowerCase().includes(langSearch.toLowerCase()) || l.code.includes(langSearch.toLowerCase())).length === 0 && (
-                    <div className="text-center py-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                      No matching language
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -528,83 +497,241 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           {/* Theme Toggle */}
           <button 
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
             title="Toggle Theme"
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
           </button>
 
           {/* Settings Button */}
           <button 
             onClick={() => setView('settings')}
-            class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
             title="Settings"
           >
-            <SettingsIcon size={15} />
+            <SettingsIcon size={13} />
           </button>
 
-          {/* X (Twitter) Follow Icon */}
+          {/* X (Twitter) */}
           <a
             href="https://x.com/ERNewsDesk"
             target="_blank"
             rel="noopener noreferrer"
-            class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-white transition-all flex items-center justify-center"
-            title="Follow us on X (Twitter)"
+            style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
+            title="Follow us on X"
           >
-            <FaXTwitter size={15} />
+            <FaXTwitter size={13} />
           </a>
 
-          {/* Instagram Follow Icon */}
+          {/* Instagram */}
           <a
             href="https://www.instagram.com/economical.research"
             target="_blank"
             rel="noopener noreferrer"
-            class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-[#E1306C] hover:text-[#ff4783] transition-all flex items-center justify-center"
+            style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
             title="Follow us on Instagram"
           >
-            <FaInstagram size={15} />
+            <FaInstagram size={13} />
           </a>
+        </div>
+      </div>
+      
+      {/* Main nav */}
+      <div style={{
+        padding: '16px 24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        {/* Brand Logo and Title */}
+        <div 
+          style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}
+          onClick={() => { onCategoryChange('world'); setSearchQuery(''); setView('feed'); }}
+        >
+          <div style={{
+            width: '32px', height: '32px',
+            background: 'var(--gold-primary)',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '900',
+            color: 'var(--navy-darkest)',
+            fontFamily: 'Playfair Display, serif'
+          }}>ER</div>
+          <span style={{
+            fontFamily: 'Playfair Display, serif',
+            fontWeight: '700',
+            fontSize: '20px',
+            color: '#fff',
+            letterSpacing: '0.5px'
+          }}>ECONOMICAL RESEARCH</span>
+        </div>
+        
+        {/* Navigation Categories */}
+        <nav style={{display: 'flex', gap: '28px'}} className="hidden md:flex">
+          {[
+            { name: 'Markets', id: 'business' },
+            { name: 'Economics', id: 'finance' },
+            { name: 'Policy', id: 'politics' },
+            { name: 'Research', id: 'research' },
+            { name: 'Emerging Markets', id: 'india' }
+          ].map(item => (
+            <a 
+              key={item.name} 
+              onClick={() => {
+                setSearchQuery('');
+                onCategoryChange(item.id);
+                setView('feed');
+              }}
+              style={{
+                color: activeCategory === item.id && !searchQuery ? 'var(--gold-primary)' : 'var(--text-secondary)',
+                fontSize: '13px',
+                fontWeight: '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.8px',
+                cursor: 'pointer',
+                transition: 'color 0.2s',
+                paddingBottom: '2px',
+                borderBottom: activeCategory === item.id && !searchQuery ? '2px solid var(--gold-primary)' : 'none'
+              }}
+            >
+              {item.name}
+            </a>
+          ))}
+        </nav>
+        
+        {/* Right Area: Search, Notifications, Auth CTA */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Search Bar */}
+          <div ref={suggestionsRef} className="relative hidden sm:block">
+            <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+              <input
+                type="text"
+                placeholder="Search wire reports..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '4px',
+                  padding: '6px 12px 6px 30px',
+                  fontSize: '11px',
+                  color: '#fff',
+                  outline: 'none',
+                  width: '160px',
+                  transition: 'all 0.3s ease'
+                }}
+                className="focus:w-56 focus:border-[#F4A726]/50"
+              />
+              <Search size={12} className="absolute left-2.5 text-gray-400" />
+              {searchQuery && (
+                <button 
+                  type="button" 
+                  onClick={() => { setSearchQuery(''); setSuggestions([]); }} 
+                  className="absolute right-2.5 text-gray-400 hover:text-white bg-transparent border-none cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </form>
 
-          {/* Notifications In-App Bell Dropdown */}
+            {/* Suggestions dropdown */}
+            {showSuggestions && (searchQuery.trim().length >= 2 || searchHistory.length > 0) && (
+              <div className="absolute right-0 z-50 w-64 mt-1.5 bg-[#060D17] border border-[#F4A726]/20 rounded shadow-lg overflow-hidden text-xs text-left">
+                {suggestions.length > 0 && (
+                  <div className="py-1">
+                    <div className="px-3 py-1 font-semibold text-[9px] text-gray-500 uppercase tracking-wider">
+                      Live Matches
+                    </div>
+                    {suggestions.map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSuggestionClick(item)}
+                        className="w-full text-left px-3 py-2 hover:bg-[#142B47] text-white font-medium truncate bg-transparent border-none cursor-pointer"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchHistory.length > 0 && (
+                  <div className="border-t border-[#F4A726]/10 py-1 bg-[#0A1628]/35">
+                    <div className="px-3 py-1 flex justify-between items-center text-[9px] text-gray-500 uppercase tracking-wider">
+                      <span>Recent Searches</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); clearSearchHistory(); }}
+                        className="hover:text-red-400 font-bold bg-transparent border-none cursor-pointer text-[8px]"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    {searchHistory.map((item, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex items-center justify-between hover:bg-[#142B47] px-3 py-1.5 text-white"
+                      >
+                        <button
+                          onClick={() => handleSuggestionClick(item)}
+                          className="text-left font-medium truncate flex-grow bg-transparent border-none cursor-pointer text-white"
+                        >
+                          {item}
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); deleteSearchQuery(item); }}
+                          className="text-gray-400 hover:text-red-400 p-1 bg-transparent border-none cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Notifications bell */}
           {user && (
-            <div ref={notifRef} class="relative">
+            <div ref={notifRef} className="relative">
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all relative flex items-center justify-center focus:outline-none"
+                className="text-white hover:text-[#F4A726] transition-colors focus:outline-none flex items-center justify-center p-1 bg-transparent border-none cursor-pointer"
                 title="Alert Ledger"
               >
                 {totalBadgeCount > 0 ? (
                   <>
-                    <BellRing size={15} class="text-gold animate-bounce" />
-                    <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-600 rounded-full border border-paper dark:border-paper-dark text-[7.5px] font-black text-white flex items-center justify-center scale-95 shadow">
+                    <BellRing size={16} className="text-[#F4A726] animate-bounce" />
+                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-600 rounded-full text-[7px] font-black text-white flex items-center justify-center">
                       {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
                     </span>
-                    {activeAlertsCount > 0 && (
-                      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gold rounded-full border border-paper dark:border-paper-dark animate-ping" style={{ animationDuration: '2s' }}></span>
-                    )}
                   </>
                 ) : (
-                  <Bell size={15} />
+                  <Bell size={16} />
                 )}
               </button>
 
               {isNotifOpen && (
-                <div class="absolute right-0 mt-2 w-80 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded shadow-2xl z-50 overflow-hidden font-sans">
-                  {/* Panel Header */}
-                  <div class="bg-navy text-white px-3 py-2 flex items-center justify-between border-b border-gold/10 shrink-0">
-                    <span class="font-serif text-[10px] font-black uppercase tracking-wider text-gold">Alert Registry Ledger</span>
-                    <div class="flex gap-2">
+                <div className="absolute right-0 mt-2 w-80 bg-[#060D17] border border-[#F4A726]/30 rounded shadow-2xl z-50 overflow-hidden font-sans text-left">
+                  <div className="bg-[#0A1628] text-white px-3 py-2 flex items-center justify-between border-b border-[#F4A726]/15">
+                    <span className="font-serif text-[9px] font-black uppercase tracking-wider text-[#F4A726]">Alert Registry Ledger</span>
+                    <div className="flex gap-2">
                       {notifications.length > 0 && (
                         <>
                           <button
                             onClick={markAllRead}
-                            class="text-[8.5px] hover:text-gold uppercase tracking-wider font-bold border border-white/10 px-1.5 py-0.5 rounded transition-colors"
+                            className="text-[8px] hover:text-[#F4A726] uppercase tracking-wider font-bold border border-white/10 px-1 py-0.5 rounded transition-colors bg-transparent cursor-pointer"
                           >
                             Read All
                           </button>
                           <button
                             onClick={clearAllNotifications}
-                            class="text-[8.5px] hover:text-gold uppercase tracking-wider font-bold border border-white/10 px-1.5 py-0.5 rounded transition-colors"
+                            className="text-[8px] hover:text-[#F4A726] uppercase tracking-wider font-bold border border-white/10 px-1 py-0.5 rounded transition-colors bg-transparent cursor-pointer"
                           >
                             Clear
                           </button>
@@ -613,10 +740,9 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                     </div>
                   </div>
 
-                  {/* Panel list */}
-                  <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800 scrollbar-none">
+                  <div className="max-h-60 overflow-y-auto divide-y divide-white/5 scrollbar-none">
                     {notifications.length === 0 ? (
-                      <div class="p-8 text-center text-gray-400 text-[10px] font-bold uppercase tracking-wider">
+                      <div className="p-8 text-center text-gray-500 text-[10px] font-bold uppercase tracking-wider">
                         No active reports registered.
                       </div>
                     ) : (
@@ -632,23 +758,20 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                               setView('feed');
                             }
                           }}
-                          class={`p-3 text-left transition-all cursor-pointer hover:bg-gray-50 dark:hover:bg-navy-light/10 flex items-start gap-2.5 ${
-                            notif.read ? 'opacity-60' : 'bg-gold/5 dark:bg-gold/5 font-semibold'
+                          className={`p-3 transition-all cursor-pointer hover:bg-[#142B47]/30 flex items-start gap-2.5 ${
+                            notif.read ? 'opacity-50' : 'bg-[#F4A726]/5 font-semibold'
                           }`}
                         >
-                          <span class="text-xs shrink-0 mt-0.5">
+                          <span className="text-xs shrink-0 mt-0.5">
                             {notif.type === 'breaking' ? '🔴' : notif.type === 'topic' ? '📰' : notif.type === 'subscription' ? '💳' : notif.type === 'welcome' ? '👋' : '🔐'}
                           </span>
                           
-                          <div class="min-w-0 flex-grow text-[11px] leading-relaxed">
-                            <div class="flex justify-between items-start gap-1.5">
-                              <h4 class="text-navy dark:text-gray-300 truncate font-bold text-[10.5px] leading-tight">{notif.title}</h4>
-                              {!notif.read && (
-                                <span class="w-1.5 h-1.5 shrink-0 rounded-full bg-red-655 mt-1"></span>
-                              )}
+                          <div className="min-w-0 flex-grow text-[11px] leading-relaxed">
+                            <div className="flex justify-between items-start gap-1.5">
+                              <h4 className="text-white truncate font-bold text-[10.5px] leading-tight">{notif.title}</h4>
                             </div>
-                            <p class="text-gray-450 dark:text-gray-400 mt-0.5 leading-normal text-[9.5px]">{notif.text}</p>
-                            <span class="text-[8px] text-gray-500 font-mono mt-1 block">
+                            <p className="text-gray-400 mt-0.5 leading-normal text-[9.5px]">{notif.text}</p>
+                            <span className="text-[8px] text-gray-500 font-mono mt-1 block">
                               {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -657,57 +780,40 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                     )}
                   </div>
 
-                  {/* Feature 2: Active Topic Alerts panel */}
                   {userAlerts && userAlerts.length > 0 && (
-                    <div class="border-t border-gray-100 dark:border-gray-800 px-3 py-2 bg-gold/5">
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-[9px] font-black text-gold uppercase tracking-widest flex items-center gap-1">
+                    <div className="border-t border-white/5 px-3 py-2 bg-[#F4A726]/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9px] font-black text-[#F4A726] uppercase tracking-widest flex items-center gap-1">
                           <BellRing size={9} />
                           Your Topic Alerts
                         </span>
                         <button
                           onClick={() => { setIsNotifOpen(false); setView('profile'); }}
-                          class="text-[8px] font-bold text-navy/60 dark:text-gray-400 hover:text-gold uppercase tracking-wider"
+                          className="text-[8px] font-bold text-gray-400 hover:text-[#F4A726] uppercase tracking-wider bg-transparent border-none cursor-pointer"
                         >
                           Manage ↗
                         </button>
                       </div>
-                      <div class="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1">
                         {userAlerts.slice(0, 5).map((alert) => (
                           <span
                             key={alert.id}
-                            class="px-2 py-0.5 bg-gold/10 border border-gold/30 text-navy dark:text-gold text-[9px] font-bold rounded-full"
+                            className="px-1.5 py-0.5 bg-[#F4A726]/10 border border-[#F4A726]/20 text-[#F4A726] text-[8.5px] font-bold rounded"
                           >
                             🔔 {alert.topic}
                           </span>
                         ))}
-                        {userAlerts.length > 5 && (
-                          <span class="text-[9px] text-gray-400 font-bold self-center">+{userAlerts.length - 5} more</span>
-                        )}
                       </div>
                     </div>
                   )}
                 </div>
               )}
-
             </div>
           )}
 
-          <span class="text-gray-300 dark:text-gray-700">|</span>
-
-          {/* User Auth Info */}
+          {/* Header Action Button (GO PRO / PRO / LOGIN) */}
           {user ? (
-            <div class="flex items-center gap-3">
-              {/* Gold Upgrade to PRO button for Basic users */}
-              {subscription?.tier !== 'PRO' && (
-                <button
-                  onClick={() => setView('billing')}
-                  class="bg-gold hover:bg-gold-light text-[#0A1628] font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded shadow transition-all hover:scale-105 shrink-0"
-                >
-                  Upgrade to PRO
-                </button>
-              )}
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button 
                 onClick={() => setView('profile')} 
                 style={{
@@ -720,283 +826,136 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                   gap: '8px'
                 }}
               >
-                <ProfileAvatar user={user} size={38} />
-                <span class="hidden sm:inline max-w-[120px] truncate text-navy dark:text-gray-200 font-semibold hover:text-gold transition-colors">{user.displayName || user.email}</span>
-                {subscription?.tier === 'PRO' && (
-                  <span class="bg-gold/20 text-gold-dark text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider scale-95 border border-gold/10 ml-1">PRO</span>
-                )}
+                <ProfileAvatar user={user} size={28} />
               </button>
-              <button 
-                onClick={logout}
-                class="flex items-center gap-1 text-red-655 hover:text-red-700 font-semibold"
-                title="Logout"
-              >
-                <LogOut size={14} />
-                <span class="hidden sm:inline">Logout</span>
-              </button>
+              {subscription?.tier !== 'PRO' ? (
+                <button 
+                  onClick={() => setView('billing')}
+                  style={{
+                    background: 'var(--gold-primary)',
+                    color: 'var(--navy-darkest)',
+                    padding: '8px 20px',
+                    borderRadius: '4px',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    letterSpacing: '0.5px',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  GO PRO
+                </button>
+              ) : (
+                <button
+                  onClick={() => setView('profile')}
+                  style={{
+                    background: 'rgba(244,167,38,0.1)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--gold-primary)',
+                    padding: '8px 20px',
+                    borderRadius: '4px',
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    letterSpacing: '0.5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  PRO PROFILE
+                </button>
+              )}
             </div>
           ) : (
             <button 
               onClick={openAuthModal}
-              class="flex items-center gap-1.5 hover:text-navy dark:hover:text-gold font-bold text-gray-700 dark:text-gray-300 transition-colors"
+              style={{
+                background: 'var(--gold-primary)',
+                color: 'var(--navy-darkest)',
+                padding: '8px 20px',
+                borderRadius: '4px',
+                fontWeight: '700',
+                fontSize: '12px',
+                letterSpacing: '0.5px',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
-              <LogIn size={14} />
-              <span>Log In / Sign Up</span>
+              GO PRO
             </button>
           )}
         </div>
       </div>
 
-      {/* 3. MAIN LOGO / MASTHEAD */}
-      <div class="max-w-7xl mx-auto px-4 md:px-6 py-6 text-center relative">
-        {/* Hamburger icon on mobile */}
-        <button 
-          onClick={() => {
-            console.log('Hamburger clicked');
-            setIsMenuOpen(true);
-          }}
-          class="hamburger md:hidden absolute right-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-navy dark:text-gold z-[100000]"
-          style={{ minWidth: '44px', minHeight: '44px', cursor: 'pointer' }}
-          title="Open Menu Dropdown"
-        >
-          <Menu size={22} />
-        </button>
-
-        <h1 
-          onClick={() => { onCategoryChange('world'); setSearchQuery(''); setView('feed'); }}
-          class="font-serif text-xl min-[350px]:text-2xl min-[400px]:text-3xl min-[480px]:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-navy dark:text-gold cursor-pointer hover:opacity-90 select-none transition-all duration-300 leading-none px-10 md:px-0"
-        >
-          ECONOMICAL RESEARCH
-        </h1>
-        <p class="mt-2 text-xs sm:text-sm font-serif italic text-navy/70 dark:text-white/80 tracking-widest uppercase font-semibold">
-          &ldquo;Global Economic Intelligence. Powered by Research.&rdquo;
-        </p>
-      </div>
-
-      {/* 4. SEARCH AND NAVBAR */}
-      <div class="max-w-7xl mx-auto px-4 md:px-6 pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-double-navy py-3">
-        {/* Category Navbar */}
-        <nav class="header-nav flex items-center gap-2 overflow-x-auto lg:overflow-x-visible lg:flex-wrap pb-2 lg:pb-0 scrollbar-none font-serif font-bold text-sm tracking-wide shrink-0 lg:shrink max-w-full">
-          
-          {/* E-Paper navbar action */}
-          <button
-            onClick={() => setView('epaper')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'epaper'
-                ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
-            }`}
-          >
-            <Newspaper size={13} class="text-gold" />
-            <span>E-Paper</span>
-          </button>
-
-          {/* ER Assistant navbar action */}
-          <button
-            onClick={() => setView('assistant')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'assistant'
-                ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
-            }`}
-          >
-            <Sparkles size={13} class="text-gold" />
-            <span>ER Assistant</span>
-          </button>
-
-          {/* Fake News Checker navbar action */}
-          <button
-            onClick={() => setView('fake-news')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'fake-news'
-                ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
-            }`}
-          >
-            <span>🔍</span>
-            <span>Fake News Checker</span>
-          </button>
-
-          {/* Bias Detector navbar action */}
-          <button
-            onClick={() => setView('bias-detector')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'bias-detector'
-                ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
-            }`}
-          >
-            <span>⚖️</span>
-            <span>Bias Detector</span>
-          </button>
-
-          {/* World Map navbar action */}
-          <button
-            onClick={() => setView('world-map')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'world-map'
-                ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
-            }`}
-          >
-            <span>🌍</span>
-            <span>World Map</span>
-          </button>
-
-          {/* Outcome Tracker navbar action */}
-          <button
-            onClick={() => setView('outcome-tracker')}
-            class={`px-2.5 py-1.5 flex items-center gap-1.5 border-b-2 font-sans font-black uppercase tracking-wider text-xs shrink-0 transition-all ${
-              view === 'outcome-tracker' || view === 'outcome-detail'
-                ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                : 'border-transparent text-navy hover:text-gold dark:text-gold-light dark:hover:text-gold'
-            }`}
-          >
-            <ClipboardList size={13} class="text-gold" />
-            <span>Outcome Tracker</span>
-          </button>
-
-          <span class="text-gray-300 dark:text-gray-700 shrink-0 font-light mx-1">|</span>
-
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSearchQuery('');
-                onCategoryChange(cat.id);
-                setView('feed');
-              }}
-              class={`px-3 py-1.5 border-b-2 whitespace-nowrap transition-all uppercase ${
-                activeCategory === cat.id && !searchQuery
-                  ? 'border-navy dark:border-gold text-navy dark:text-gold'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-navy dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-700'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </nav>
-
-        {/* Search Bar with live suggestions */}
-        <div ref={suggestionsRef} class="relative w-full lg:w-80">
-          <form onSubmit={handleSearchSubmit} class="relative flex items-center">
-            <input
-              type="text"
-              placeholder="Search wire reports..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              class="w-full pl-8 pr-8 py-2 text-xs font-semibold rounded bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark text-navy dark:text-white focus:outline-none focus:ring-1 focus:ring-gold"
-            />
-            <Search size={14} class="absolute left-2.5 text-gray-400" />
-            {searchQuery && (
-              <button 
-                type="button" 
-                onClick={() => { setSearchQuery(''); setSuggestions([]); }} 
-                class="absolute right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-white"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </form>
-
-          {/* Autocomplete Suggestions & History popup */}
-          {showSuggestions && (searchQuery.trim().length >= 2 || searchHistory.length > 0) && (
-            <div class="absolute z-50 w-full mt-1.5 bg-white dark:bg-paper-cardDark border border-paper-border dark:border-paper-borderDark rounded shadow-lg overflow-hidden text-xs">
-              {/* Live suggestions */}
-              {suggestions.length > 0 && (
-                <div class="py-1">
-                  <div class="px-3 py-1 font-semibold text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    Live Matches
-                  </div>
-                  {suggestions.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSuggestionClick(item)}
-                      class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-navy-light text-navy dark:text-white font-medium truncate"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Search History */}
-              {searchHistory.length > 0 && (
-                <div class="border-t border-paper-border dark:border-paper-borderDark py-1 bg-gray-50/50 dark:bg-paper-dark/30">
-                  <div class="px-3 py-1 flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    <span>Recent Searches</span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); clearSearchHistory(); }}
-                      class="hover:text-red-500 font-bold"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                  {searchHistory.map((item, idx) => (
-                    <div 
-                      key={idx} 
-                      class="flex items-center justify-between hover:bg-gray-50 dark:hover:bg-navy-light px-3 py-1.5 text-navy dark:text-white"
-                    >
-                      <button
-                        onClick={() => handleSuggestionClick(item)}
-                        class="text-left font-medium truncate flex-grow"
-                      >
-                        {item}
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); deleteSearchQuery(item); }}
-                        class="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
-                        title="Delete from history"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+      {/* Breaking news marquee sub-strip */}
+      <div style={{
+        background: '#040910',
+        borderTop: '1px solid var(--border-subtle)',
+        borderBottom: '1px solid var(--border-subtle)',
+        padding: '4px 24px',
+        fontSize: '10px',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        height: '24px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          background: 'var(--gold-primary)',
+          color: 'var(--navy-darkest)',
+          padding: '1px 6px',
+          fontWeight: '900',
+          fontSize: '9px',
+          marginRight: '12px',
+          borderRadius: '2px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }} className="animate-pulse">
+          Breaking
+        </div>
+        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', flexGrow: 1 }}>
+          {tickerNews.length > 0 ? (
+            <span style={{ cursor: 'pointer', fontFamily: 'Inter, sans-serif' }} className="hover:text-gold transition-colors">
+              ✦ {tickerNews[tickerIndex]?.title}
+            </span>
+          ) : (
+            <span style={{ color: 'var(--text-tertiary)' }}>✦ Loading global macroeconomic updates... ✦ Deep synthesis online...</span>
           )}
         </div>
       </div>
 
-      {/* 5. MOBILE DRAWER OVERLAY */}
-      <div class="md:hidden font-sans">
+      {/* MOBILE DRAWER OVERLAY */}
+      <div className="md:hidden font-sans">
         <div 
-          class={`mobile-menu-backdrop ${isMenuOpen ? 'open' : ''}`} 
+          className={`mobile-menu-backdrop ${isMenuOpen ? 'open' : ''}`} 
           onClick={() => setIsMenuOpen(false)}
         ></div>
-        <div class={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
-          <div class="mobile-menu-header">
+        <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+          <div className="mobile-menu-header">
             <span style={{ color: '#F4A726', fontWeight: 'bold', fontSize: '18px', letterSpacing: '2px' }}>MENU</span>
-            <button class="mobile-menu-close" onClick={() => setIsMenuOpen(false)}>✕</button>
+            <button className="mobile-menu-close" onClick={() => setIsMenuOpen(false)}>✕</button>
           </div>
           <div style={{ paddingBottom: '40px' }}>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('foryou'); setView('feed'); setIsMenuOpen(false); }}>For You ⭐</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Home</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Global Affairs</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('india'); setView('feed'); setIsMenuOpen(false); }}>India News</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('politics'); setView('feed'); setIsMenuOpen(false); }}>Policy & Regulation</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('tech'); setView('feed'); setIsMenuOpen(false); }}>Tech & Innovation</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('business'); setView('feed'); setIsMenuOpen(false); }}>Markets & Business</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('finance'); setView('feed'); setIsMenuOpen(false); }}>Economics & Finance</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('science'); setView('feed'); setIsMenuOpen(false); }}>Research & Science</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('environment'); setView('feed'); setIsMenuOpen(false); }}>Climate & Energy</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('health'); setView('feed'); setIsMenuOpen(false); }}>Health</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('education'); setView('feed'); setIsMenuOpen(false); }}>Education</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('law'); setView('feed'); setIsMenuOpen(false); }}>Law & Crime</button>
-            <button class="mobile-menu-item" onClick={() => { onCategoryChange('research'); setView('feed'); setIsMenuOpen(false); }}>Research</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('foryou'); setView('feed'); setIsMenuOpen(false); }}>For You ⭐</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Home</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Global Affairs</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('india'); setView('feed'); setIsMenuOpen(false); }}>India News</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('politics'); setView('feed'); setIsMenuOpen(false); }}>Policy & Regulation</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('tech'); setView('feed'); setIsMenuOpen(false); }}>Tech & Innovation</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('business'); setView('feed'); setIsMenuOpen(false); }}>Markets & Business</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('finance'); setView('feed'); setIsMenuOpen(false); }}>Economics & Finance</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('science'); setView('feed'); setIsMenuOpen(false); }}>Research & Science</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('environment'); setView('feed'); setIsMenuOpen(false); }}>Climate & Energy</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('health'); setView('feed'); setIsMenuOpen(false); }}>Health</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('education'); setView('feed'); setIsMenuOpen(false); }}>Education</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('law'); setView('feed'); setIsMenuOpen(false); }}>Law & Crime</button>
+            <button className="mobile-menu-item" onClick={() => { onCategoryChange('research'); setView('feed'); setIsMenuOpen(false); }}>Research</button>
             
-            <button class="mobile-menu-item" onClick={() => { setView('fake-news'); setIsMenuOpen(false); }} style={{ marginTop: '10px', borderTop: '1px solid #1A3A5C' }}>Fake News Checker</button>
-            <button class="mobile-menu-item" onClick={() => { setView('bias-detector'); setIsMenuOpen(false); }}>Bias Detector</button>
-            <button class="mobile-menu-item" onClick={() => { setView('world-map'); setIsMenuOpen(false); }}>World News Map</button>
-            <button class="mobile-menu-item" onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}>Outcome Tracker</button>
-            <button class="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
-            <button class="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Deep Research Desk</button>
-            <button class="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
+            <button className="mobile-menu-item" onClick={() => { setView('fake-news'); setIsMenuOpen(false); }} style={{ marginTop: '10px', borderTop: '1px solid #1A3A5C' }}>Fake News Checker</button>
+            <button className="mobile-menu-item" onClick={() => { setView('bias-detector'); setIsMenuOpen(false); }}>Bias Detector</button>
+            <button className="mobile-menu-item" onClick={() => { setView('world-map'); setIsMenuOpen(false); }}>World News Map</button>
+            <button className="mobile-menu-item" onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}>Outcome Tracker</button>
+            <button className="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
+            <button className="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Deep Research Desk</button>
+            <button className="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
             
             {user ? (
               <>
@@ -1007,7 +966,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                     gap: '10px',
                     padding: '12px 16px',
                     background: 'rgba(244,167,38,0.1)',
-                    borderRadius: '10px',
+                    borderRadius: '4px',
                     border: '1px solid rgba(244,167,38,0.3)',
                     marginBottom: '16px'
                   }}>
@@ -1031,28 +990,11 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                     </div>
                   </div>
                 </div>
-                <button class="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile Settings</button>
+                <button className="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile Settings</button>
               </>
             ) : (
-              <button class="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
+              <button className="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
             )}
-
-            <div style={{
-              borderTop: '1px solid rgba(255,255,255,0.1)',
-              paddingTop: '16px',
-              marginTop: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              <p style={{
-                color: 'rgba(255,255,255,0.5)',
-                fontSize: '12px',
-                margin: 0
-              }}>Follow Us</p>
-              <SocialLinks />
-            </div>
           </div>
         </div>
       </div>
@@ -1070,7 +1012,6 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           animation: slideRight 0.25s ease-out forwards;
         }
       `}</style>
-      <div className="header-border w-full"></div>
     </header>
   );
 }

@@ -548,83 +548,144 @@ function AppContent() {
       {/* Hero Section Redesign (Homepage only) */}
       {view === 'feed' && activeCategory === 'world' && !searchQuery && (
         <>
-          <div style={{
+          <section style={{
+            background: `linear-gradient(180deg, var(--navy-darkest) 0%, var(--navy-dark) 100%)`,
+            padding: '80px 24px 60px',
             textAlign: 'center',
-            padding: '60px 20px',
-            background: 'linear-gradient(135deg, #0A1628, #1A3A5C)'
+            position: 'relative',
+            overflow: 'hidden'
           }}>
+            {/* Subtle grid pattern background */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: 'linear-gradient(rgba(244,167,38,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(244,167,38,0.03) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+              pointerEvents: 'none'
+            }}/>
+            
+            <div style={{
+              display: 'inline-block',
+              padding: '6px 16px',
+              background: 'rgba(244,167,38,0.1)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '6px',
+              fontSize: '11px',
+              color: 'var(--gold-light)',
+              fontWeight: '600',
+              letterSpacing: '1px',
+              marginBottom: '24px',
+              textTransform: 'uppercase'
+            }}>
+              Trusted by Investors Worldwide
+            </div>
+            
             <h1 style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: '42px',
+              fontFamily: 'Playfair Display, serif',
+              fontSize: 'clamp(32px, 5vw, 56px)',
+              fontWeight: '700',
               color: '#fff',
-              marginBottom: '16px'
+              lineHeight: '1.15',
+              marginBottom: '20px',
+              maxWidth: '800px',
+              margin: '0 auto 20px'
             }}>
-              Global Economic Intelligence
+              Global Economic Intelligence,
+              <br/>
+              <span style={{color: 'var(--gold-primary)'}}>
+                Powered by Research
+              </span>
             </h1>
+            
             <p style={{
-              color: 'rgba(255,255,255,0.7)',
-              fontSize: '18px',
-              maxWidth: '600px',
-              margin: '0 auto 32px'
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '17px',
+              color: 'var(--text-secondary)',
+              maxWidth: '560px',
+              margin: '0 auto 36px',
+              lineHeight: '1.6'
             }}>
-              Trusted insights for investors, businesses and policy makers worldwide
+              In-depth economic analysis, market intelligence 
+              and emerging markets research — for investors, 
+              businesses and policy makers worldwide.
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button 
-                onClick={() => setView('billing')}
-                style={{
-                  background: '#F4A726',
-                  color: '#0A1628',
-                  padding: '14px 28px',
-                  borderRadius: '6px',
-                  fontWeight: '700',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >Start Free</button>
-              <button 
-                onClick={() => navigate('/pricing')} 
-                style={{
-                  background: 'transparent',
-                  color: '#F4A726',
-                  padding: '14px 28px',
-                  borderRadius: '6px',
-                  fontWeight: '700',
-                  border: '1px solid #F4A726',
-                  cursor: 'pointer'
-                }}
-              >See PRO Plans</button>
+            
+            <div style={{display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap'}}>
+              <button onClick={() => setView('billing')} style={{
+                background: 'var(--gold-primary)',
+                color: 'var(--navy-darkest)',
+                padding: '15px 32px',
+                borderRadius: '6px',
+                fontWeight: '700',
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(244,167,38,0.25)'
+              }}>Start Reading Free</button>
+              <button onClick={() => navigate('/pricing')} style={{
+                background: 'transparent',
+                color: '#fff',
+                padding: '15px 32px',
+                borderRadius: '6px',
+                fontWeight: '700',
+                fontSize: '14px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                cursor: 'pointer'
+              }}>Explore PRO →</button>
             </div>
             
             <div style={{
               display: 'flex',
               justifyContent: 'center',
-              gap: '40px',
-              marginTop: '40px',
+              gap: '48px',
+              marginTop: '56px',
               flexWrap: 'wrap'
             }}>
-              <div style={{textAlign: 'center'}}>
-                <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>50+</p>
-                <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Countries Covered</p>
-              </div>
-              <div style={{textAlign: 'center'}}>
-                <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>AI</p>
-                <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Powered Research</p>
-              </div>
-              <div style={{textAlign: 'center'}}>
-                <p style={{color: '#F4A726', fontSize: '24px', fontWeight: '800'}}>Daily</p>
-                <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '12px'}}>Intelligence Reports</p>
-              </div>
+              {[
+                {num: '50+', label: 'Countries Covered'},
+                {num: '24/7', label: 'AI-Powered Analysis'},
+                {num: '10K+', label: 'Research Reports'}
+              ].map(stat => (
+                <div key={stat.label} style={{textAlign: 'left'}}>
+                  <p style={{
+                    fontFamily: 'IBM Plex Mono, monospace',
+                    color: 'var(--gold-primary)',
+                    fontSize: '28px',
+                    fontWeight: '700',
+                    margin: 0
+                  }}>{stat.num}</p>
+                  <p style={{
+                    color: 'var(--text-tertiary)',
+                    fontSize: '12px',
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>{stat.label}</p>
+                </div>
+              ))}
             </div>
-          </div>
+          </section>
 
           {/* Emerging Markets Intelligence Section */}
           <div style={{ background: '#0A1628', borderTop: '1px solid rgba(244,167,38,0.1)' }}>
             <div className="max-w-7xl mx-auto px-4 md:px-6">
               <section style={{padding: '40px 20px'}}>
-                <h2 style={{color: '#fff', marginBottom: '8px', fontFamily: 'Georgia, serif', fontSize: '24px', fontWeight: 'bold'}} className="flex items-center gap-2">
-                  🌍 Emerging Markets Intelligence
-                </h2>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '24px',
+                  paddingBottom: '12px',
+                  borderBottom: '2px solid var(--gold-primary)'
+                }}>
+                  <h2 style={{
+                    fontFamily: 'Playfair Display, serif',
+                    fontSize: '24px',
+                    color: '#fff',
+                    margin: 0,
+                    fontWeight: '700'
+                  }}>🌍 Emerging Markets Intelligence</h2>
+                </div>
                 <p style={{color: 'rgba(255,255,255,0.6)', marginBottom: '24px', fontSize: '14px'}}>
                   Economic data across global markets
                 </p>
@@ -770,7 +831,7 @@ function AppContent() {
             {/* Newsletter Signup Section */}
             <div style={{
               background: 'rgba(244,167,38,0.05)',
-              borderRadius: '12px',
+              borderRadius: '6px',
               padding: '24px',
               textAlign: 'center',
               marginBottom: '32px',

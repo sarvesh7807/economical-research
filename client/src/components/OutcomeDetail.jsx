@@ -170,7 +170,7 @@ export default function OutcomeDetail({ setView, trackerId }) {
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 space-y-8">
         
         {/* Story Summary Card */}
-        <div className="p-6 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-6 rounded-md border border-white/10 shadow-2xl relative overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)' }}>
           
           {/* Top category/status labels */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -232,7 +232,7 @@ export default function OutcomeDetail({ setView, trackerId }) {
             <button
               onClick={handleFollowToggle}
               disabled={togglingFollow}
-              className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all shadow-md ${
                 isFollowing
                   ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/35'
                   : 'bg-gold hover:bg-gold-light text-navy'
@@ -256,7 +256,7 @@ export default function OutcomeDetail({ setView, trackerId }) {
         </div>
 
         {/* Timeline Section */}
-        <div className="p-6 rounded-3xl border border-white/10 shadow-2xl space-y-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-6 rounded-md border border-white/10 shadow-2xl space-y-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
           <h3 className="font-serif text-sm font-black text-white uppercase tracking-widest border-b border-white/5 pb-3">
             Milestone Timeline Log
           </h3>

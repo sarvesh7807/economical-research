@@ -263,121 +263,169 @@ function ArticleCard({ article, isLead }) {
   return (
     <article 
       ref={articleRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      class="glass-card p-5 flex flex-col justify-between relative group rounded-3xl transition-all w-full shrink-0"
-      style={{
-        overflow: 'visible',
-        height: 'auto',
-        maxHeight: 'none'
+      onMouseEnter={(e) => {
+        setHovered(true);
+        e.currentTarget.style.borderColor = 'var(--gold-primary)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.4)';
       }}
+      onMouseLeave={(e) => {
+        setHovered(false);
+        e.currentTarget.style.borderColor = 'var(--border-subtle)';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+      style={{
+        background: 'var(--navy-medium)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'relative',
+        width: '100%',
+        shrink: 0
+      }}
+      className="group"
     >
       <div>
-        {/* Featured Image - Bleeds to top edge */}
+        {/* Featured Image */}
         <div 
-          class={`relative w-full -mx-5 -mt-5 mb-5 overflow-hidden ${
-            isLead ? 'h-56 md:h-64' : 'h-40 md:h-44'
-          }`} 
-          style={{ background: '#1A3A5C', minHeight: isLead ? '220px' : '160px' }}
+          style={{ 
+            position: 'relative', 
+            width: '100%', 
+            height: isLead ? '240px' : '180px', 
+            overflow: 'hidden',
+            background: 'var(--navy-darkest)'
+          }}
         >
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
           <img 
             src={imageUrl} 
             alt={title} 
             loading={isLead ? "eager" : "lazy"}
             fetchPriority={isLead ? "high" : "low"}
             decoding="async"
-            class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'brightness(0.85)',
+              transition: 'transform 0.7s ease-out'
+            }}
+            className="group-hover:scale-110"
             onError={() => setImgError(true)}
           />
-          {/* Overlay Category/Source */}
-          <div class="absolute bottom-3 left-4 z-20">
-             <span class="px-2.5 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] font-bold text-white uppercase tracking-widest font-sans border border-white/20">
-               {source?.name || 'Unknown Source'}
-             </span>
-          </div>
-        </div>
-
-        {/* Top Info Row */}
-        <div class="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 font-sans flex-wrap gap-2">
-          <div class="flex items-center gap-2.5">
-            <span class="flex items-center gap-1 font-mono bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">
-              <Calendar size={10} class="text-primary-glow" />
-              {getRelativeTime(publishedAt)}
+          {/* Category Overlay */}
+          <div style={{ position: 'absolute', bottom: '12px', left: '16px', zIndex: 10 }}>
+            <span style={{
+              fontSize: '10px',
+              color: 'var(--gold-primary)',
+              fontWeight: '700',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              background: 'rgba(6, 13, 23, 0.75)',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-subtle)'
+            }}>
+              {getArticleTopic()}
             </span>
-
-            {/* Voice News Reader */}
-            <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full text-[8.5px] font-sans shrink-0">
-              {!isPlaying ? (
-                <button
-                  onClick={handleListen}
-                  class="flex items-center gap-1 text-gray-500 hover:text-gold transition-colors focus:outline-none font-bold"
-                  title="Listen to Article"
-                >
-                  <span>🔊</span> Listen
-                </button>
-              ) : (
-                <div class="flex items-center gap-1.5 font-bold">
-                  <button
-                    onClick={handlePause}
-                    class="text-gray-500 hover:text-gold transition-colors focus:outline-none flex items-center gap-0.5"
-                    title={isPaused ? "Resume Speech" : "Pause Speech"}
-                  >
-                    <span>{isPaused ? '▶️' : '⏸️'}</span>
-                    <span>{isPaused ? 'Resume' : 'Pause'}</span>
-                  </button>
-                  <span class="text-gray-300">|</span>
-                  <button
-                    onClick={handleStop}
-                    class="text-red-500 hover:text-red-650 transition-colors focus:outline-none flex items-center gap-0.5"
-                    title="Stop Speech"
-                  >
-                    <span>⏹️</span> Stop
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Article Title */}
-        <h3 class={`font-display font-bold leading-tight text-navy dark:text-white hover:text-primary-glow dark:hover:text-primary-glow transition-colors mb-3 ${
-          isLead ? 'text-2xl md:text-3xl line-clamp-3' : 'text-xl md:text-2xl line-clamp-2'
-        }`}>
-          <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
-            {title}
-          </a>
-        </h3>
+        {/* Content Area */}
+        <div style={{ padding: '18px' }}>
+          <h3 style={{
+            fontFamily: 'Playfair Display, serif',
+            fontSize: isLead ? '21px' : '17px',
+            color: '#fff',
+            margin: '0 0 10px',
+            lineHeight: '1.3',
+            fontWeight: '700'
+          }} className="hover:text-gold transition-colors">
+            <a href={url} target="_blank" rel="noopener noreferrer" onClick={handleLinkClick}>
+              {title}
+            </a>
+          </h3>
 
-        {/* Article Description */}
-        <p class={`text-navy/80 dark:text-gray-300 leading-relaxed font-sans mb-5 ${
-          isLead ? 'line-clamp-4' : 'line-clamp-2'
-        } ${
-          settings?.fontSize === 'small' ? 'text-sm' : 
-          settings?.fontSize === 'large' ? 'text-lg' : 'text-base'
-        }`}>
-          {description || 'Full report details are available in the linked release archive.'}
-        </p>
+          <p style={{
+            color: 'var(--text-secondary)',
+            fontSize: '13px',
+            lineHeight: '1.5',
+            fontFamily: 'Inter, sans-serif',
+            margin: '0 0 16px'
+          }} className={isLead ? 'line-clamp-4' : 'line-clamp-2'}>
+            {description || 'Full report details are available in the linked release archive.'}
+          </p>
+        </div>
       </div>
 
-      {/* Share & Copy Row */}
-      <div class="article-actions" style={{ marginTop: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+      {/* Footer Area with Info & Actions */}
+      <div style={{ padding: '0 18px 18px' }}>
+        <p style={{
+          color: 'var(--text-tertiary)',
+          fontSize: '11px',
+          fontFamily: 'IBM Plex Mono, monospace',
+          margin: '0 0 12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>{source?.name || 'Unknown'} · {getRelativeTime(publishedAt)}</span>
+          
+          {/* Voice News Reader */}
+          <span className="flex items-center gap-1 shrink-0 font-sans" style={{ fontSize: '9px' }}>
+            {!isPlaying ? (
+              <button
+                onClick={handleListen}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0 }}
+                className="hover:text-gold"
+                title="Listen to Article"
+              >
+                🔊 Listen
+              </button>
+            ) : (
+              <span className="flex items-center gap-1">
+                <button
+                  onClick={handlePause}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0 }}
+                  className="hover:text-gold"
+                  title={isPaused ? "Resume" : "Pause"}
+                >
+                  {isPaused ? '▶' : '⏸'}
+                </button>
+                <button
+                  onClick={handleStop}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0 }}
+                  title="Stop"
+                >
+                  ⏹
+                </button>
+              </span>
+            )}
+          </span>
+        </p>
+
+        {/* Share & Copy Row */}
+        <div className="article-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
           <button
             onClick={handleCopyLink}
-            class="article-btn"
             style={{
               padding: '6px 12px',
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '6px',
+              borderRadius: '4px',
               color: '#fff',
               cursor: 'pointer',
               fontSize: '11px',
               fontWeight: '600'
             }}
+            className="hover:bg-white/10"
           >
-            <span>{copiedLink ? '✓ Copied!' : 'Copy Link'}</span>
+            <span>{copiedLink ? '✓' : 'Copy Link'}</span>
           </button>
           <button
             onClick={() => {
@@ -385,17 +433,17 @@ function ArticleCard({ article, isLead }) {
               const topic = getArticleTopic();
               trackArticleRead(topic, 3);
             }}
-            class="article-btn"
             style={{
               padding: '6px 12px',
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '6px',
+              borderRadius: '4px',
               color: '#fff',
               cursor: 'pointer',
               fontSize: '11px',
               fontWeight: '600'
             }}
+            className="hover:bg-white/10"
           >
             <span>Share</span>
           </button>
