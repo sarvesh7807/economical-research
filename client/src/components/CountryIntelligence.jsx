@@ -2,10 +2,83 @@ import React, { useState, useEffect } from 'react';
 
 const COUNTRY_CODES = ['IN', 'US', 'GB', 'AE', 'CN', 'BR', 'ID', 'SA'];
 
+const STATIC_COUNTRIES_DATA = [
+  {
+    country: {
+      cca2: 'IN',
+      name: { common: 'India' },
+      flags: { svg: 'https://flagcdn.com/in.svg' },
+      population: 1408000000
+    },
+    gdpGrowth: '7.20'
+  },
+  {
+    country: {
+      cca2: 'US',
+      name: { common: 'United States' },
+      flags: { svg: 'https://flagcdn.com/us.svg' },
+      population: 331900000
+    },
+    gdpGrowth: '2.50'
+  },
+  {
+    country: {
+      cca2: 'GB',
+      name: { common: 'United Kingdom' },
+      flags: { svg: 'https://flagcdn.com/gb.svg' },
+      population: 67330000
+    },
+    gdpGrowth: '0.50'
+  },
+  {
+    country: {
+      cca2: 'AE',
+      name: { common: 'United Arab Emirates' },
+      flags: { svg: 'https://flagcdn.com/ae.svg' },
+      population: 9440000
+    },
+    gdpGrowth: '3.40'
+  },
+  {
+    country: {
+      cca2: 'CN',
+      name: { common: 'China' },
+      flags: { svg: 'https://flagcdn.com/cn.svg' },
+      population: 1412000000
+    },
+    gdpGrowth: '5.20'
+  },
+  {
+    country: {
+      cca2: 'BR',
+      name: { common: 'Brazil' },
+      flags: { svg: 'https://flagcdn.com/br.svg' },
+      population: 215300000
+    },
+    gdpGrowth: '2.90'
+  },
+  {
+    country: {
+      cca2: 'ID',
+      name: { common: 'Indonesia' },
+      flags: { svg: 'https://flagcdn.com/id.svg' },
+      population: 275500000
+    },
+    gdpGrowth: '5.05'
+  },
+  {
+    country: {
+      cca2: 'SA',
+      name: { common: 'Saudi Arabia' },
+      flags: { svg: 'https://flagcdn.com/sa.svg' },
+      population: 36400000
+    },
+    gdpGrowth: '-0.80'
+  }
+];
+
 export default function CountryIntelligence({ setView, setSearchQuery }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [data, setData] = useState(STATIC_COUNTRIES_DATA);
 
   useEffect(() => {
     const fetchCountryGDP = async (countryCode) => {
@@ -16,11 +89,11 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
         const json = await res.json();
         if (json && json[1]) {
           const record = json[1].find(item => item.value !== null);
-          return record ? record.value.toFixed(2) : '3.5';
+          return record ? record.value.toFixed(2) : null;
         }
-        return '3.5';
+        return null;
       } catch(e) {
-        return '3.5';
+        return null;
       }
     };
 
@@ -38,9 +111,6 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
 
     const loadAllData = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
         const results = await Promise.all(
           COUNTRY_CODES.map(async (code) => {
             const [info, gdp] = await Promise.all([
@@ -48,42 +118,27 @@ export default function CountryIntelligence({ setView, setSearchQuery }) {
               fetchCountryGDP(code)
             ]);
             if (info) {
-              return { country: info, gdpGrowth: gdp };
+              const defaultData = STATIC_COUNTRIES_DATA.find(d => d.country.cca2 === code);
+              return { 
+                country: info, 
+                gdpGrowth: gdp || (defaultData ? defaultData.gdpGrowth : '3.50') 
+              };
             }
             return null;
           })
         );
 
         const filtered = results.filter(Boolean);
-        if (filtered.length === 0) {
-          throw new Error("Failed to load country data");
+        if (filtered.length > 0) {
+          setData(filtered);
         }
-        setData(filtered);
       } catch (err) {
-        setError(err.message || "Failed to load country intelligence data");
-      } finally {
-        setLoading(false);
+        console.error("Background fetch for country data failed, keeping static fallback:", err);
       }
     };
 
     loadAllData();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="col-span-full py-8 text-center text-gray-400 dark:text-gray-500 font-mono text-xs uppercase tracking-widest animate-pulse">
-        Compiling Global Macro Data...
-      </div>
-    );
-  }
-
-  if (error || data.length === 0) {
-    return (
-      <div className="col-span-full py-6 text-center text-red-500/80 bg-red-500/5 border border-red-500/10 rounded-xl font-medium text-xs">
-        ⚠️ Macro API data temporarily unavailable. Please retry later.
-      </div>
-    );
-  }
 
   return (
     <>
