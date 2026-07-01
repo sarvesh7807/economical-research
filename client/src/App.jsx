@@ -30,6 +30,8 @@ const OutcomeTracker = React.lazy(() => import('./components/OutcomeTracker'));
 const OutcomeDetail = React.lazy(() => import('./components/OutcomeDetail'));
 const BillingHistory = React.lazy(() => import('./components/BillingHistory'));
 const MultiAgentResearch = React.lazy(() => import('./components/MultiAgentResearch'));
+const ERResearchPage = React.lazy(() => import('./components/ERResearchPage'));
+const ResearchLibraryPage = React.lazy(() => import('./components/ResearchLibraryPage'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -244,6 +246,8 @@ function AppContent() {
         window.history.pushState({}, '', `/outcome-tracker/${idToUse}`);
       } else if (newView === 'er-research') {
         window.history.pushState({}, '', '/er-research');
+      } else if (newView === 'research-library') {
+        window.history.pushState({}, '', '/research-library');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -357,6 +361,8 @@ function AppContent() {
       setViewInternal('outcome-tracker');
     } else if (path === '/er-research' || path === '/research') {
       setViewInternal('er-research');
+    } else if (path === '/research-library') {
+      setViewInternal('research-library');
     } else if (path.startsWith('/research/')) {
       const slug = path.split('/').pop();
       setViewInternal('er-research');
@@ -690,7 +696,9 @@ function AppContent() {
           ) : view === 'assistant' ? (
             <ErAssistantFull />
           ) : view === 'er-research' ? (
-            <MultiAgentResearch />
+            <ERResearchPage />
+          ) : view === 'research-library' ? (
+            <ResearchLibraryPage setView={setView} />
           ) : view === 'fake-news' ? (
             <FakeNewsChecker />
           ) : view === 'bias-detector' ? (

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { createChart } from 'lightweight-charts';
 
-export default function ChartRenderer({ charts }) {
+function ChartRenderer({ charts }) {
   const [activeChartIdx, setActiveChartIdx] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [dateRange, setDateRange] = useState('ALL'); // 'ALL', '1Y', '6M'
@@ -255,3 +255,5 @@ export default function ChartRenderer({ charts }) {
     </div>
   );
 }
+
+export default React.memo(ChartRenderer);

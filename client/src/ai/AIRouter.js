@@ -17,6 +17,11 @@ class AIRouter {
    * @returns {Promise<string>} The text response
    */
   async route(prompt, taskType, options = {}) {
+    const agentName = taskType;
+    const cacheKey = `er_agent_${agentName}_${prompt.slice(0, 50)}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+
     const ranked = manager.rank(taskType);
 
     if (ranked.length === 0) {
@@ -37,6 +42,8 @@ class AIRouter {
 
         manager.recordSuccess(providerId, result.latencyMs);
         Logger.info('AIRouter', `${providerId} responded in ${result.latencyMs}ms (${result.tokensUsed} tokens)`);
+
+        localStorage.setItem(cacheKey, result.text);
 
         // Always return just the text — provider identity is never exposed
         return result.text;

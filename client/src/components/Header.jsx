@@ -623,6 +623,29 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
           >
             🔬 Deep Research
           </button>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setView('research-library');
+            }}
+            style={{
+              background: 'rgba(244,167,38,0.05)',
+              border: '1px solid rgba(244,167,38,0.4)',
+              color: 'var(--gold-primary)',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginLeft: '8px'
+            }}
+            className="hover:bg-[#F4A726] hover:text-navy"
+          >
+            📁 Library
+          </button>
         </nav>
         
         {/* Right Area: Search, Notifications, Auth CTA */}
@@ -979,6 +1002,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <button className="mobile-menu-item" onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}>Outcome Tracker</button>
             <button className="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
             <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('er-research'); setIsMenuOpen(false); }}>🔬 Deep Research</button>
+            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('research-library'); setIsMenuOpen(false); }}>📁 Research Library</button>
             <button className="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Intelligence Assistant</button>
             <button className="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
             
