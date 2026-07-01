@@ -1,27 +1,38 @@
-# AI Multi-Agent Research System Phase 2 — Implementation Plan
+# AI Multi-Agent Research System Phase 2 — Implementation Plan (Revised)
 
 ## Goal
-Implement the **Deep Research Report Engine** with a visible, real-time AI Thinking Process, an expanded 21-section interactive report structure, smart tables, dynamically chosen charts, a confidence system, audience reading modes, and an AI research library.
+Implement the **Deep Research Report Engine** with:
+1. **Visible AI Thinking Process**: A step-by-step actual progress indicator.
+2. **Streaming Report Generation**: Incremental UI updates as each agent completes.
+3. **21-Section Report JSON**: Exhaustive analysis divided into facts vs predictions.
+4. **Interactive components**: Collapsible panels, copying, bookmarking, and sharing.
+5. **Smart Tables & Dynamic Charts**: Multi-type ECharts and TV Candlestick charts.
+6. **Audience Reading Modes**: On-demand text adaptations.
+7. **Research Version History**: Save versions, compare differences, restore old versions, and resume research.
 
 ---
 
-## Architecture Review & Additions
+## Architecture Additions
 
 ```
 client/src/
 ├── ai/
 │   └── agents/
-│       ├── WritingAgent.js          ← UPDATE: generates structured 21-section JSON
-│       └── Orchestrator.js          ← UPDATE: yields fine-grained thinking step events
+│       ├── WritingAgent.js          ← generates structured 21-section JSON
+│       └── Orchestrator.js          ← streams results incrementally via callbacks
+│
+├── research/
+│   └── ResearchMemory.js            ← manages multi-version report structures in Firestore
 │
 ├── components/
 │   ├── research/
-│   │   ├── ThinkingProcessPanel.jsx ← NEW: animated actual progress steps
-│   │   ├── InteractiveSection.jsx   ← NEW: collapsible, copy, share, bookmark, save actions
-│   │   ├── SmartTable.jsx           ← NEW: renders clean, sortable tabular data
-│   │   ├── ReadingModeSelector.jsx  ← NEW: student, investor, executive, beginner, etc.
-│   │   ├── ConfidenceDashboard.jsx  ← NEW: displays confidence scores & source freshness
-│   │   └── LibraryManager.jsx       ← NEW: saves/manages reports in user's research library
+│   │   ├── ThinkingProcessPanel.jsx ← actual animated steps
+│   │   ├── InteractiveSection.jsx   ← collapsible, copy, share, library save actions
+│   │   ├── SmartTable.jsx           ← sortable grid data
+│   │   ├── ReadingModeSelector.jsx  ← student, investor, executive, beginner, etc.
+│   │   ├── ConfidenceDashboard.jsx  ← metrics & freshness score
+│   │   ├── VersionHistoryPanel.jsx  ← NEW: compare versions, restore, view change history
+│   │   └── LibraryManager.jsx       ← saves/manages reports
 │   └── ...
 ```
 
@@ -29,67 +40,35 @@ client/src/
 
 ## Proposed Changes
 
-### 1. Visible AI Thinking Process
-We will replace the loading spinner with a structured, step-by-step progress visualizer (`ThinkingProcessPanel.jsx`). To ensure this progress is **never faked**, the `Orchestrator.js` will send specific events as it completes real tasks:
-- `planner_start` → *Understanding Topic...*
-- `planner_done` → *Planning Research Strategy...*
-- `research_fetch` → *Searching Trusted Sources...*
-- `research_parse` → *Reading Research Papers & Reports...*
-- `finance_start` → *Collecting Financial Data...*
-- `finance_rates` → *Checking Government Reports & Indicators...*
-- `factcheck_start` → *Verifying Facts & Claims...*
-- `citation_start` → *Attributing Citations...*
-- `charts_start` → *Generating Interactive Charts...*
-- `timeline_start` → *Generating Forecast Timeline...*
-- `writing_start` → *Writing Synthesis Report...*
-- `quality_check` → *Checking Quality & Signoffs...*
+### 1. Streaming Report Generation
+Instead of waiting for the full 7-agent pipeline to finish, the orchestrator will update the React state incrementally:
+- **Planner complete** → Yields plan. UI shows the query intent and planned tasks.
+- **Research complete** → Yields raw stats. UI renders *Historical Background*, *Current Situation*, and *Key Stats* tables immediately.
+- **Finance complete** → Yields market signals. UI renders *Financial Analysis*, *Sector Impact*, and *Risk Assessment*.
+- **Chart complete** → Yields chart parameters. UI renders ECharts/TradingView charts.
+- **FactCheck complete** → Yields claim audits. UI renders fact check meters.
+- **Citation complete** → Yields links. UI renders source tables.
+- **Writing complete** → Yields the fully synthesized 21-section final document.
 
-### 2. 21-Section Report Structure
-We will modify the `WritingAgent` to output a structured JSON containing the 21 required sections:
-1. Executive Summary
-2. Key Findings
-3. Historical Background
-4. Current Situation
-5. Global Perspective
-6. Country Comparison
-7. Company Comparison (when applicable)
-8. Industry Analysis
-9. Economic Impact
-10. Financial Analysis
-11. Market Trends
-12. Statistical Analysis
-13. AI Insights
-14. Opportunities
-15. Risks
-16. Best Case Scenario
-17. Worst Case Scenario
-18. Future Outlook
-19. Frequently Asked Questions
-20. Verified Sources
-21. Economical Research AI Final Verdict
+This creates a progressive, streaming research flow that grows in real time.
 
-Each section will be typed as `factual`, `analysis`, or `prediction` to clearly separate factual context from predictions.
+### 2. Research Version History
+We will store report versions in Firestore:
+`research_memory/{userId}/reports/{reportId}/versions/{versionId}`
 
-### 3. Interactive Sections
-`InteractiveSection.jsx` will wrap each of the 21 sections, adding:
-- **Expand / Collapse** toggle
-- **Copy** text to clipboard
-- **Bookmark / Save to Library** (synced to Firestore under `research_library` collection)
-- **Share** (generates a copyable link with local pathing)
+Features implemented:
+- **Save Version**: Every time a report is edited or refreshed, it saves a new version incrementing `reportVersion`.
+- **Compare Versions**: `VersionHistoryPanel.jsx` allows selecting any two versions and showing a side-by-side textual delta.
+- **Restore Version**: Replaces the active report with the contents of the chosen older version.
+- **Continue Research**: Loads the selected version's query and plan parameters back into the active console, allowing users to tweak details and re-run the orchestrator.
 
-### 4. Smart Tables & AI Generated Charts
-- **SmartTable.jsx**: A reusable table renderer with sorting capabilities. If a section contains tabular data in its JSON structure (e.g., GDP rankings, inflation rates), the component automatically renders a clean table.
-- **Chart Detection**: The `ChartAgent` will automatically classify and output the best chart type (Line, Area, Bar, Pie, Candlestick, Heatmap, Timeline, Treemap, Radar) based on the query.
-
-### 5. Confidence System & Reading Modes
-- **ConfidenceDashboard.jsx**: Renders overall indicators for Research, Fact, and Prediction confidence, plus source freshness.
-- **ReadingModeSelector.jsx**: Allows the user to select *Student*, *Investor*, *Researcher*, *Executive*, *Journalist*, or *Beginner*.
-  - When selected, a lightweight client-side call via `AIRouter` takes the section's core facts and reformats the language style dynamically (keeping data unchanged).
+### 3. Visible AI Thinking Process
+`ThinkingProcessPanel.jsx` will animate live events emitted by `Orchestrator.js`. Every step represents actual, non-faked backend agent completions.
 
 ---
 
 ## Verification & Safety Rules
 
-- **Zero regression**: Existing widgets, billing, outcome trackers, search, and admin consoles will remain completely untouched.
-- **Chunk Isolation**: All new components will be loaded inside the lazy `er-research` chunk.
-- **Build Pass**: `npm run build` must complete with zero errors before pushing.
+- **Zero regression**: Authentication, subscriptions, existing chatbots, RSS feeds, and admin panel remain untouched.
+- **Vite bundle split**: Heavy new libraries are isolated inside chunked builds.
+- **Build Pass**: `npm run build` is run and must complete with zero errors before pushing.
