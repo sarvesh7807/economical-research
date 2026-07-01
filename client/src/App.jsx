@@ -32,6 +32,14 @@ const BillingHistory = React.lazy(() => import('./components/BillingHistory'));
 const MultiAgentResearch = React.lazy(() => import('./components/MultiAgentResearch'));
 const ERResearchPage = React.lazy(() => import('./components/ERResearchPage'));
 const ResearchLibraryPage = React.lazy(() => import('./components/ResearchLibraryPage'));
+const LiveEconomicDashboard = React.lazy(() => import('./components/LiveEconomicDashboard'));
+const FinancialIntelligence = React.lazy(() => import('./components/FinancialIntelligence'));
+const CountryIntelligencePage = React.lazy(() => import('./components/CountryIntelligencePage'));
+const CompanyIntelligencePage = React.lazy(() => import('./components/CompanyIntelligencePage'));
+const GlobalComparisonEngine = React.lazy(() => import('./components/GlobalComparisonEngine'));
+const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
+const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntelligence'));
+const EconomicCalendar = React.lazy(() => import('./components/EconomicCalendar'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -216,6 +224,11 @@ function AppContent() {
   const [activeCategory, setActiveCategory] = useState('world');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTrackerId, setSelectedTrackerId] = useState(null);
+  const [selectedCountry, setSelectedCountry] = useState('India');
+  const [selectedCompany, setSelectedCompany] = useState('TSLA');
+  const [selectedAsset, setSelectedAsset] = useState({ symbol: 'AAPL', name: 'Apple Inc.', type: 'stock' });
+  const [comparisonA, setComparisonA] = useState('India');
+  const [comparisonB, setComparisonB] = useState('China');
   
   const setView = (newView, detailId = null) => {
     setViewLoading(true);
@@ -656,6 +669,13 @@ function AppContent() {
           openAuthModal={() => setAuthModalOpen(true)}
           setView={setView}
           view={view}
+          onSelectCountry={setSelectedCountry}
+          onSelectCompany={setSelectedCompany}
+          onSelectAsset={setSelectedAsset}
+          onSelectComparison={(a, b) => {
+            setComparisonA(a);
+            setComparisonB(b);
+          }}
         />
       </ErrorBoundary>
 
@@ -699,6 +719,27 @@ function AppContent() {
             <ERResearchPage />
           ) : view === 'research-library' ? (
             <ResearchLibraryPage setView={setView} />
+          ) : view === 'live-dashboard' ? (
+            <LiveEconomicDashboard setView={setView} />
+          ) : view === 'financials' ? (
+            <FinancialIntelligence setView={setView} selectedAsset={selectedAsset} />
+          ) : view === 'country-intel' ? (
+            <CountryIntelligencePage setView={setView} defaultCountry={selectedCountry} />
+          ) : view === 'company-intel' ? (
+            <CompanyIntelligencePage setView={setView} defaultCompany={selectedCompany} />
+          ) : view === 'comparison' ? (
+            <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
+          ) : view === 'watchlist' ? (
+            <WatchlistManager 
+              setView={setView} 
+              onSelectAsset={setSelectedAsset} 
+              onSelectCountry={setSelectedCountry} 
+              onSelectCompany={setSelectedCompany} 
+            />
+          ) : view === 'news-intel' ? (
+            <LiveNewsIntelligence />
+          ) : view === 'calendar' ? (
+            <EconomicCalendar />
           ) : view === 'fake-news' ? (
             <FakeNewsChecker />
           ) : view === 'bias-detector' ? (

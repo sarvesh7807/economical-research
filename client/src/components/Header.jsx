@@ -4,6 +4,7 @@ import { Sun, Moon, Search, LogIn, LogOut, User as UserIcon, Trash2, X, Settings
 import ProfileAvatar from './ProfileAvatar';
 import SocialLinks from './SocialLinks';
 import { FaXTwitter, FaInstagram } from 'react-icons/fa6';
+import SmartSearch from './SmartSearch';
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -24,7 +25,20 @@ const languages = [
   { code: 'ur', name: 'اردو', flag: '🇵🇰' },
 ];
 
-export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChange, activeCategory, openAuthModal, setView, view }) {
+export default function Header({ 
+  theme, 
+  setTheme, 
+  onSearchSubmit, 
+  onCategoryChange, 
+  activeCategory, 
+  openAuthModal, 
+  setView, 
+  view,
+  onSelectCountry,
+  onSelectCompany,
+  onSelectAsset,
+  onSelectComparison
+}) {
   const { 
     user, 
     logout, 
@@ -573,21 +587,26 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
         {/* Navigation Categories */}
         <nav style={{display: 'flex', gap: '28px', alignItems: 'center'}} className="hidden md:flex">
           {[
-            { name: 'Markets', id: 'business' },
-            { name: 'Economics', id: 'finance' },
-            { name: 'Policy', id: 'politics' },
-            { name: 'Research', id: 'research' },
-            { name: 'Emerging Markets', id: 'india' }
+            { name: 'Markets', id: 'business', isCat: true },
+            { name: 'Dashboard', id: 'live-dashboard' },
+            { name: 'Calendar', id: 'calendar' },
+            { name: 'Comparison', id: 'comparison' },
+            { name: 'Watchlist', id: 'watchlist' },
+            { name: 'News Intel', id: 'news-intel' }
           ].map(item => (
             <a 
               key={item.name} 
               onClick={() => {
                 setSearchQuery('');
-                onCategoryChange(item.id);
-                setView('feed');
+                if (item.isCat) {
+                  onCategoryChange(item.id);
+                  setView('feed');
+                } else {
+                  setView(item.id);
+                }
               }}
               style={{
-                color: activeCategory === item.id && !searchQuery ? 'var(--gold-primary)' : 'var(--text-secondary)',
+                color: (item.isCat ? (activeCategory === item.id && view === 'feed' && !searchQuery) : (view === item.id)) ? 'var(--gold-primary)' : 'var(--text-secondary)',
                 fontSize: '13px',
                 fontWeight: '500',
                 textTransform: 'uppercase',
@@ -595,7 +614,7 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
                 cursor: 'pointer',
                 transition: 'color 0.2s',
                 paddingBottom: '2px',
-                borderBottom: activeCategory === item.id && !searchQuery ? '2px solid var(--gold-primary)' : 'none'
+                borderBottom: (item.isCat ? (activeCategory === item.id && view === 'feed' && !searchQuery) : (view === item.id)) ? '2px solid var(--gold-primary)' : 'none'
               }}
             >
               {item.name}
@@ -650,97 +669,15 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
         
         {/* Right Area: Search, Notifications, Auth CTA */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          {/* Search Bar */}
-          <div ref={suggestionsRef} className="relative hidden sm:block">
-            <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-              <input
-                type="text"
-                placeholder="Search wire reports..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '4px',
-                  padding: '6px 12px 6px 30px',
-                  fontSize: '11px',
-                  color: '#fff',
-                  outline: 'none',
-                  width: '160px',
-                  transition: 'all 0.3s ease'
-                }}
-                className="focus:w-56 focus:border-[#F4A726]/50"
-              />
-              <Search size={12} className="absolute left-2.5 text-gray-400" />
-              {searchQuery && (
-                <button 
-                  type="button" 
-                  onClick={() => { setSearchQuery(''); setSuggestions([]); }} 
-                  className="absolute right-2.5 text-gray-400 hover:text-white bg-transparent border-none cursor-pointer"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </form>
-
-            {/* Suggestions dropdown */}
-            {showSuggestions && (searchQuery.trim().length >= 2 || searchHistory.length > 0) && (
-              <div className="absolute right-0 z-50 w-64 mt-1.5 bg-[#060D17] border border-[#F4A726]/20 rounded shadow-lg overflow-hidden text-xs text-left">
-                {suggestions.length > 0 && (
-                  <div className="py-1">
-                    <div className="px-3 py-1 font-semibold text-[9px] text-gray-500 uppercase tracking-wider">
-                      Live Matches
-                    </div>
-                    {suggestions.map((item, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleSuggestionClick(item)}
-                        className="w-full text-left px-3 py-2 hover:bg-[#142B47] text-white font-medium truncate bg-transparent border-none cursor-pointer"
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {searchHistory.length > 0 && (
-                  <div className="border-t border-[#F4A726]/10 py-1 bg-[#0A1628]/35">
-                    <div className="px-3 py-1 flex justify-between items-center text-[9px] text-gray-500 uppercase tracking-wider">
-                      <span>Recent Searches</span>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); clearSearchHistory(); }}
-                        className="hover:text-red-400 font-bold bg-transparent border-none cursor-pointer text-[8px]"
-                      >
-                        Clear All
-                      </button>
-                    </div>
-                    {searchHistory.map((item, idx) => (
-                      <div 
-                        key={idx} 
-                        className="flex items-center justify-between hover:bg-[#142B47] px-3 py-1.5 text-white"
-                      >
-                        <button
-                          onClick={() => handleSuggestionClick(item)}
-                          className="text-left font-medium truncate flex-grow bg-transparent border-none cursor-pointer text-white"
-                        >
-                          {item}
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); deleteSearchQuery(item); }}
-                          className="text-gray-400 hover:text-red-400 p-1 bg-transparent border-none cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+          {/* Smart Universal Search Bar */}
+          <div className="relative hidden lg:block w-72">
+            <SmartSearch 
+              setView={setView} 
+              onSelectCountry={onSelectCountry} 
+              onSelectCompany={onSelectCompany} 
+              onSelectAsset={onSelectAsset} 
+              onSelectComparison={onSelectComparison} 
+            />
           </div>
 
           {/* Notifications bell */}
@@ -1003,6 +940,11 @@ export default function Header({ theme, setTheme, onSearchSubmit, onCategoryChan
             <button className="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
             <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('er-research'); setIsMenuOpen(false); }}>🔬 Deep Research</button>
             <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('research-library'); setIsMenuOpen(false); }}>📁 Research Library</button>
+            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('live-dashboard'); setIsMenuOpen(false); }}>📊 Live Dashboard</button>
+            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('calendar'); setIsMenuOpen(false); }}>📅 Economic Calendar</button>
+            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('comparison'); setIsMenuOpen(false); }}>⚖️ Global Comparison</button>
+            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('watchlist'); setIsMenuOpen(false); }}>⭐ Watchlist</button>
+            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('news-intel'); setIsMenuOpen(false); }}>📰 News Intelligence</button>
             <button className="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Intelligence Assistant</button>
             <button className="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
             

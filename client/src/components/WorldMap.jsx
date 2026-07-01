@@ -141,8 +141,11 @@ export default function WorldMap({ setView }) {
 
   const handleCountryClick = useCallback((geo) => {
     const name = geo.properties.name;
-    fetchCountryNews(name);
-  }, [fetchCountryNews]);
+    window.dispatchEvent(new CustomEvent('er-research-prefill', {
+      detail: { query: `${name} economic forecast and market report 2026` }
+    }));
+    setView('er-research');
+  }, [setView]);
 
   const handleMouseEnter = useCallback((geo, evt) => {
     setTooltip({
