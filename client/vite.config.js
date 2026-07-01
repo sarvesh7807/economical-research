@@ -56,6 +56,21 @@ export default defineConfig({
             if (id.includes('chart.js')) {
               return 'chartjs-vendor';
             }
+            if (id.includes('echarts')) {
+              return 'echarts-vendor';
+            }
+            if (id.includes('lightweight-charts')) {
+              return 'tradingview-vendor';
+            }
+            if (id.includes('docx')) {
+              return 'docx-vendor';
+            }
+            if (id.includes('pptxgenjs')) {
+              return 'pptx-vendor';
+            }
+            if (id.includes('xlsx')) {
+              return 'excel-vendor';
+            }
             if (id.includes('lucide-react')) {
               return 'lucide-vendor';
             }

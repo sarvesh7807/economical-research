@@ -849,7 +849,7 @@ export default function AdminPanel({ setView }) {
                   <div class="bg-navy/5 dark:bg-white/5 border border-navy/10 dark:border-white/10 rounded-md p-4 space-y-3">
                     <span class="text-[9px] font-mono font-bold text-gold uppercase tracking-widest block">🤖 AI Suggestion Generator</span>
                     <p class="text-[10px] text-gray-500 leading-normal">
-                      Paste news article text below and let Gemini extract the policy details to pre-fill the form.
+                      Paste news article text below and let ER AI extract the policy details to pre-fill the form.
                     </p>
                     <textarea
                       rows={4}

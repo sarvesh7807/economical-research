@@ -29,6 +29,7 @@ const WorldMap = React.lazy(() => import('./components/WorldMap'));
 const OutcomeTracker = React.lazy(() => import('./components/OutcomeTracker'));
 const OutcomeDetail = React.lazy(() => import('./components/OutcomeDetail'));
 const BillingHistory = React.lazy(() => import('./components/BillingHistory'));
+const MultiAgentResearch = React.lazy(() => import('./components/MultiAgentResearch'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -241,6 +242,8 @@ function AppContent() {
       } else if (newView === 'outcome-detail') {
         const idToUse = detailId || selectedTrackerId;
         window.history.pushState({}, '', `/outcome-tracker/${idToUse}`);
+      } else if (newView === 'er-research') {
+        window.history.pushState({}, '', '/er-research');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -352,6 +355,8 @@ function AppContent() {
       setViewInternal('world-map');
     } else if (path === '/outcome-tracker') {
       setViewInternal('outcome-tracker');
+    } else if (path === '/er-research' || path === '/research') {
+      setViewInternal('er-research');
     } else if (path.startsWith('/outcome-tracker/')) {
       const id = path.split('/').pop();
       setSelectedTrackerId(id);
@@ -678,6 +683,8 @@ function AppContent() {
             </ErrorBoundary>
           ) : view === 'assistant' ? (
             <ErAssistantFull />
+          ) : view === 'er-research' ? (
+            <MultiAgentResearch />
           ) : view === 'fake-news' ? (
             <FakeNewsChecker />
           ) : view === 'bias-detector' ? (

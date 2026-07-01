@@ -468,7 +468,7 @@ export default function Billing({ setView }) {
           Subscribers Access Console
         </h1>
         <p class="mt-4 text-sm md:text-base leading-relaxed text-gray-500 font-sans max-w-2xl mx-auto">
-          Lift article paywalls, unlock our Claude-style economic chatbot, and generate detailed PDF intelligence reports directly from global desks. Supporting Indian Rupee payment checkouts.
+          Lift article paywalls, unlock our AI-powered economic chatbot, and generate detailed PDF intelligence reports directly from global desks. Supporting Indian Rupee payment checkouts.
         </p>
       </div>
 

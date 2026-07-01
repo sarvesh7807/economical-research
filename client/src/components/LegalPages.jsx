@@ -86,7 +86,7 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
               <div class="p-4 bg-gray-50 dark:bg-navy-light/10 border border-paper-border dark:border-paper-borderDark rounded">
                 <h4 class="text-xs font-black text-navy dark:text-gold uppercase tracking-wider mb-2">AI-Driven Editorial</h4>
                 <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-serif">
-                  Leveraging cutting-edge language processing (Gemini models) to translate foreign dispatches, outline core key points, and summarize complex market documents.
+                  Leveraging cutting-edge language processing (advanced language models) to translate foreign dispatches, outline core key points, and summarize complex market documents.
                 </p>
               </div>
             </div>
@@ -292,7 +292,7 @@ export default function LegalPages({ setView, initialSection = 'about' }) {
             <ul class="list-disc pl-5 space-y-1">
               <li><strong>Firebase Firestore & Auth</strong>: To synchronize credentials and secure user profile logins across multiple devices.</li>
               <li><strong>Stripe</strong>: Handles all premium PRO payment transactions via highly-encrypted tokenized gateways. We do not store or process raw financial billing details on our servers.</li>
-              <li><strong>AI Providers (Gemini / Claude APIs)</strong>: Transmit active prompts securely to compile dispatches. Prompt logs are not retained by our API partners for model training.</li>
+              <li><strong>Third-party AI Processing APIs</strong>: Transmit active prompts securely to compile dispatches. Prompt logs are not retained by our API partners for model training.</li>
             </ul>
 
             <h4 class="font-sans text-xs font-black text-navy dark:text-gold uppercase tracking-wider pt-2">4. International Disclosures & Regional Rights (GDPR, CCPA, DPDP)</h4>

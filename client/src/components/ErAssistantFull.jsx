@@ -863,7 +863,7 @@ Always be professional, analytical, and cite economic context. Format responses 
 
         {/* Sidebar Footer */}
         <div class="p-3 border-t border-paper-border dark:border-paper-borderDark text-[9px] font-mono text-center text-gray-450 dark:text-gray-500 select-none">
-          Claude Engine v3.5 • Gemini Flash
+          Economical Research AI Engine
         </div>
       </div>
 
@@ -886,7 +886,7 @@ Always be professional, analytical, and cite economic context. Format responses 
                   <Menu size={16} />
                 </button>
                 <Sparkles size={15} class="text-gold" />
-                <span class="font-serif text-[11px] font-black uppercase tracking-wider text-gold">ER Claude Assistant</span>
+                <span class="font-serif text-[11px] font-black uppercase tracking-wider text-gold">ER Intelligence Assistant</span>
               </div>
               {artifactPanelOpen && (
                 <button 
