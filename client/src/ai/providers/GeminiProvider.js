@@ -30,6 +30,7 @@ export default class GeminiProvider extends BaseProvider {
   async generate(prompt, options = {}) {
     const maxTokens = options.maxTokens || 2000;
     const start = Date.now();
+    const errors = [];
 
     for (let attempt = 0; attempt < this._keys.length * GEMINI_MODELS.length; attempt++) {
       const key = this._nextKey();
@@ -37,7 +38,8 @@ export default class GeminiProvider extends BaseProvider {
       const model = GEMINI_MODELS[Math.floor(attempt / this._keys.length) % GEMINI_MODELS.length];
 
       try {
-        const res = await fetch(`${BASE_URL}/${model}:generateContent?key=${key}`, {
+        const url = `${BASE_URL}/${model}:generateContent?key=${key}`;
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -46,19 +48,58 @@ export default class GeminiProvider extends BaseProvider {
           }),
         });
 
-        if (res.status === 429) continue; // rate limited — try next key
-        if (!res.ok) continue;
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const tokensUsed = (data.usageMetadata?.totalTokenCount) || Math.ceil(text.length / 4);
+          return { text, tokensUsed, latencyMs: Date.now() - start };
+        }
 
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const tokensUsed = (data.usageMetadata?.totalTokenCount) || Math.ceil(text.length / 4);
+        // Error handling (Requirement 6 & 7)
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          if (errBody && errBody.error) {
+            errMsg = `${res.status} ${errBody.error.status}: ${errBody.error.message}`;
+          }
+        } catch (e) {
+          try {
+            const txt = await res.text();
+            if (txt) errMsg = `${res.status}: ${txt}`;
+          } catch (e2) {}
+        }
 
-        return { text, tokensUsed, latencyMs: Date.now() - start };
-      } catch {
-        continue;
+        console.error(`Gemini API Error details for model ${model}:`, errMsg);
+        errors.push(`${model} -> ${errMsg}`);
+
+        if (res.status === 429) {
+          continue;
+        }
+
+        if (res.status === 400) {
+          throw new Error(`400 Bad Request - ${errMsg}`);
+        } else if (res.status === 401) {
+          throw new Error(`401 Unauthorized - ${errMsg}`);
+        } else if (res.status === 403) {
+          throw new Error(`403 Permission/Quota - ${errMsg}`);
+        } else if (res.status === 404) {
+          throw new Error(`404 Model/Endpoint Not Found - ${errMsg}`);
+        } else {
+          throw new Error(`${res.status} Server Error - ${errMsg}`);
+        }
+
+      } catch (err) {
+        if (err.message.includes('Bad Request') || 
+            err.message.includes('Unauthorized') || 
+            err.message.includes('Permission/Quota') || 
+            err.message.includes('Not Found') ||
+            err.message.includes('Server Error')) {
+          throw err;
+        }
+        errors.push(`${model} -> Network/Parse error: ${err.message}`);
       }
     }
-    throw new Error('GeminiProvider: all keys exhausted or rate limited');
+    throw new Error(`GeminiProvider: All attempts failed. Errors: ${errors.join(' | ')}`);
   }
 
   async healthCheck() {
