@@ -31,9 +31,17 @@ export const AGENT_STEPS = [
  */
 export async function runOrchestrator(query, userId = null, onProgress = () => {}) {
   let jobId = null;
+  
+  // Accumulated result that is updated and passed in the callback for streaming rendering
+  let streamingResult = {
+    query,
+    generatedAt: new Date().toISOString(),
+    reportVersion: 1,
+    fromCache: false,
+  };
 
-  const progress = async (agentId, status, data = null) => {
-    onProgress(agentId, status, data);
+  const progress = async (agentId, status) => {
+    onProgress(agentId, status, { ...streamingResult });
     if (userId && jobId) {
       await jobQueue.update(userId, jobId, {
         [`agentProgress.${agentId}`]: status,
@@ -43,7 +51,6 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
   };
 
   try {
-    // Create job record
     if (userId) {
       const { jobId: jid } = await jobQueue.enqueue(userId, 'deep-research', { query });
       jobId = jid;
@@ -62,12 +69,14 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
     // ─── Agent 1: Planner ───────────────────────────────────────────────
     await progress('planner', 'running');
     const plan = await PlannerAgent(query);
-    await progress('planner', 'done', plan);
+    streamingResult.plan = plan;
+    await progress('planner', 'done');
 
     // ─── Agent 2: Research ──────────────────────────────────────────────
     await progress('research', 'running');
     const research = await ResearchAgent(plan, query, graphContext);
-    await progress('research', 'done', research);
+    streamingResult.research = research;
+    await progress('research', 'done');
 
     // ─── Agents 3, 4, 5 in parallel ─────────────────────────────────────
     await progress('finance',   'running');
@@ -79,41 +88,37 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
       ChartAgent(  {},     research, plan),
       FactCheckAgent(plan, research),
     ]);
-    await progress('finance',   'done', finance);
-    await progress('chart',     'done', charts);
-    await progress('factcheck', 'done', factCheck);
+    
+    streamingResult.finance = finance;
+    await progress('finance', 'done');
+    
+    streamingResult.charts = charts;
+    await progress('chart', 'done');
+    
+    streamingResult.factCheck = factCheck;
+    await progress('factcheck', 'done');
 
     // ─── Agent 6: Citation ───────────────────────────────────────────────
     await progress('citation', 'running');
     const citation = await CitationAgent(research);
-    await progress('citation', 'done', citation);
+    streamingResult.citation = citation;
+    await progress('citation', 'done');
 
     // ─── Agent 7: Writing ────────────────────────────────────────────────
     await progress('writing', 'running');
-    const report = await WritingAgent({ query, plan, research, finance, factCheck, citation });
+    const reportJson = await WritingAgent({ query, plan, research, finance, factCheck, citation });
+    streamingResult.reportJson = reportJson; // Keep structured JSON
+    streamingResult.report = (reportJson.sections || []).map(s => `# ${s.title}\n${s.content}`).join('\n\n'); // Markdown compatibility
     await progress('writing', 'done');
 
     // ─── Timeline ────────────────────────────────────────────────────────
     const timeline = TimelineEngine.generate(research, finance, plan);
-
-    // ─── Assemble result ─────────────────────────────────────────────────
-    const result = {
-      query,
-      plan,
-      research,
-      finance,
-      charts,
-      factCheck,
-      citation,
-      report,
-      timeline,
-      generatedAt: new Date().toISOString(),
-      reportVersion: 1,
-      fromCache: false,
-    };
+    streamingResult.timeline = timeline;
 
     // ─── Persist to memory + knowledge graph ─────────────────────────────
-    const reportId = await ResearchMemory.save(result, userId);
+    const reportId = await ResearchMemory.save(streamingResult, userId);
+    streamingResult.reportId = reportId;
+    
     await KnowledgeGraph.ingestEntities(research.entities || [], reportId);
 
     if (userId && jobId) {
@@ -125,7 +130,7 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
     }
 
     Logger.info('Orchestrator', `Research complete. Report ID: ${reportId}`);
-    return { ...result, reportId };
+    return streamingResult;
 
   } catch (err) {
     monitoring.captureError(err, { query, userId, jobId });

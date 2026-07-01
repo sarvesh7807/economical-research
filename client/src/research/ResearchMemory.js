@@ -46,7 +46,6 @@ class ResearchMemory {
 
   /**
    * Find a similar past report.
-   * @returns {object|null} cached report or null
    */
   async findSimilar(query, userId = null) {
     try {
@@ -54,7 +53,6 @@ class ResearchMemory {
       const hash  = hashQuery(query);
       const col   = this._col(userId);
 
-      // 1. Exact hash match
       const exactQ = firestoreQuery(col, where('queryHash', '==', hash), limit(1));
       const exactSnap = await getDocs(exactQ);
       if (!exactSnap.empty) {
@@ -64,12 +62,10 @@ class ResearchMemory {
         if (age < FUZZY_CACHE_TTL_MS) return { ...data, isExact: false, isStale: true, cacheAge: age };
       }
 
-      // 2. Vector search (no-op until Pinecone provisioned)
       if (vectorStore.isAvailable()) {
         // Future: semantic search
       }
 
-      // 3. Term overlap on recent reports
       const recentQ = firestoreQuery(col, orderBy('generatedAt', 'desc'), limit(20));
       const recentSnap = await getDocs(recentQ);
       for (const d of recentSnap.docs) {
@@ -87,19 +83,37 @@ class ResearchMemory {
     }
   }
 
-  /** @returns {Promise<string>} reportId */
+  /**
+   * Saves report and registers a historical version.
+   * @returns {Promise<string>} reportId
+   */
   async save(result, userId = null) {
     try {
-      const reportId = `report_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      const ref = doc(this._col(userId), reportId);
+      const col = this._col(userId);
+      let reportId = result.reportId;
+      let nextVersion = 1;
 
-      await setDoc(ref, {
+      if (reportId) {
+        // Fetch existing version count
+        const ref = doc(col, reportId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const current = snap.data();
+          nextVersion = (current.reportVersion || 1) + 1;
+        }
+      } else {
+        reportId = `report_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      }
+
+      const mainRef = doc(col, reportId);
+      const reportPayload = {
         id:             reportId,
         query:          result.query,
         queryNormalized: normalizeQuery(result.query),
         queryHash:      hashQuery(result.query),
         queryTerms:     extractTerms(result.query),
         report:         result.report || '',
+        reportJson:     result.reportJson || null,
         executiveSummary: (result.report || '').slice(0, 500),
         keyStats:       result.research?.keyStats || [],
         charts:         result.charts || [],
@@ -109,16 +123,75 @@ class ResearchMemory {
         factCheck:      result.factCheck || {},
         finance:        result.finance || {},
         knowledgeEntities: (result.research?.entities || []).map(e => ({ name: e })),
-        aiReasoningSummary: `7-agent pipeline by Economical Research AI. Risk: ${result.finance?.riskLevel || 'N/A'}`,
+        aiReasoningSummary: `7-agent pipeline. Risk: ${result.finance?.riskLevel || 'N/A'}`,
         generatedAt:    serverTimestamp(),
-        reportVersion:  1,
+        reportVersion:  nextVersion,
         sectionsStale:  [],
-      });
+      };
 
-      Logger.info('ResearchMemory', `Saved report ${reportId}`);
+      await setDoc(mainRef, reportPayload);
+
+      // Save subcollection version history
+      if (userId) {
+        const versionRef = doc(db, 'research_memory', userId, 'reports', reportId, 'versions', `v${nextVersion}`);
+        await setDoc(versionRef, {
+          version: nextVersion,
+          savedAt: Date.now(),
+          ...reportPayload,
+          generatedAt: Date.now(), // Store numeric timestamp for simplicity inside versions
+        });
+      }
+
+      Logger.info('ResearchMemory', `Saved report version v${nextVersion} for ID ${reportId}`);
       return reportId;
     } catch (err) {
       Logger.error('ResearchMemory', 'save failed', { err: err.message });
+      return null;
+    }
+  }
+
+  /**
+   * Fetch all saved versions for a report.
+   * @returns {Promise<Array>} versions list
+   */
+  async getVersions(userId, reportId) {
+    if (!userId || !reportId) return [];
+    try {
+      const col = collection(db, 'research_memory', userId, 'reports', reportId, 'versions');
+      const q = firestoreQuery(col, orderBy('version', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data());
+    } catch (err) {
+      Logger.warn('ResearchMemory', 'getVersions failed', { err: err.message });
+      return [];
+    }
+  }
+
+  /**
+   * Restore an older version.
+   */
+  async restoreVersion(userId, reportId, versionNumber) {
+    if (!userId || !reportId) return null;
+    try {
+      const versionRef = doc(db, 'research_memory', userId, 'reports', reportId, 'versions', `v${versionNumber}`);
+      const snap = await getDoc(versionRef);
+      if (!snap.exists()) return null;
+
+      const versionData = snap.data();
+      const mainRef = doc(this._col(userId), reportId);
+      
+      // Update main document to match restored version
+      const restoredPayload = {
+        ...versionData,
+        generatedAt: serverTimestamp(),
+        reportVersion: versionNumber, // Keep version number
+      };
+      delete restoredPayload.savedAt;
+
+      await setDoc(mainRef, restoredPayload);
+      return restoredPayload;
+    } catch (err) {
+      Logger.error('ResearchMemory', 'restoreVersion failed', { err: err.message });
       return null;
     }
   }
@@ -145,6 +218,5 @@ class ResearchMemory {
   }
 }
 
-// named import alias for Firestore query
 const firestoreQuery = query;
 export default new ResearchMemory();

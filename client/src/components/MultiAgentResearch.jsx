@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { runOrchestrator } from '../ai/agents/Orchestrator';
 import researchMemory from '../research/ResearchMemory';
 import knowledgeGraph from '../research/KnowledgeGraph';
-import AgentStatusPanel from './research/AgentStatusPanel';
+import ThinkingProcessPanel from './research/ThinkingProcessPanel';
 import ReportViewer from './research/ReportViewer';
 import TimelineViewer from './research/TimelineViewer';
 import KnowledgeGraphViewer from './research/KnowledgeGraphViewer';
@@ -12,6 +12,13 @@ import FactCheckMeter from './research/FactCheckMeter';
 import ChartRenderer from './research/ChartRenderer';
 import ExportPanel from './research/ExportPanel';
 import ResearchHistoryPanel from './research/ResearchHistoryPanel';
+import ReadingModeSelector from './research/ReadingModeSelector';
+import ConfidenceDashboard from './research/ConfidenceDashboard';
+import VersionHistoryPanel from './research/VersionHistoryPanel';
+import LibraryManagerComponent from './research/LibraryManager';
+import libraryManager from '../research/LibraryManager';
+import AIRouter from '../ai/AIRouter';
+import { parseJsonSafely } from '../ai/agents/agentUtils';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
 
 const EXAMPLE_PROMPTS = [
@@ -25,6 +32,7 @@ export default function MultiAgentResearch() {
   const { user, subscription } = useAuth();
   const [queryInput, setQueryInput] = useState('');
   const [running, setRunning] = useState(false);
+  const [adapting, setAdapting] = useState(false);
   const [progress, setProgress] = useState({});
   const [error, setError] = useState(null);
   const [report, setReport] = useState(null);
@@ -33,9 +41,23 @@ export default function MultiAgentResearch() {
   const [history, setHistory] = useState([]);
   const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
   const [prefillContext, setPrefillContext] = useState(null);
+  
+  // Reading mode and bookmarks
+  const [activeReadingMode, setActiveReadingMode] = useState('researcher');
+  const [bookmarkedSections, setBookmarkedSections] = useState([]);
 
   // Daily limit check
   const [dailyRemaining, setDailyRemaining] = useState('unlimited');
+
+  const loadBookmarks = async () => {
+    if (!user) return;
+    try {
+      const bms = await libraryManager.getBookmarks(user.uid);
+      setBookmarkedSections(bms);
+    } catch (err) {
+      console.error('Failed to load bookmarks:', err);
+    }
+  };
 
   // Load history & graph on mount/user change
   useEffect(() => {
@@ -44,6 +66,7 @@ export default function MultiAgentResearch() {
         if (user) {
           const pastReports = await researchMemory.getHistory(user.uid, 15);
           setHistory(pastReports);
+          await loadBookmarks();
         }
         const currentGraph = await knowledgeGraph.getGraph(60);
         setGraphData(currentGraph);
@@ -93,10 +116,15 @@ export default function MultiAgentResearch() {
     setProgress({});
     setError(null);
     setReport(null);
+    setActiveReadingMode('researcher');
 
     try {
       const result = await runOrchestrator(q, user ? user.uid : null, (agentId, status, data) => {
         setProgress(prev => ({ ...prev, [agentId]: status }));
+        if (data) {
+          // Stream results live to report state
+          setReport(data);
+        }
       });
       
       setReport(result);
@@ -128,6 +156,77 @@ export default function MultiAgentResearch() {
     setQueryInput(pastReport.query);
     setPrefillContext(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBookmarkSection = async (section) => {
+    if (!user) {
+      alert('Authentication Required: Please log in to bookmark sections to your Research Library.');
+      return;
+    }
+    await libraryManager.saveBookmark(user.uid, report, section);
+    await loadBookmarks();
+  };
+
+  const handleReadingModeChange = async (newMode) => {
+    if (!report || newMode === activeReadingMode) {
+      setActiveReadingMode(newMode);
+      return;
+    }
+
+    setAdapting(true);
+    setActiveReadingMode(newMode);
+
+    try {
+      const originalSections = report.reportJson?.sections || [];
+      const sectionsString = JSON.stringify(originalSections.map(s => ({ id: s.id, content: s.content })));
+      
+      const prompt = `You are a professional financial editor. Re-write the following sections of an economic report to suit a ${newMode} audience.
+      
+      Rules:
+      - DO NOT alter any factual data, numbers, dates, rates, or core findings.
+      - Translate the tone to match the target audience persona:
+        * beginner: Explain any financial jargon simply, keep sentences clean.
+        * student: Highly educational, explanatory, and structured.
+        * investor: Focus on asset classes, yield changes, ROI, and actionable risks.
+        * executive: Direct, summary bullet-points, actions first.
+        * journalist: Narrative-driven, strong lead hooks, headline summaries.
+        * researcher: Highly technical, standard academic phrasing.
+      - Maintain the exact same section IDs.
+      
+      Return ONLY a valid JSON array matching this structure (no markdown fences, no comments):
+      [
+        { "id": "exec_summary", "content": "..." },
+        ...
+      ]
+      
+      Original Sections Data:
+      ${sectionsString}`;
+
+      const response = await AIRouter.route(prompt, 'writing', { maxTokens: 3500 });
+      const parsed = parseJsonSafely(response);
+      
+      if (parsed && Array.isArray(parsed)) {
+        const updatedSections = originalSections.map(original => {
+          const adapted = parsed.find(p => p.id === original.id);
+          return {
+            ...original,
+            content: adapted ? adapted.content : original.content
+          };
+        });
+        
+        setReport(prev => ({
+          ...prev,
+          reportJson: {
+            ...prev.reportJson,
+            sections: updatedSections
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Reading mode adaptation failed:', err);
+    } finally {
+      setAdapting(false);
+    }
   };
 
   return (
@@ -209,7 +308,7 @@ export default function MultiAgentResearch() {
       {/* Progress Dashboard */}
       {running && (
         <div className="animate-fadeIn">
-          <AgentStatusPanel agentProgress={progress} status="running" />
+          <ThinkingProcessPanel progress={progress} />
         </div>
       )}
 
@@ -224,8 +323,8 @@ export default function MultiAgentResearch() {
         </div>
       )}
 
-      {/* Final Report Dashboard */}
-      {report && !running && (
+      {/* Streaming / Final Report Dashboard */}
+      {report && (
         <div className="space-y-8 animate-fadeIn">
           
           {/* Main 2-column Grid */}
@@ -233,12 +332,39 @@ export default function MultiAgentResearch() {
             
             {/* Left: Report Content */}
             <div className="lg:col-span-2 space-y-6">
-              <ReportViewer reportText={report.report} />
+              {adapting && (
+                <div className="p-3 bg-[#F4A726]/10 border border-[#F4A726]/30 text-[#F4A726] text-[10px] font-mono rounded animate-pulse">
+                  ⚡ Re-compiling report language style to suit target persona...
+                </div>
+              )}
+              <ReportViewer 
+                report={report} 
+                onBookmarkSection={handleBookmarkSection}
+                bookmarkedSections={bookmarkedSections}
+              />
               {report.timeline && <TimelineViewer timeline={report.timeline} />}
             </div>
 
             {/* Right: Charts, Citations, Reliability, Export */}
             <div className="space-y-6">
+              <ReadingModeSelector 
+                activeMode={activeReadingMode} 
+                onChangeMode={handleReadingModeChange}
+                disabled={running || adapting}
+              />
+
+              <ConfidenceDashboard report={report} />
+
+              {!running && user && (
+                <VersionHistoryPanel 
+                  userId={user.uid}
+                  reportId={report.id || report.reportId}
+                  currentVersion={report.reportVersion || 1}
+                  onRestoreReport={(restored) => setReport(restored)}
+                  onContinueResearch={(v) => { setQueryInput(v.query); setReport(v); }}
+                />
+              )}
+
               <ExportPanel reportData={report} subscription={subscription} />
               
               {report.charts && report.charts.length > 0 && (
@@ -259,13 +385,19 @@ export default function MultiAgentResearch() {
         </div>
       )}
 
-      {/* Knowledge Graph Board & History Ledger */}
+      {/* Knowledge Graph Board, History & Library */}
       {!running && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4 border-t border-[#F4A726]/10">
           <div className="lg:col-span-2">
             <KnowledgeGraphViewer graphData={graphData} />
           </div>
-          <div>
+          <div className="space-y-6">
+            {user && (
+              <LibraryManagerComponent 
+                userId={user.uid}
+                onSelectReport={handleSelectPastReport}
+              />
+            )}
             <ResearchHistoryPanel history={history} onSelectReport={handleSelectPastReport} />
           </div>
         </div>
