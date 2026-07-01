@@ -932,7 +932,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             width: '100%',
             maxWidth: '1200px',
             margin: '0 auto',
-            gap: '40px'
+            gap: '40px',
+            overflow: 'hidden'
           }}>
             {/* 3. ER Intelligence (3 featured articles) */}
             <div style={{ padding: '0 24px', width: '100%' }}>

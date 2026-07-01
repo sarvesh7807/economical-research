@@ -479,6 +479,14 @@ function AppContent() {
       {/* Sticky market ticker bar above header */}
       {tickerData.show && (
         <div style={{
+          width: '100%',
+          maxWidth: '100vw',
+          overflow: 'hidden',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50
+        }}>
+        <div style={{
           background: '#0A1628',
           borderBottom: '1px solid rgba(244,167,38,0.3)',
           padding: '8px 16px',
@@ -487,15 +495,13 @@ function AppContent() {
           overflowX: 'auto',
           fontSize: '12px',
           color: '#fff',
-          whiteSpace: 'nowrap',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50
+          whiteSpace: 'nowrap'
         }}>
           <span>📈 Sensex: <strong>{tickerData.sensexValue}</strong></span>
           <span>💱 USD/INR: <strong>{tickerData.usdInr}</strong></span>
           <span>🥇 Gold: <strong>{tickerData.goldPrice}</strong></span>
           <span>🛢️ Crude: <strong>{tickerData.oilPrice}</strong></span>
+        </div>
         </div>
       )}
 
