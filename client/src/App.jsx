@@ -357,6 +357,12 @@ function AppContent() {
       setViewInternal('outcome-tracker');
     } else if (path === '/er-research' || path === '/research') {
       setViewInternal('er-research');
+    } else if (path.startsWith('/research/')) {
+      const slug = path.split('/').pop();
+      setViewInternal('er-research');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('er-research-load-public', { detail: { slug } }));
+      }, 500);
     } else if (path.startsWith('/outcome-tracker/')) {
       const id = path.split('/').pop();
       setSelectedTrackerId(id);

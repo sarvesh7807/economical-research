@@ -27,16 +27,20 @@ export const AGENT_STEPS = [
  * @param {string} query
  * @param {string|null} userId
  * @param {function} onProgress   callback(agentId, status, data?)
+ * @param {object|null} refreshOptions { reportId, existingReport }
  * @returns {Promise<object>} full report object
  */
-export async function runOrchestrator(query, userId = null, onProgress = () => {}) {
+export async function runOrchestrator(query, userId = null, onProgress = () => {}, refreshOptions = null) {
   let jobId = null;
-  
+  let reportId = refreshOptions?.reportId || null;
+  let nextVersion = refreshOptions ? (refreshOptions.existingReport?.reportVersion || 1) + 1 : 1;
+
   // Accumulated result that is updated and passed in the callback for streaming rendering
   let streamingResult = {
     query,
+    reportId,
     generatedAt: new Date().toISOString(),
-    reportVersion: 1,
+    reportVersion: nextVersion,
     fromCache: false,
   };
 
@@ -56,21 +60,30 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
       jobId = jid;
     }
 
-    // Check research memory for cached result
-    const cached = await ResearchMemory.findSimilar(query, userId);
-    if (cached && cached.isExact) {
-      onProgress('_cache', 'hit', cached);
-      return { ...cached, fromCache: true };
+    // Skip cache check if performing a refresh
+    if (!refreshOptions) {
+      const cached = await ResearchMemory.findSimilar(query, userId);
+      if (cached && cached.isExact) {
+        onProgress('_cache', 'hit', cached);
+        return { ...cached, fromCache: true };
+      }
     }
 
-    // Pull knowledge graph context for query enrichment
     const graphContext = await KnowledgeGraph.enrichQuery(query);
 
     // ─── Agent 1: Planner ───────────────────────────────────────────────
-    await progress('planner', 'running');
-    const plan = await PlannerAgent(query);
-    streamingResult.plan = plan;
-    await progress('planner', 'done');
+    let plan;
+    if (refreshOptions && refreshOptions.existingReport?.plan) {
+      plan = refreshOptions.existingReport.plan;
+      streamingResult.plan = plan;
+      // Emit done event immediately since we reused it
+      onProgress('planner', 'done', { ...streamingResult });
+    } else {
+      await progress('planner', 'running');
+      plan = await PlannerAgent(query);
+      streamingResult.plan = plan;
+      await progress('planner', 'done');
+    }
 
     // ─── Agent 2: Research ──────────────────────────────────────────────
     await progress('research', 'running');
@@ -107,8 +120,21 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
     // ─── Agent 7: Writing ────────────────────────────────────────────────
     await progress('writing', 'running');
     const reportJson = await WritingAgent({ query, plan, research, finance, factCheck, citation });
-    streamingResult.reportJson = reportJson; // Keep structured JSON
-    streamingResult.report = (reportJson.sections || []).map(s => `# ${s.title}\n${s.content}`).join('\n\n'); // Markdown compatibility
+    
+    // Smart Refresh: Merge and preserve historical background section exactly
+    if (refreshOptions && refreshOptions.existingReport?.reportJson?.sections) {
+      const oldSections = refreshOptions.existingReport.reportJson.sections;
+      const oldHistory = oldSections.find(s => s.id === 'historical_bg');
+      if (oldHistory && reportJson.sections) {
+        reportJson.sections = reportJson.sections.map(s => {
+          if (s.id === 'historical_bg') return oldHistory;
+          return s;
+        });
+      }
+    }
+
+    streamingResult.reportJson = reportJson;
+    streamingResult.report = (reportJson.sections || []).map(s => `# ${s.title}\n${s.content}`).join('\n\n');
     await progress('writing', 'done');
 
     // ─── Timeline ────────────────────────────────────────────────────────
@@ -118,6 +144,7 @@ export async function runOrchestrator(query, userId = null, onProgress = () => {
     // ─── Persist to memory + knowledge graph ─────────────────────────────
     const reportId = await ResearchMemory.save(streamingResult, userId);
     streamingResult.reportId = reportId;
+    streamingResult.id = reportId; // Ensure id property matches
     
     await KnowledgeGraph.ingestEntities(research.entities || [], reportId);
 

@@ -17,6 +17,8 @@ import ConfidenceDashboard from './research/ConfidenceDashboard';
 import VersionHistoryPanel from './research/VersionHistoryPanel';
 import LibraryManagerComponent from './research/LibraryManager';
 import libraryManager from '../research/LibraryManager';
+import RefreshButton from './research/RefreshButton';
+import CitationsPanel from './research/CitationsPanel';
 import AIRouter from '../ai/AIRouter';
 import { parseJsonSafely } from '../ai/agents/agentUtils';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
@@ -101,6 +103,32 @@ export default function MultiAgentResearch() {
     return () => window.removeEventListener('er-research-prefill', handlePrefill);
   }, [user, subscription]);
 
+  // Listen for shareable URL load event
+  useEffect(() => {
+    const handleLoadPublic = async (e) => {
+      if (e.detail && e.detail.slug) {
+        setRunning(true);
+        setError(null);
+        setReport(null);
+        try {
+          const publicReport = await researchMemory.getPublicReport(e.detail.slug);
+          if (publicReport) {
+            setReport(publicReport);
+            setQueryInput(publicReport.query);
+          } else {
+            setError(`The shared research brief "${e.detail.slug}" could not be found or retrieved from public ledger.`);
+          }
+        } catch (err) {
+          setError('Failed to retrieve public research brief.');
+        } finally {
+          setRunning(false);
+        }
+      }
+    };
+    window.addEventListener('er-research-load-public', handleLoadPublic);
+    return () => window.removeEventListener('er-research-load-public', handleLoadPublic);
+  }, []);
+
   const handleTriggerResearch = async (targetQuery) => {
     const q = targetQuery || queryInput;
     if (!q.trim()) return;
@@ -122,7 +150,6 @@ export default function MultiAgentResearch() {
       const result = await runOrchestrator(q, user ? user.uid : null, (agentId, status, data) => {
         setProgress(prev => ({ ...prev, [agentId]: status }));
         if (data) {
-          // Stream results live to report state
           setReport(data);
         }
       });
@@ -165,6 +192,58 @@ export default function MultiAgentResearch() {
     }
     await libraryManager.saveBookmark(user.uid, report, section);
     await loadBookmarks();
+  };
+
+  const handleShareReport = async () => {
+    if (!report) return;
+    const slug = report.query
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .trim();
+
+    try {
+      await researchMemory.savePublicReport(slug, report);
+      const shareUrl = `${window.location.origin}/research/${slug}`;
+      window.history.pushState({}, '', `/research/${slug}`);
+      navigator.clipboard.writeText(shareUrl);
+      alert(`Permanent shareable URL created and copied to clipboard:\n${shareUrl}`);
+    } catch (err) {
+      console.error('Failed to share report:', err);
+      alert('Failed to generate shareable URL.');
+    }
+  };
+
+  const handleRefreshReport = async () => {
+    if (!report) return;
+    setRunning(true);
+    setProgress({});
+    setError(null);
+
+    try {
+      const result = await runOrchestrator(
+        report.query,
+        user ? user.uid : null,
+        (agentId, status, data) => {
+          setProgress(prev => ({ ...prev, [agentId]: status }));
+          if (data) {
+            setReport(data);
+          }
+        },
+        { reportId: report.id || report.reportId, existingReport: report }
+      );
+
+      setReport(result);
+
+      if (user) {
+        const pastReports = await researchMemory.getHistory(user.uid, 15);
+        setHistory(pastReports);
+      }
+    } catch (err) {
+      setError(err.message || 'Smart refresh failed.');
+    } finally {
+      setRunning(false);
+    }
   };
 
   const handleReadingModeChange = async (newMode) => {
@@ -327,6 +406,13 @@ export default function MultiAgentResearch() {
       {report && (
         <div className="space-y-8 animate-fadeIn">
           
+          {/* Refresh Banner */}
+          <RefreshButton 
+            generatedAt={report.generatedAt} 
+            onRefresh={handleRefreshReport} 
+            loading={running} 
+          />
+
           {/* Main 2-column Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
@@ -347,6 +433,14 @@ export default function MultiAgentResearch() {
 
             {/* Right: Charts, Citations, Reliability, Export */}
             <div className="space-y-6">
+              
+              <button
+                onClick={handleShareReport}
+                className="w-full bg-gradient-to-r from-[#F4A726]/10 to-[#F4A726]/20 border border-[#F4A726] text-[#F4A726] hover:bg-[#F4A726] hover:text-navy font-bold py-2.5 rounded text-xs uppercase tracking-wide transition-all duration-200 cursor-pointer text-center"
+              >
+                🔗 Share Research Brief
+              </button>
+
               <ReadingModeSelector 
                 activeMode={activeReadingMode} 
                 onChangeMode={handleReadingModeChange}
@@ -376,7 +470,10 @@ export default function MultiAgentResearch() {
               )}
               
               {report.citation?.scoredSources && (
-                <SourceReliabilityPanel sources={report.citation.scoredSources} />
+                <div className="space-y-6">
+                  <SourceReliabilityPanel sources={report.citation.scoredSources} />
+                  <CitationsPanel sources={report.citation.scoredSources} />
+                </div>
               )}
             </div>
 

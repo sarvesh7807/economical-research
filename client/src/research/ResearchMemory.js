@@ -216,6 +216,42 @@ class ResearchMemory {
       });
     } catch {}
   }
+
+  /**
+   * Save a public shared copy of a report.
+   */
+  async savePublicReport(slug, reportPayload) {
+    try {
+      const publicRef = doc(db, 'research_memory_public', 'shared', 'reports', slug);
+      const cleanPayload = {
+        ...reportPayload,
+        generatedAt: reportPayload.generatedAt?.toMillis ? reportPayload.generatedAt.toMillis() : (reportPayload.generatedAt || Date.now()),
+      };
+      await setDoc(publicRef, cleanPayload);
+      Logger.info('ResearchMemory', `Saved public report under slug: ${slug}`);
+      return slug;
+    } catch (err) {
+      Logger.error('ResearchMemory', 'savePublicReport failed', { err: err.message });
+      return null;
+    }
+  }
+
+  /**
+   * Fetch a public shared report by its slug.
+   */
+  async getPublicReport(slug) {
+    try {
+      const publicRef = doc(db, 'research_memory_public', 'shared', 'reports', slug);
+      const snap = await getDoc(publicRef);
+      if (snap.exists()) {
+        return snap.data();
+      }
+      return null;
+    } catch (err) {
+      Logger.error('ResearchMemory', 'getPublicReport failed', { err: err.message });
+      return null;
+    }
+  }
 }
 
 const firestoreQuery = query;
