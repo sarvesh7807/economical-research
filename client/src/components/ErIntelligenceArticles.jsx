@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import AIRouter from '../ai/AIRouter';
 
 const FALLBACK_ARTICLES = [
   {
@@ -69,32 +70,13 @@ export default function ErIntelligenceArticles() {
           { key: 'india', name: 'India market intelligence' }
         ];
 
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        console.log('ER Articles - Gemini API key present:', !!apiKey);
-
-        if (!apiKey) {
-          console.error('VITE_GEMINI_API_KEY is missing from .env - ER articles will use cached/fallback content');
-          return;
-        }
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
         const newArticles = await Promise.all(
           topics.map(async (topic) => {
             try {
               const prompt = `You are a senior economic editor at "Economical Research". Write a professional intelligence briefing on "${topic.name}". Return ONLY a JSON object with keys "title" (a compelling headline), "content" (two long, rich paragraphs of detailed macro analysis), and "readTime" (e.g. "4 min read"). Do not include markdown code block backticks. Make sure it is valid JSON.`;
               
-              const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: prompt }] }]
-                })
-              });
-              
-              if (!res.ok) throw new Error();
-              const json = await res.json();
-              const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              const text = await AIRouter.route(prompt, 'research', { responseMimeType: "application/json" });
+              if (!text) throw new Error();
               
               // Clean any backticks or potential wrapper texts
               const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();

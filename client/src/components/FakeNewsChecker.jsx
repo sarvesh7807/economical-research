@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, CheckCircle, AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
 import { getCachedOrFetchAI, hashText } from '../utils/aiCache';
+import AIRouter from '../ai/AIRouter';
 
 export default function FakeNewsChecker() {
   const [inputText, setInputText] = useState('');
@@ -26,7 +27,6 @@ export default function FakeNewsChecker() {
     setCacheStatus(null);
 
     const apiCall = async () => {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const prompt = `Analyze this news article or headline:
 "${inputText.trim()}"
 
@@ -39,32 +39,7 @@ Provide the response strictly as a JSON object matching this schema:
   "reasons": [string, string, string] // exactly 3 short, clear, and distinct reasons for your verdict
 }`;
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
-          })
-        }
-      );
-
-      if (response.status === 429) {
-        throw { status: 429 };
-      }
-
-      if (!response.ok) {
-        throw new Error('API failed');
-      }
-      
-      const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const rawText = await AIRouter.route(prompt, 'factcheck', { responseMimeType: "application/json" });
       if (!rawText) throw new Error('Empty response from AI model');
 
       return JSON.parse(rawText);

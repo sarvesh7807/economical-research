@@ -1,6 +1,6 @@
 import BaseProvider from './BaseProvider.js';
 
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export default class GeminiProvider extends BaseProvider {
@@ -31,6 +31,7 @@ export default class GeminiProvider extends BaseProvider {
     const maxTokens = options.maxTokens || 2000;
     const start = Date.now();
     const errors = [];
+    const isArray = Array.isArray(prompt);
 
     for (let attempt = 0; attempt < this._keys.length * GEMINI_MODELS.length; attempt++) {
       const key = this._nextKey();
@@ -39,13 +40,24 @@ export default class GeminiProvider extends BaseProvider {
 
       try {
         const url = `${BASE_URL}/${model}:generateContent?key=${key}`;
+        const bodyPayload = {
+          contents: isArray ? prompt : [{ parts: [{ text: prompt }] }],
+          generationConfig: { 
+            maxOutputTokens: maxTokens, 
+            temperature: options.temperature ?? 0.7,
+            ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {})
+          },
+          ...(options.systemInstruction ? {
+            systemInstruction: typeof options.systemInstruction === 'string'
+              ? { parts: [{ text: options.systemInstruction }] }
+              : options.systemInstruction
+          } : {})
+        };
+
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: maxTokens, temperature: options.temperature ?? 0.7 },
-          }),
+          body: JSON.stringify(bodyPayload),
         });
 
         if (res.ok) {

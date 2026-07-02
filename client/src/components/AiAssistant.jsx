@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MessageSquare, X, Send, Sparkles, AlertCircle, RefreshCw, Copy, Check, Minus } from 'lucide-react';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
 import { getCachedOrFetchAI, hashText } from '../utils/aiCache';
+import AIRouter from '../ai/AIRouter';
 
 // Custom lightweight inline parser for the drawer message bubbles
 function parseDrawerMessageContent(text) {
@@ -287,8 +288,6 @@ function DrawerFormattedText({ text }) {
     setError(null);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
       // Build valid Gemini contents:
       // 1. Exclude paywall messages and system-only bot messages
       // 2. Map to Gemini roles
@@ -322,15 +321,10 @@ function DrawerFormattedText({ text }) {
       }
 
       const apiCall = async () => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: geminiContents,
-            systemInstruction: {
-              parts: [{ 
-                text: `You are ER Assistant, the AI assistant for Economical Research news website (er-news-sarvesh.vercel.app).
+        const replyText = await AIRouter.route(geminiContents, 'writing', {
+          systemInstruction: {
+            parts: [{ 
+              text: `You are ER Assistant, the AI assistant for Economical Research news website (er-news-sarvesh.vercel.app).
 You help users with:
 - Latest news summaries and breaking stories
 - Economic and financial analysis
@@ -339,26 +333,11 @@ You help users with:
 - Website navigation and subscription info
 
 Always be helpful, professional, and concise. Format responses clearly using markdown (bullet points, bold text) where appropriate. Keep responses focused and under 200 words unless asked for detail.` 
-              }]
-            },
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 600
-            }
-          })
+            }]
+          },
+          temperature: 0.7,
+          maxTokens: 600
         });
-
-        if (response.status === 429) {
-          throw { status: 429 };
-        }
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (!replyText) {
           throw new Error('Empty response from AI');

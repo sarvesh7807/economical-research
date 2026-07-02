@@ -8,6 +8,7 @@ import {
 import Chart from 'chart.js/auto';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
 import { getCachedOrFetchAI, hashText } from '../utils/aiCache';
+import AIRouter from '../ai/AIRouter';
 
 // Custom Markdown + Code block parser
 function parseMessageContent(text, onOpenArtifact) {
@@ -622,8 +623,6 @@ export default function ErAssistantFull() {
     setError(null);
 
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
       // Build valid Gemini contents from updated history
       // 1. Filter out paywall messages
       let rawContents = updatedHistory
@@ -654,16 +653,10 @@ export default function ErAssistantFull() {
       }
 
       const apiCall = async () => {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: geminiContents,
-              systemInstruction: {
-                parts: [{ 
-                  text: `You are ER Assistant, a specialized AI editor for the Economical Research news platform (er-news-sarvesh.vercel.app).
+        const replyText = await AIRouter.route(geminiContents, 'writing', {
+          systemInstruction: {
+            parts: [{ 
+              text: `You are ER Assistant, a specialized AI editor for the Economical Research news platform (er-news-sarvesh.vercel.app).
 
 You are an expert in:
 - Global economics, monetary policy, and market analysis
@@ -683,27 +676,11 @@ Year,Value,Country
 </erArtifact>
 
 Always be professional, analytical, and cite economic context. Format responses with clear markdown structure.`
-                }]
-              },
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 1200
-              }
-            })
-          }
-        );
-
-        if (response.status === 429) {
-          throw { status: 429 };
-        }
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(`API error ${response.status}: ${errData?.error?.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            }]
+          },
+          temperature: 0.7,
+          maxTokens: 1200
+        });
 
         if (!replyText) {
           throw new Error('Empty response from AI');
