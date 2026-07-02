@@ -359,22 +359,81 @@ export default function Header({
     }
   }, []);
 
+  const detectIntent = (query) => {
+    const q = query.toLowerCase().trim()
+    
+    // Country detection
+    const countryMap = {
+      'india': 'IN', 'usa': 'US', 'america': 'US',
+      'uk': 'GB', 'britain': 'GB', 'uae': 'AE',
+      'china': 'CN', 'brazil': 'BR', 'japan': 'JP',
+      'germany': 'DE', 'france': 'FR', 'russia': 'RU'
+    }
+    
+    for (const [name, code] of Object.entries(countryMap)) {
+      if (q.includes(name)) {
+        return { type: 'country', code, name }
+      }
+    }
+    
+    // Crypto detection
+    if (['bitcoin', 'btc', 'ethereum', 'eth', 
+         'crypto'].some(c => q.includes(c))) {
+      return { type: 'crypto' }
+    }
+    
+    // Comparison detection
+    if (q.includes(' vs ') || q.includes(' versus ')) {
+      return { type: 'comparison' }
+    }
+    
+    // Default: deep research
+    return { type: 'research', query }
+  }
+
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
-    if (searchQuery.trim()) {
-      saveSearchQuery(searchQuery);
-      onSearchSubmit(searchQuery);
+    const query = searchQuery.trim();
+    if (query) {
+      saveSearchQuery(query);
+      const intent = detectIntent(query);
+      if (intent.type === 'country') {
+        window.dispatchEvent(new CustomEvent('navigate-country', { detail: intent.code }));
+      } else if (intent.type === 'crypto') {
+        setView('live-dashboard');
+      } else if (intent.type === 'comparison') {
+        const parts = query.split(/\s+vs\s+|\s+versus\s+/i);
+        if (parts.length >= 2) {
+          if (onSelectComparison) onSelectComparison(parts[0].trim(), parts[1].trim());
+        }
+        setView('comparison');
+      } else {
+        window.dispatchEvent(new CustomEvent('er-research-prefill', { detail: { query } }));
+        setView('er-research');
+      }
       setShowSuggestions(false);
-      setView('feed');
     }
   };
 
   const handleSuggestionClick = (val) => {
     setSearchQuery(val);
     saveSearchQuery(val);
-    onSearchSubmit(val);
+    const intent = detectIntent(val);
+    if (intent.type === 'country') {
+      window.dispatchEvent(new CustomEvent('navigate-country', { detail: intent.code }));
+    } else if (intent.type === 'crypto') {
+      setView('live-dashboard');
+    } else if (intent.type === 'comparison') {
+      const parts = val.split(/\s+vs\s+|\s+versus\s+/i);
+      if (parts.length >= 2) {
+        if (onSelectComparison) onSelectComparison(parts[0].trim(), parts[1].trim());
+      }
+      setView('comparison');
+    } else {
+      window.dispatchEvent(new CustomEvent('er-research-prefill', { detail: { query: val } }));
+      setView('er-research');
+    }
     setShowSuggestions(false);
-    setView('feed');
   };
 
   const formatDate = (date) => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut, Bell, Plus, BellRing, Receipt } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export default function Profile({ setView, onSearchSubmit }) {
   const { 
@@ -26,6 +26,7 @@ export default function Profile({ setView, onSearchSubmit }) {
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('bookmarks'); // 'bookmarks', 'history', 'search', 'settings', 'alerts'
+  const [watchlistItems, setWatchlistItems] = useState([]);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -47,6 +48,21 @@ export default function Profile({ setView, onSearchSubmit }) {
       }
     };
     fetchPrefs();
+  }, [user]);
+
+  useEffect(() => {
+    if (!db || !user) return;
+    const docRef = doc(db, 'watchlists', user.uid);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setWatchlistItems(docSnap.data().items || []);
+      } else {
+        setWatchlistItems([]);
+      }
+    }, (err) => {
+      console.error('Error listening to watchlists in Profile:', err);
+    });
+    return unsubscribe;
   }, [user]);
 
   const topicScores = preferences?.topicScores || {};
@@ -336,6 +352,7 @@ export default function Profile({ setView, onSearchSubmit }) {
           <div class="flex border-b border-paper-border dark:border-paper-borderDark bg-gray-50 dark:bg-paper-dark/30 rounded-t overflow-x-auto scrollbar-none font-sans">
             {[
               { id: 'bookmarks', name: 'Saved Briefings' },
+              { id: 'watchlist', name: '⭐ My Watchlist' },
               { id: 'history', name: 'Reading Logs' },
               { id: 'search', name: 'Search Ledger' },
               { id: 'alerts', name: `🔔 My Alerts${userAlerts.length > 0 ? ` (${userAlerts.length})` : ''}` },
@@ -358,6 +375,50 @@ export default function Profile({ setView, onSearchSubmit }) {
           {/* Tab content panel */}
           <div class="p-6">
             
+            {/* WATCHLIST TAB */}
+            {activeTab === 'watchlist' && (
+              <div class="space-y-4">
+                {watchlistItems.length === 0 ? (
+                  <div class="text-center py-12 text-gray-400">
+                    <span class="text-3xl block mb-2">⭐</span>
+                    <p class="text-xs font-semibold uppercase tracking-wider">Your watchlist is empty.</p>
+                  </div>
+                ) : (
+                  watchlistItems.map((item, idx) => (
+                    <div key={idx} class="flex items-center justify-between gap-4 p-3 border border-paper-border dark:border-paper-borderDark rounded bg-gray-50/35 dark:bg-navy-light/5">
+                      <div class="flex-grow min-w-0">
+                        <span class="text-[9px] font-bold text-gold uppercase tracking-widest block">{item.type}</span>
+                        <span 
+                          onClick={() => {
+                            if (item.type === 'country') {
+                              window.dispatchEvent(new CustomEvent('navigate-country', { detail: item.code }));
+                            } else {
+                              setView('live-dashboard');
+                            }
+                          }}
+                          class="text-xs md:text-sm font-serif font-bold text-navy dark:text-gray-200 hover:text-gold block cursor-pointer"
+                        >
+                          {item.name} {item.code ? `(${item.code})` : ''}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const docRef = doc(db, 'watchlists', user.uid);
+                          const updated = watchlistItems.filter(i => !(i.type === item.type && (i.code === item.code || i.id === item.id)));
+                          await setDoc(docRef, { items: updated });
+                        }}
+                        class="text-gray-400 hover:text-red-500 p-1.5 rounded transition-colors shrink-0"
+                        title="Remove from watchlist"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
             {/* BOOKMARKS TAB */}
             {activeTab === 'bookmarks' && (
               <div class="space-y-4">

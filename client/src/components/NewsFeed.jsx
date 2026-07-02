@@ -8,8 +8,9 @@ import ErrorBoundary from './ErrorBoundary';
 import { useAuth } from '../contexts/AuthContext';
 import { Newspaper, HelpCircle, RefreshCw, Loader, Sparkles, Lock, Send, Play, ClipboardList, ArrowRight } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { fetchNews, removeDuplicates } from '../utils/newsFetcher';
+import { CryptoWidget, CurrencyWidget } from './EconomicWidgets';
 
 // Category verification logic
 function verifyArticleCategory(article, category) {
@@ -261,6 +262,36 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
 
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
   const { user, subscription, guestId, userPreferences, addNotification } = useAuth();
+
+  const [watchlistItems, setWatchlistItems] = useState([]);
+  
+  useEffect(() => {
+    if (!db) return;
+    const userId = user ? user.uid : 'guest';
+    const docRef = doc(db, 'watchlists', userId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setWatchlistItems(docSnap.data().items || []);
+      } else {
+        setWatchlistItems([]);
+      }
+    }, (err) => {
+      console.error('Error listening to watchlists:', err);
+    });
+    return unsubscribe;
+  }, [user]);
+
+  const handleRemoveWatchlistItem = async (e, itemToRemove) => {
+    e.stopPropagation();
+    try {
+      const userId = user ? user.uid : 'guest';
+      const docRef = doc(db, 'watchlists', userId);
+      const updatedItems = watchlistItems.filter(item => !(item.type === itemToRemove.type && (item.code === itemToRemove.code || item.id === itemToRemove.id)));
+      await setDoc(docRef, { items: updatedItems });
+    } catch (e) {
+      console.error('Failed to remove watchlist item:', e);
+    }
+  };
 
   const [layoutMode, setLayoutMode] = useState(() => {
     return localStorage.getItem('layoutMode') || 'grid';
@@ -1288,6 +1319,70 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                   <p style={{textTransform: 'capitalize'}}>{weather.description}</p>
                 </div>
               )}
+            </div>
+
+            {/* My Watchlist Section */}
+            {watchlistItems.length > 0 && (
+              <div className="sidebar-section">
+                <h3>⭐ My Watchlist</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {watchlistItems.map((item, i) => (
+                    <div 
+                      key={i}
+                      onClick={() => {
+                        if (item.type === 'country') {
+                          window.dispatchEvent(new CustomEvent('navigate-country', { detail: item.code }));
+                        } else {
+                          window.dispatchEvent(new CustomEvent('change-view', { detail: 'live-dashboard' }));
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                      className="hover:border-gold/30 transition-all"
+                    >
+                      <div>
+                        <p style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold', margin: 0 }}>
+                          {item.name}
+                        </p>
+                        <span style={{ fontSize: '9px', color: 'var(--gold-primary)', textTransform: 'uppercase' }}>
+                          {item.type} {item.code ? `(${item.code})` : ''}
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => handleRemoveWatchlistItem(e, item)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#FF5252',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          padding: '2px'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Crypto Markets Widget */}
+            <div className="sidebar-section">
+              <CryptoWidget />
+            </div>
+
+            {/* Currency Rates Widget */}
+            <div className="sidebar-section">
+              <CurrencyWidget />
             </div>
 
             {/* 4. FOLLOW US Section */}

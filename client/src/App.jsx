@@ -35,6 +35,8 @@ const ResearchLibraryPage = React.lazy(() => import('./components/ResearchLibrar
 const LiveEconomicDashboard = React.lazy(() => import('./components/LiveEconomicDashboard'));
 const FinancialIntelligence = React.lazy(() => import('./components/FinancialIntelligence'));
 const CountryIntelligencePage = React.lazy(() => import('./components/CountryIntelligencePage'));
+const CountryPage = React.lazy(() => import('./components/CountryPage'));
+const EconomicWidgets = React.lazy(() => import('./components/EconomicWidgets'));
 const CompanyIntelligencePage = React.lazy(() => import('./components/CompanyIntelligencePage'));
 const GlobalComparisonEngine = React.lazy(() => import('./components/GlobalComparisonEngine'));
 const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
@@ -225,6 +227,7 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTrackerId, setSelectedTrackerId] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState('India');
+  const [selectedCountryCode, setSelectedCountryCode] = useState('IN');
   const [selectedCompany, setSelectedCompany] = useState('TSLA');
   const [selectedAsset, setSelectedAsset] = useState({ symbol: 'AAPL', name: 'Apple Inc.', type: 'stock' });
   const [comparisonA, setComparisonA] = useState('India');
@@ -236,6 +239,9 @@ function AppContent() {
       setViewInternal(newView);
       if (detailId) {
         setSelectedTrackerId(detailId);
+        if (newView === 'country-page') {
+          setSelectedCountryCode(detailId);
+        }
       }
       setViewLoading(false);
       
@@ -246,6 +252,9 @@ function AppContent() {
         window.history.pushState({}, '', '/billing-history');
       } else if (newView === 'feed') {
         window.history.pushState({}, '', '/');
+      } else if (newView === 'country-page') {
+        const codeToUse = detailId || selectedCountryCode || 'IN';
+        window.history.pushState({}, '', `/country/${codeToUse}`);
       } else if (newView === 'fake-news') {
         window.history.pushState({}, '', '/fake-news-checker');
       } else if (newView === 'bias-detector') {
@@ -282,15 +291,59 @@ function AppContent() {
       setIsInterestUpdate(true);
       setInterestModalOpen(true);
     };
+    const handleNavigateCountry = (e) => {
+      if (e.detail) {
+        setSelectedCountryCode(e.detail);
+        setView('country-page', e.detail);
+      }
+    };
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/' || path === '') {
+        setViewInternal('feed');
+      } else if (path === '/pricing' || path === '/billing') {
+        setViewInternal('billing');
+      } else if (path === '/billing-history') {
+        setViewInternal('billing-history');
+      } else if (path === '/fake-news-checker') {
+        setViewInternal('fake-news');
+      } else if (path === '/bias-detector') {
+        setViewInternal('bias-detector');
+      } else if (path === '/world-map') {
+        setViewInternal('world-map');
+      } else if (path === '/outcome-tracker') {
+        setViewInternal('outcome-tracker');
+      } else if (path.startsWith('/outcome-tracker/')) {
+        const id = path.split('/').pop();
+        setSelectedTrackerId(id);
+        setViewInternal('outcome-detail');
+      } else if (path === '/er-research') {
+        setViewInternal('er-research');
+      } else if (path === '/research-library') {
+        setViewInternal('research-library');
+      } else if (path.startsWith('/country/')) {
+        const code = path.split('/').pop().toUpperCase();
+        setSelectedCountryCode(code);
+        setViewInternal('country-page');
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const viewParam = params.get('view');
+        if (viewParam) setViewInternal(viewParam);
+      }
+    };
     window.addEventListener('change-view', handleViewChange);
     window.addEventListener('change-view-detail', handleViewDetailChange);
     window.addEventListener('open-auth-modal', handleOpenAuth);
     window.addEventListener('open-interest-modal', handleOpenInterest);
+    window.addEventListener('navigate-country', handleNavigateCountry);
+    window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('change-view', handleViewChange);
       window.removeEventListener('change-view-detail', handleViewDetailChange);
       window.removeEventListener('open-auth-modal', handleOpenAuth);
       window.removeEventListener('open-interest-modal', handleOpenInterest);
+      window.removeEventListener('navigate-country', handleNavigateCountry);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
@@ -382,6 +435,10 @@ function AppContent() {
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('er-research-load-public', { detail: { slug } }));
       }, 500);
+    } else if (path.startsWith('/country/')) {
+      const code = path.split('/').pop().toUpperCase();
+      setSelectedCountryCode(code);
+      setViewInternal('country-page');
     } else if (path.startsWith('/outcome-tracker/')) {
       const id = path.split('/').pop();
       setSelectedTrackerId(id);
@@ -723,6 +780,8 @@ function AppContent() {
             <LiveEconomicDashboard setView={setView} />
           ) : view === 'financials' ? (
             <FinancialIntelligence setView={setView} selectedAsset={selectedAsset} />
+          ) : view === 'country-page' ? (
+            <CountryPage setView={setView} countryCode={selectedCountryCode} />
           ) : view === 'country-intel' ? (
             <CountryIntelligencePage setView={setView} defaultCountry={selectedCountry} />
           ) : view === 'company-intel' ? (

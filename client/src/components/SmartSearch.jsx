@@ -11,75 +11,68 @@ export default function SmartSearch({
 }) {
   const [queryText, setQueryText] = useState('');
 
+  const detectIntent = (query) => {
+    const q = query.toLowerCase().trim()
+    
+    // Country detection
+    const countryMap = {
+      'india': 'IN', 'usa': 'US', 'america': 'US',
+      'uk': 'GB', 'britain': 'GB', 'uae': 'AE',
+      'china': 'CN', 'brazil': 'BR', 'japan': 'JP',
+      'germany': 'DE', 'france': 'FR', 'russia': 'RU'
+    }
+    
+    for (const [name, code] of Object.entries(countryMap)) {
+      if (q.includes(name)) {
+        return { type: 'country', code, name }
+      }
+    }
+    
+    // Crypto detection
+    if (['bitcoin', 'btc', 'ethereum', 'eth', 
+         'crypto'].some(c => q.includes(c))) {
+      return { type: 'crypto' }
+    }
+    
+    // Comparison detection
+    if (q.includes(' vs ') || q.includes(' versus ')) {
+      return { type: 'comparison' }
+    }
+    
+    // Default: deep research
+    return { type: 'research', query }
+  }
+
   const handleSearch = (e) => {
     e.preventDefault();
     const q = queryText.trim();
     if (!q) return;
 
-    const lowerQ = q.toLowerCase();
+    const intent = detectIntent(q);
 
-    // 1. Comparison Intent (e.g. "Tesla vs BYD", "US vs China")
-    if (lowerQ.includes(' vs ') || lowerQ.includes(' compared to ')) {
-      const parts = q.split(/\s+vs\s+|\s+compared\s+to\s+/i);
-      if (parts.length >= 2) {
-        if (onSelectComparison) onSelectComparison(parts[0].trim(), parts[1].trim());
-        setView('comparison');
-        setQueryText('');
-        return;
-      }
+    if (intent.type === 'country') {
+      window.dispatchEvent(new CustomEvent('navigate-country', { detail: intent.code }));
+      setQueryText('');
+      return;
     }
 
-    // 2. Dashboard Intent (e.g. "US Inflation", "Gold Forecast", "Bitcoin pricing")
-    const dashboardKeywords = ['gdp', 'inflation', 'unemployment', 'interest rate', 'debt', 'gold', 'silver', 'oil', 'bitcoin', 'sensex', 'nifty', 'exchange rate'];
-    const matchesDashboard = dashboardKeywords.some(kw => lowerQ.includes(kw));
-    if (matchesDashboard) {
+    if (intent.type === 'crypto') {
       setView('live-dashboard');
       setQueryText('');
       return;
     }
 
-    // 3. Country Intelligence Intent
-    const countries = [
-      { name: 'india', actual: 'India' },
-      { name: 'united states', actual: 'United States' },
-      { name: 'us', actual: 'United States' },
-      { name: 'united kingdom', actual: 'United Kingdom' },
-      { name: 'uk', actual: 'United Kingdom' },
-      { name: 'china', actual: 'China' },
-      { name: 'brazil', actual: 'Brazil' },
-      { name: 'germany', actual: 'Germany' }
-    ];
-    const countryMatch = countries.find(c => lowerQ.includes(c.name));
-    if (countryMatch) {
-      if (onSelectCountry) onSelectCountry(countryMatch.actual);
-      setView('country-intel');
+    if (intent.type === 'comparison') {
+      const parts = q.split(/\s+vs\s+|\s+versus\s+/i);
+      if (parts.length >= 2) {
+        if (onSelectComparison) onSelectComparison(parts[0].trim(), parts[1].trim());
+      }
+      setView('comparison');
       setQueryText('');
       return;
     }
 
-    // 4. Company Intelligence Intent
-    const companies = [
-      { name: 'tesla', symbol: 'TSLA' },
-      { name: 'tsla', symbol: 'TSLA' },
-      { name: 'apple', symbol: 'AAPL' },
-      { name: 'aapl', symbol: 'AAPL' },
-      { name: 'amazon', symbol: 'AMZN' },
-      { name: 'amzn', symbol: 'AMZN' },
-      { name: 'microsoft', symbol: 'MSFT' },
-      { name: 'msft', symbol: 'MSFT' },
-      { name: 'alphabet', symbol: 'GOOGL' },
-      { name: 'google', symbol: 'GOOGL' },
-      { name: 'googl', symbol: 'GOOGL' }
-    ];
-    const companyMatch = companies.find(c => lowerQ.includes(c.name));
-    if (companyMatch) {
-      if (onSelectCompany) onSelectCompany(companyMatch.symbol);
-      setView('company-intel');
-      setQueryText('');
-      return;
-    }
-
-    // 5. Default Fallback: Deep Multi-Agent Research Desk
+    // Default: deep research
     window.dispatchEvent(new CustomEvent('er-research-prefill', { detail: { query: q } }));
     setView('er-research');
     setQueryText('');
