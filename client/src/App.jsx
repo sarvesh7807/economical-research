@@ -561,7 +561,15 @@ function AppContent() {
   };
 
   return (
-    <div class="min-h-screen flex flex-col bg-paper dark:bg-paper-dark text-navy dark:text-gray-100 transition-colors duration-200 relative max-w-full overflow-x-hidden">
+    <div 
+      className="min-h-screen flex flex-col bg-paper dark:bg-paper-dark text-navy dark:text-gray-100 transition-colors duration-200 relative"
+      style={{
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
+        position: 'relative'
+      }}
+    >
       
       {/* Sticky market ticker bar above header */}
       {tickerData.show && (

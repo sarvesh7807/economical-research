@@ -1,3 +1,26 @@
+*, *::before, *::after {
+  box-sizing: border-box !important;
+}
+
+html {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+body {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+#root {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -641,4 +664,36 @@ html {
 
 .news-feed-container::-webkit-scrollbar-thumb:hover {
   background: rgba(244,167,38,0.5);
+}
+
+/* =========================================
+   MOBILE 3-PANEL WORKSPACE COLUMN STACK
+   ========================================= */
+@media (max-width: 1024px) {
+  .research-workspace,
+  [class*="research-workspace"],
+  div[style*="grid-template-columns: 260px"] {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+  }
+}
+
+/* =========================================
+   MOBILE PADDING AND WIDTH RESET
+   ========================================= */
+@media (max-width: 768px) {
+  * {
+    max-width: 100% !important;
+  }
+  
+  .hero-section,
+  .stats-bar,
+  .section-wrapper,
+  .news-feed-container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }

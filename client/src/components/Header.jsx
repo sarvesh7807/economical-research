@@ -491,21 +491,36 @@ export default function Header({
         borderBottom: '1px solid var(--border-subtle)',
         letterSpacing: '0.5px'
       }} className="flex-wrap gap-2">
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }} className="flex-wrap">
-          <span>SENSEX <span style={{color: stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? 'var(--success)' : 'var(--danger)'}}>{stocks.find(s=>s.symbol==='SENSEX')?.price || '82,456.23'} {stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? '▲' : '▼'}{stocks.find(s=>s.symbol==='SENSEX')?.pct || '0.4'}%</span></span>
-          <span>USD/INR <span style={{color:'var(--text-secondary)'}}>83.42</span></span>
-          <span>GOLD <span style={{color:'var(--gold-light)'}}>${stocks.find(s=>s.symbol==='GOLD/OZ')?.price || '2,345.67'}</span></span>
-          <span style={{ color: 'var(--text-tertiary)' }} className="hidden sm:inline">| &nbsp; {formatDate(time)} &nbsp; {getLocalTimeStr()} {getTimezoneAbbr()}</span>
-          {weather && !weather.error && (
-            <span 
-              style={{ color: 'var(--gold-light)', cursor: 'pointer' }} 
-              onClick={handleCityChangePrompt}
-              className="hidden md:inline"
-              title="Click to edit city"
-            >
-              | &nbsp; {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C
-            </span>
-          )}
+        <div style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          position: 'relative'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '16px',
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            padding: '4px 0',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
+            <span>SENSEX <span style={{color: stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? 'var(--success)' : 'var(--danger)'}}>{stocks.find(s=>s.symbol==='SENSEX')?.price || '82,456.23'} {stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? '▲' : '▼'}{stocks.find(s=>s.symbol==='SENSEX')?.pct || '0.4'}%</span></span>
+            <span>USD/INR <span style={{color:'var(--text-secondary)'}}>83.42</span></span>
+            <span>GOLD <span style={{color:'var(--gold-light)'}}>${stocks.find(s=>s.symbol==='GOLD/OZ')?.price || '2,345.67'}</span></span>
+            <span style={{ color: 'var(--text-tertiary)' }}>| &nbsp; {formatDate(time)} &nbsp; {getLocalTimeStr()} {getTimezoneAbbr()}</span>
+            {weather && !weather.error && (
+              <span 
+                style={{ color: 'var(--gold-light)', cursor: 'pointer' }} 
+                onClick={handleCityChangePrompt}
+                title="Click to edit city"
+              >
+                | &nbsp; {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C
+              </span>
+            )}
+          </div>
         </div>
         
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>

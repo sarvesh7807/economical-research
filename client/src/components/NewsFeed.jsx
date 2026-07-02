@@ -607,7 +607,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     const isPro = subscription?.tier === 'PRO';
     
     return (
-      <section style={{ padding: '0 24px', width: '100%' }}>
+      <section style={{ padding: '0 24px', width: '100%', boxSizing: 'border-box', maxWidth: '100vw' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -625,12 +625,18 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         </div>
         
         <div style={{
-          background: 'var(--navy-medium)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '8px',
-          padding: '24px',
-          width: '100%'
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
         }}>
+          <div style={{
+            background: 'var(--navy-medium)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '8px',
+            padding: '24px',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
           {isPro ? (
             <form onSubmit={handleResearchSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>
@@ -703,9 +709,10 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             </div>
           )}
         </div>
-      </section>
-    );
-  };
+      </div>
+    </section>
+  );
+};
 
   const renderSidePanel = () => {
     return (
@@ -1496,8 +1503,19 @@ function TrendingWidget() {
       </div>
 
       {loading ? (
-        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
-          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+        <div style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingBottom: '8px',
+            WebkitOverflowScrolling: 'touch'
+          }} className="news-feed-container">
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} style={{ width: '280px', flexShrink: 0, padding: '16px', background: 'var(--navy-medium)', border: '1px solid var(--border-subtle)', borderRadius: '6px', display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <div class="w-12 h-12 rounded-md bg-gray-205 dark:bg-gray-800 animate-shimmer shrink-0"></div>
@@ -1512,8 +1530,19 @@ function TrendingWidget() {
       ) : articles.length === 0 ? (
         <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No trending news available right now.</p>
       ) : (
-        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
-          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+        <div style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingBottom: '8px',
+            WebkitOverflowScrolling: 'touch'
+          }} className="news-feed-container">
           {articles.map((article, index) => {
             const timeAgo = article.publishedAt
               ? `${Math.max(1, Math.round((Date.now() - new Date(article.publishedAt).getTime()) / 3600000))}h ago`
@@ -1665,17 +1694,23 @@ function EconomicTrendsWidget() {
           margin: 0
         }}>Economic Trend Outlook</h2>
       </div>
-      <div style={{ 
-        background: 'var(--navy-medium)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '8px',
-        padding: '24px',
+      <div style={{
         width: '100%',
-        height: '280px',
-        position: 'relative',
-        boxSizing: 'border-box'
+        maxWidth: '100%',
+        overflow: 'hidden'
       }}>
-        <canvas ref={canvasRef} />
+        <div style={{ 
+          background: 'var(--navy-medium)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '8px',
+          padding: '24px',
+          width: '100%',
+          height: '280px',
+          position: 'relative',
+          boxSizing: 'border-box'
+        }}>
+          <canvas ref={canvasRef} />
+        </div>
       </div>
     </section>
   );
@@ -1712,8 +1747,19 @@ function MarketSignalsWidget() {
         </div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
-        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+      <div style={{
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          paddingBottom: '8px',
+          WebkitOverflowScrolling: 'touch'
+        }} className="news-feed-container">
           {signals.map((sig, i) => (
             <div 
               key={i} 
@@ -1814,8 +1860,19 @@ function OutcomeTrackerWidget() {
       </div>
 
       {loading ? (
-        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
-          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+        <div style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingBottom: '8px',
+            WebkitOverflowScrolling: 'touch'
+          }} className="news-feed-container">
             {[1, 2, 3].map(i => (
               <div key={i} style={{ width: '280px', flexShrink: 0, height: '90px', background: 'var(--navy-medium)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="animate-pulse"/>
             ))}
@@ -1824,8 +1881,19 @@ function OutcomeTrackerWidget() {
       ) : stories.length === 0 ? (
         <p class="text-[10px] text-gray-400 text-center py-4 font-sans">No announcements currently tracked.</p>
       ) : (
-        <div style={{ width: '100%', maxWidth: '100vw', overflow: 'hidden', position: 'relative' }}>
-          <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '8px', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }} className="news-feed-container">
+        <div style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingBottom: '8px',
+            WebkitOverflowScrolling: 'touch'
+          }} className="news-feed-container">
             {stories.map(story => (
               <div
                 key={story.id}
