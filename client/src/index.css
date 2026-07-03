@@ -686,6 +686,11 @@ html {
   100% { transform: translateX(-100%); }
 }
 
+.breaking-news-text:hover {
+  animation-play-state: paused;
+  cursor: pointer;
+}
+
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;

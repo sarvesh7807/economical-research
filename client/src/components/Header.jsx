@@ -1036,13 +1036,16 @@ export default function Header({
           overflow: 'hidden',
           flex: 1
         }}>
-          <div style={{
-            color: '#fff',
-            fontSize: '12px',
-            whiteSpace: 'nowrap',
-            display: 'inline-block',
-            animation: 'marquee 30s linear infinite'
-          }}>
+          <div 
+            className="breaking-news-text"
+            style={{
+              color: '#fff',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              display: 'inline-block',
+              animation: 'marquee 50s linear infinite'
+            }}
+          >
             {breakingNews}
           </div>
         </div>
