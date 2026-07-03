@@ -95,7 +95,7 @@ const DataWidget = ({ title, value, unit, source, year, error, isUp }) => {
         justifyContent: 'space-between',
         alignItems: 'center'}}>
         <span style={{
-          color: isUp ? '#00C896' : '#FF5252',
+          color: isUp ? '#00C896' : '#CC0000',
           fontSize: '11px'
         }}>
           {isUp ? '▲' : '▼'} {year}
@@ -296,7 +296,7 @@ export const CryptoWidget = React.memo(() => {
             </span>
             <span style={{
               color: parseFloat(data[coin]?.change24h) > 0 
-                ? '#00C896' : '#FF5252',
+                ? '#00C896' : '#CC0000',
               fontSize: '11px',
               marginLeft: '8px'
             }}>

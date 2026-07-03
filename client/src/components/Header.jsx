@@ -533,7 +533,7 @@ export default function Header({
           {stocks.map(stock => {
             const isUp = stock.pct >= 0;
             return (
-              <span key={stock.symbol} style={{ color: stock.symbol === 'GOLD/OZ' ? '#F4A726' : (isUp ? '#00C896' : '#FF5252'), whiteSpace: 'nowrap' }}>
+              <span key={stock.symbol} style={{ color: stock.symbol === 'GOLD/OZ' ? '#F4A726' : (isUp ? '#00C896' : '#CC0000'), whiteSpace: 'nowrap' }}>
                 {stock.symbol} {stock.symbol === 'EUR/USD' ? stock.price : Math.round(stock.price).toLocaleString('en-IN')} {isUp ? '▲' : '▼'}{Math.abs(stock.pct)}%
               </span>
             );
@@ -725,7 +725,7 @@ export default function Header({
                       position: 'absolute',
                       top: '-6px',
                       right: '-6px',
-                      background: '#FF5252',
+                      background: '#CC0000',
                       color: '#fff',
                       fontSize: '9px',
                       fontWeight: '700',
@@ -979,7 +979,7 @@ export default function Header({
 
       {/* LAYER 4 - Breaking News Ticker */}
       <div style={{
-        background: '#FF5252',
+        background: '#CC0000',
         padding: '6px 16px',
         display: 'flex',
         alignItems: 'center',
@@ -988,7 +988,7 @@ export default function Header({
       }}>
         <span style={{
           background: '#fff',
-          color: '#FF5252',
+          color: '#CC0000',
           padding: '2px 8px',
           borderRadius: '2px',
           fontSize: '10px',

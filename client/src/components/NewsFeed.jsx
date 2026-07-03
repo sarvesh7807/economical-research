@@ -629,7 +629,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           maxWidth: '100%',
           overflow: 'hidden'
         }}>
-          <div style={{
+          <div className="deep-research-container" style={{
             background: 'var(--navy-medium)',
             border: '1px solid var(--border-subtle)',
             borderRadius: '8px',
@@ -638,16 +638,17 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             boxSizing: 'border-box'
           }}>
           {isPro ? (
-            <form onSubmit={handleResearchSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleResearchSubmit} className="deep-research-form" style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: 0 }}>
                 Synthesize comprehensive research briefs mapping core market signals.
               </p>
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div className="deep-research-form-row" style={{ display: 'flex', gap: '12px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                 <input
                   type="text"
                   placeholder="Enter topic (e.g. GDP, Supply Chains)..."
                   value={researchInput}
                   onChange={(e) => setResearchInput(e.target.value)}
+                  className="deep-research-input"
                   style={{
                     flexGrow: 1,
                     background: 'rgba(0,0,0,0.3)',
@@ -656,12 +657,14 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                     padding: '10px 16px',
                     color: '#fff',
                     fontSize: '13px',
-                    outline: 'none'
+                    outline: 'none',
+                    boxSizing: 'border-box'
                   }}
                 />
                 <button
                   type="submit"
                   disabled={!researchInput.trim()}
+                  className="deep-research-button"
                   style={{
                     background: '#F4A726',
                     color: '#0A1628',
@@ -671,7 +674,8 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                     fontWeight: '700',
                     cursor: 'pointer',
                     fontSize: '13px',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    boxSizing: 'border-box'
                   }}
                 >
                   Compile
@@ -680,7 +684,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
             </form>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', textAlign: 'center', padding: '12px 0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FF5252', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#CC0000', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase' }}>
                 <Lock size={14} />
                 <span>Access Restricted</span>
               </div>
@@ -1368,7 +1372,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#FF5252',
+                          color: '#CC0000',
                           fontSize: '14px',
                           cursor: 'pointer',
                           padding: '2px'
@@ -1492,7 +1496,7 @@ function TrendingWidget() {
         borderBottom: '2px solid #F4A726'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FF5252' }} className="animate-pulse"></span>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#CC0000' }} className="animate-pulse"></span>
           <h2 style={{
             fontFamily: 'Playfair Display, serif',
             fontSize: '22px',

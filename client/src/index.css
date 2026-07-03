@@ -43,7 +43,7 @@ html, body {
   --text-tertiary: rgba(255,255,255,0.4);
   --border-subtle: rgba(244,167,38,0.15);
   --success: #00C896;
-  --danger: #FF5252;
+  --danger: #CC0000;
 }
 
 @layer base {
@@ -701,5 +701,42 @@ html {
 @media (min-width: 769px) {
   .show-on-mobile-only {
     display: none !important;
+  }
+}
+
+/* =========================================
+   DEEP RESEARCH DESK MOBILE RESPONSIVENESS
+   ========================================= */
+@media (max-width: 768px) {
+  .deep-research-container,
+  .deep-research-form,
+  .deep-research-button {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .deep-research-container {
+    padding: 16px !important;
+    overflow-x: hidden !important;
+  }
+
+  .deep-research-form-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .deep-research-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .deep-research-button {
+    padding: 14px 20px !important;
   }
 }
