@@ -66,6 +66,7 @@ export default function Header({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   
   const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('userLanguage') || 'en');
   const [isLangOpen, setIsLangOpen] = useState(false);
@@ -147,6 +148,13 @@ export default function Header({
       document.body.style.overflow = '';
     };
   }, [isMenuOpen]);
+
+  // Track window size to adapt layout responsively
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const API_KEY = '3ab51435ffdbc33e719cf21fd42d8dfc';
 
@@ -755,7 +763,24 @@ export default function Header({
               </button>
 
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-[#060D17] border border-[#F4A726]/30 rounded shadow-2xl z-50 overflow-hidden font-sans text-left">
+                <div
+                  style={{
+                    position: isMobile ? 'fixed' : 'absolute',
+                    top: isMobile ? '60px' : '100%',
+                    left: isMobile ? '0' : 'auto',
+                    right: '0',
+                    width: isMobile ? '100%' : '360px',
+                    minWidth: isMobile ? 'unset' : '360px',
+                    background: '#0A1628',
+                    border: '1px solid rgba(244,167,38,0.2)',
+                    borderRadius: isMobile ? '0' : '12px',
+                    zIndex: 9999,
+                    maxHeight: '70vh',
+                    overflowY: 'auto',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+                  }}
+                  className="font-sans text-left"
+                >
                   <div className="bg-[#0A1628] text-white px-3 py-2 flex items-center justify-between border-b border-[#F4A726]/15">
                     <span className="font-serif text-[9px] font-black uppercase tracking-wider text-[#F4A726]">Alert Registry Ledger</span>
                     <div className="flex gap-2">
