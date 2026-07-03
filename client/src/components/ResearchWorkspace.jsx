@@ -1,3 +1,4 @@
+// client/src/components/ResearchWorkspace.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import { formatAPA } from '../utils/CitationsFormatter.js';
@@ -10,6 +11,9 @@ import SourceReliabilityPanel from './research/SourceReliabilityPanel';
 import CitationsPanel from './research/CitationsPanel';
 import FactCheckMeter from './research/FactCheckMeter';
 import RefreshButton from './research/RefreshButton';
+
+import { db } from '../lib/firebase';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 
 function ResearchWorkspace({ 
   report, 
@@ -31,6 +35,18 @@ function ResearchWorkspace({
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
 
+  // Collaboration States
+  const [showComments, setShowComments] = useState(false);
+  const [comment, setComment] = useState('');
+  const [comments, setComments] = useState([]);
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [showKeyFindings, setShowKeyFindings] = useState(false);
+  const [keyFindings, setKeyFindings] = useState('');
+  const [saveStatus, setSaveStatus] = useState('');
+
+  const currentReportQuery = report?.query || 'Research Report';
+  const currentReportId = report?.id || report?.reportId || 'default-report';
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 1024);
@@ -38,6 +54,28 @@ function ResearchWorkspace({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Load comments when report changes or comments are toggled
+  useEffect(() => {
+    const loadComments = async () => {
+      if (!currentReportId) return;
+      try {
+        const q = query(
+          collection(db, 'report_comments'),
+          where('reportId', '==', currentReportId)
+        );
+        const snapshot = await getDocs(q);
+        const list = snapshot.docs.map(doc => doc.data());
+        list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        setComments(list);
+      } catch (err) {
+        console.error('Failed to load comments:', err);
+      }
+    };
+    if (showComments) {
+      loadComments();
+    }
+  }, [currentReportId, showComments]);
 
   if (!report) return null;
 
@@ -172,6 +210,121 @@ ${citations.map((c, i) => `[${i+1}] ${c.text}`).join('\n')}
     handleTriggerResearch(nextQuery);
   };
 
+  // FIX 1 - Share Report (active)
+  const shareReport = async () => {
+    const shareData = {
+      title: 'Economical Research Report',
+      text: currentReportQuery,
+      url: window.location.href
+    };
+    
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Report link copied to clipboard!');
+      } catch (err) {
+        console.error('Clipboard copy failed:', err);
+      }
+    }
+  };
+
+  // FIX 2 - Comments (active)
+  const addComment = async () => {
+    if (!comment.trim()) return;
+    const newComment = {
+      text: comment,
+      author: user?.displayName || 'Anonymous',
+      createdAt: new Date().toISOString()
+    };
+    try {
+      await addDoc(
+        collection(db, 'report_comments'),
+        { ...newComment, reportId: currentReportId }
+      );
+      setComments(prev => [...prev, newComment]);
+      setComment('');
+    } catch (err) {
+      console.error('Add comment failed:', err);
+    }
+  };
+
+  // FIX 4 - Key Findings button (active)
+  const generateKeyFindings = async () => {
+    const reportText = report?.report || '';
+    if (!reportText) return;
+    setShowKeyFindings(true);
+    setKeyFindings('');
+    
+    const prompt = `
+    Extract 5 key findings from this research:
+    ${reportText.slice(0, 1000)}
+    
+    Format as:
+    🔑 Finding 1: [concise point]
+    🔑 Finding 2: [concise point]
+    🔑 Finding 3: [concise point]
+    🔑 Finding 4: [concise point]
+    🔑 Finding 5: [concise point]
+    `;
+    
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 400 }
+          })
+        }
+      );
+      const data = await res.json();
+      setKeyFindings(
+        data.candidates?.[0]?.content?.parts?.[0]?.text
+      );
+    } catch (err) {
+      console.error('Key findings generation failed:', err);
+      setKeyFindings('❌ Failed to generate key findings. Please try again.');
+    }
+  };
+
+  // FIX 5 - Save button (active)
+  const saveReport = async () => {
+    if (!report) return;
+    
+    try {
+      await addDoc(
+        collection(db, 'er_research_reports'),
+        {
+          userId: user?.uid || 'guest',
+          query: currentReportQuery,
+          report: report.report || '',
+          charts: report.charts || [],
+          plan: report.plan || null,
+          citation: report.citation || null,
+          factCheck: report.factCheck || null,
+          finance: report.finance || null,
+          research: report.research || null,
+          reportJson: report.reportJson || null,
+          savedAt: new Date(),
+          isFavorite: false
+        }
+      );
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } catch (err) {
+      setSaveStatus('error');
+    }
+  };
+
   return (
     <div className="relative">
       {/* Mobile Top Toolbar Toggles */}
@@ -267,10 +420,10 @@ ${citations.map((c, i) => `[${i+1}] ${c.text}`).join('\n')}
             loading={running} 
           />
 
-          {/* Action Toolbar (Exports, Bookmarks, and Collaboration Placeholders) */}
+          {/* Action Toolbar (Exports, Bookmarks, and Collaboration Controls) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-4 my-4 shadow">
-            {/* Exports */}
-            <div className="flex gap-2">
+            {/* Exports, Key Findings, and Save */}
+            <div className="flex flex-wrap gap-2">
               <button onClick={exportToPDF} style={{
                 padding: '10px 20px',
                 background: 'transparent',
@@ -295,26 +448,227 @@ ${citations.map((c, i) => `[${i+1}] ${c.text}`).join('\n')}
               }} className="hover:bg-[#F4A726] hover:text-navy transition-colors">
                 📝 Export Markdown
               </button>
+              <button onClick={generateKeyFindings} style={{
+                padding: '10px 20px',
+                background: 'transparent',
+                color: '#F4A726',
+                border: '1px solid #F4A726',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600'
+              }} className="hover:bg-[#F4A726] hover:text-navy transition-colors">
+                🔑 Key Findings
+              </button>
+              <button onClick={saveReport} style={{
+                padding: '10px 20px',
+                background: saveStatus === 'saved' ? '#00C896' : 'transparent',
+                color: saveStatus === 'saved' ? '#fff' : '#F4A726',
+                border: saveStatus === 'saved' ? '1px solid #00C896' : '1px solid rgba(244,167,38,0.3)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600'
+              }} className="transition-all">
+                {saveStatus === 'saved' ? '✅ Saved!' : '💾 Save Report'}
+              </button>
             </div>
 
-            {/* Collaboration Placeholders (FEATURE 7) */}
+            {/* Collaboration & Sharing Action Controls */}
             <div className="flex flex-col items-end gap-1.5">
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button title="Coming Soon" style={{ opacity: 0.4 }} className="text-xs bg-transparent text-gray-400 border border-gray-600 rounded px-2.5 py-1.5 cursor-not-allowed">
-                  👥 Share Report
+                <button 
+                  onClick={shareReport}
+                  className="text-xs bg-transparent text-[#F4A726] border border-[#F4A726]/30 hover:border-[#F4A726] rounded px-3 py-1.5 cursor-pointer font-semibold transition-colors"
+                >
+                  📤 Share Report
                 </button>
-                <button title="Coming Soon" style={{ opacity: 0.4 }} className="text-xs bg-transparent text-gray-400 border border-gray-600 rounded px-2.5 py-1.5 cursor-not-allowed">
-                  💬 Comments
+                <button 
+                  onClick={() => setShowComments(!showComments)}
+                  className="text-xs bg-transparent text-[#F4A726] border border-[#F4A726]/30 hover:border-[#F4A726] rounded px-3 py-1.5 cursor-pointer font-semibold transition-colors"
+                >
+                  💬 Comments ({comments.length})
                 </button>
-                <button title="Coming Soon" style={{ opacity: 0.4 }} className="text-xs bg-transparent text-gray-400 border border-gray-600 rounded px-2.5 py-1.5 cursor-not-allowed">
+                <button 
+                  onClick={() => setShowPermissions(true)}
+                  className="text-xs bg-transparent text-[#F4A726] border border-[#F4A726]/30 hover:border-[#F4A726] rounded px-3 py-1.5 cursor-pointer font-semibold transition-colors"
+                >
                   🔒 Permissions
                 </button>
               </div>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
-                Collaboration features coming soon
-              </span>
             </div>
           </div>
+
+          {/* Key Findings Card */}
+          {showKeyFindings && (
+            <div style={{
+              marginTop: '16px',
+              padding: '20px',
+              background: 'linear-gradient(135deg, rgba(244,167,38,0.1), rgba(244,167,38,0.05))',
+              border: '1px solid rgba(244,167,38,0.3)',
+              borderRadius: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h4 style={{
+                  color: '#F4A726',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  margin: 0
+                }}>
+                  🔑 Key Findings
+                </h4>
+                <button 
+                  onClick={() => setShowKeyFindings(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.4)',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                  className="hover:text-white"
+                >
+                  ✕ Close
+                </button>
+              </div>
+              <p style={{
+                color: '#fff',
+                fontSize: '13px',
+                lineHeight: '1.7',
+                whiteSpace: 'pre-wrap',
+                margin: 0
+              }}>
+                {keyFindings ? keyFindings : '⏳ Generating Key Findings...'}
+              </p>
+            </div>
+          )}
+
+          {/* Comments Panel */}
+          {showComments && (
+            <div style={{
+              padding: '16px',
+              background: 'rgba(26,58,92,0.5)',
+              borderRadius: '8px',
+              marginTop: '12px',
+              border: '1px solid rgba(244,167,38,0.15)'
+            }}>
+              <h4 style={{color: '#F4A726', fontSize: '13px', marginBottom: '12px', marginTop: 0}}>
+                💬 Report Comments
+              </h4>
+              <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '12px' }} className="space-y-2">
+                {comments.length === 0 ? (
+                  <p style={{color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '8px 0'}}>
+                    No comments posted yet. Be the first to share your thoughts!
+                  </p>
+                ) : (
+                  comments.map((c, i) => (
+                    <div key={i} style={{
+                      padding: '8px 0',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{color: '#F4A726', fontSize: '11px', fontWeight: 'bold'}}>
+                          {c.author}
+                        </span>
+                        <span style={{color: 'rgba(255,255,255,0.3)', fontSize: '9px'}}>
+                          {c.createdAt ? (new Date(c.createdAt).toLocaleDateString() + ' ' + new Date(c.createdAt).toLocaleTimeString()) : ''}
+                        </span>
+                      </div>
+                      <p style={{color: '#fff', fontSize: '13px', margin: '4px 0 0'}}>
+                        {c.text}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div style={{display: 'flex', gap: '8px'}}>
+                <input
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && addComment()}
+                  placeholder="Add a comment..."
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(244,167,38,0.2)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    outline: 'none'
+                  }}
+                />
+                <button onClick={addComment} style={{
+                  padding: '8px 16px',
+                  background: '#F4A726',
+                  color: '#0A1628',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}>Post</button>
+              </div>
+            </div>
+          )}
+
+          {/* Permissions Modal */}
+          {showPermissions && (
+            <div style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999
+            }}>
+              <div style={{
+                background: '#0A1628',
+                border: '1px solid rgba(244,167,38,0.3)',
+                borderRadius: '12px',
+                padding: '24px',
+                maxWidth: '380px',
+                width: '90%'
+              }}>
+                <h3 style={{color: '#F4A726', marginBottom: '16px', marginTop: 0}}>
+                  🔒 Report Permissions
+                </h3>
+                <p style={{color: '#fff', fontSize: '13px', marginBottom: '12px'}}>
+                  Visibility:
+                </p>
+                {['Only Me', 'Team', 'Public'].map(opt => (
+                  <label key={opt} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    marginBottom: '10px',
+                    cursor: 'pointer'
+                  }}>
+                    <input type="radio" name="permission" value={opt} defaultChecked={opt === 'Only Me'} />
+                    {opt}
+                  </label>
+                ))}
+                <button onClick={() => setShowPermissions(false)}
+                  style={{
+                    marginTop: '16px',
+                    padding: '10px 24px',
+                    background: '#F4A726',
+                    color: '#0A1628',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}>
+                  Save Permissions
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Reading Mode Info banner */}
           {adapting && (
