@@ -136,6 +136,18 @@ export default function Header({
     return () => clearInterval(interval);
   }, []);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
+
   const API_KEY = '3ab51435ffdbc33e719cf21fd42d8dfc';
 
   const updateWeatherState = (data) => {
@@ -1014,12 +1026,19 @@ export default function Header({
       {/* STEP 2 - Mobile Menu (Full Screen Overlay) */}
       <div style={{
         position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
         background: '#0A1628',
         zIndex: 99999,
         display: isMenuOpen ? 'flex' : 'none',
         flexDirection: 'column',
-        padding: '20px'
+        padding: '20px',
+        overflowY: 'auto',
+        overflowX: 'hidden'
       }}>
         {/* Close button */}
         <button onClick={() => setIsMenuOpen(false)}
