@@ -680,3 +680,26 @@ html {
     max-width: 100% !important;
   }
 }
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .show-on-mobile-only {
+    display: flex !important;
+  }
+  .hide-on-small-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .show-on-mobile-only {
+    display: none !important;
+  }
+}

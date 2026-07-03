@@ -470,62 +470,188 @@ export default function Header({
     { id: 'research', name: 'Research' }
   ];
 
+  const handleNavClick = (label) => {
+    setSearchQuery('');
+    if (label === 'Markets') {
+      onCategoryChange('business');
+      setView('feed');
+    } else if (label === 'Dashboard') {
+      setView('live-dashboard');
+    } else if (label === 'Calendar') {
+      setView('calendar');
+    } else if (label === 'Comparison') {
+      setView('comparison');
+    } else if (label === 'Watchlist') {
+      setView('watchlist');
+    } else if (label === 'News Intel' || label === 'News Intelligence') {
+      setView('news-intel');
+    } else if (label === 'Deep Research' || label === '🔬 Deep Research') {
+      setView('er-research');
+    } else if (label === 'Library' || label === '📁 Library') {
+      setView('research-library');
+    } else if (label === 'Profile') {
+      setView('profile');
+    } else if (label === 'PRO Plans') {
+      setView('billing');
+    }
+  };
+
+  const breakingNews = tickerNews.length > 0 
+    ? tickerNews.map(n => n.title).join(' \u00a0\u00a0\u00a0\u00a0✦\u00a0\u00a0\u00a0\u00a0 ') 
+    : 'Loading global macroeconomic updates...';
+
   return (
     <header style={{
       background: 'var(--navy-darkest)',
-      borderBottom: '1px solid var(--border-subtle)',
       position: 'sticky',
       top: 0,
       zIndex: 1000,
       backdropFilter: 'blur(10px)'
     }}>
-      {/* Top mini bar with market data and toolbar */}
+      {/* LAYER 1 - Top Info Bar */}
       <div style={{
-        padding: '6px 24px',
-        fontSize: '11px',
-        fontFamily: 'IBM Plex Mono, monospace',
-        color: 'var(--text-tertiary)',
+        background: '#060D17',
+        borderBottom: '1px solid rgba(244,167,38,0.1)',
+        padding: '4px 16px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '1px solid var(--border-subtle)',
-        letterSpacing: '0.5px'
-      }} className="flex-wrap gap-2">
+        fontSize: '11px',
+        overflowX: 'auto',
+        whiteSpace: 'nowrap'
+      }}>
+        {/* Left: Market ticker - scrolling */}
         <div style={{
-          width: '100%',
-          maxWidth: '100%',
-          overflow: 'hidden',
-          position: 'relative'
-        }}>
-          <div style={{
-            display: 'flex',
-            gap: '16px',
-            overflowX: 'auto',
-            whiteSpace: 'nowrap',
-            padding: '4px 0',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}>
-            <span>SENSEX <span style={{color: stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? 'var(--success)' : 'var(--danger)'}}>{stocks.find(s=>s.symbol==='SENSEX')?.price || '82,456.23'} {stocks.find(s=>s.symbol==='SENSEX')?.pct >= 0 ? '▲' : '▼'}{stocks.find(s=>s.symbol==='SENSEX')?.pct || '0.4'}%</span></span>
-            <span>USD/INR <span style={{color:'var(--text-secondary)'}}>83.42</span></span>
-            <span>GOLD <span style={{color:'var(--gold-light)'}}>${stocks.find(s=>s.symbol==='GOLD/OZ')?.price || '2,345.67'}</span></span>
-            <span style={{ color: 'var(--text-tertiary)' }}>| &nbsp; {formatDate(time)} &nbsp; {getLocalTimeStr()} {getTimezoneAbbr()}</span>
-            {weather && !weather.error && (
-              <span 
-                style={{ color: 'var(--gold-light)', cursor: 'pointer' }} 
-                onClick={handleCityChangePrompt}
-                title="Click to edit city"
-              >
-                | &nbsp; {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C
+          display: 'flex',
+          gap: '16px',
+          overflowX: 'auto',
+          flexShrink: 1,
+          minWidth: 0,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }} className="scrollbar-none">
+          {stocks.map(stock => {
+            const isUp = stock.pct >= 0;
+            return (
+              <span key={stock.symbol} style={{ color: stock.symbol === 'GOLD/OZ' ? '#F4A726' : (isUp ? '#00C896' : '#FF5252'), whiteSpace: 'nowrap' }}>
+                {stock.symbol} {stock.symbol === 'EUR/USD' ? stock.price : Math.round(stock.price).toLocaleString('en-IN')} {isUp ? '▲' : '▼'}{Math.abs(stock.pct)}%
               </span>
-            )}
-          </div>
+            );
+          })}
         </div>
         
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          {/* Custom Language Selector */}
-          <div ref={langRef} className="relative" translate="no">
+        {/* Right: Date + Weather - hide on small mobile */}
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          flexShrink: 0,
+          whiteSpace: 'nowrap'
+        }}
+          className="hide-on-small-mobile">
+          <span style={{color: 'rgba(255,255,255,0.4)'}}>
+            {formatDate(time)} {getLocalTimeStr()} {getTimezoneAbbr()}
+          </span>
+          {weather && !weather.error && (
+            <span 
+              style={{color: 'rgba(255,255,255,0.4)', cursor: 'pointer'}}
+              onClick={handleCityChangePrompt}
+              title="Click to edit city"
+            >
+              {getWeatherEmoji(weather.description)} {weather.city} {Math.round(weather.temp)}°C
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* LAYER 2 - Main Header */}
+      <div style={{
+        background: '#0A1628',
+        borderBottom: '1px solid rgba(244,167,38,0.15)',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px'
+      }}>
+        {/* Logo - always visible */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexShrink: 0,
+            cursor: 'pointer'
+          }}
+          onClick={() => { onCategoryChange('world'); setSearchQuery(''); setView('feed'); }}
+        >
+          <div style={{
+            width: '32px',
+            height: '32px',
+            background: '#F4A726',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '900',
+            color: '#0A1628',
+            fontSize: '14px',
+            flexShrink: 0,
+            fontFamily: 'Playfair Display, serif'
+          }}>ER</div>
+          
+          {/* Hide full name on mobile */}
+          <span style={{
+            fontFamily: 'Playfair Display, serif',
+            fontWeight: '700',
+            fontSize: '16px',
+            color: '#fff',
+            whiteSpace: 'nowrap'
+          }}
+            className="hide-on-mobile">
+            ECONOMICAL RESEARCH
+          </span>
+        </div>
+
+        {/* Search - hide on mobile */}
+        <div className="relative hide-on-mobile" style={{ flex: 1, maxWidth: '380px' }}>
+          <SmartSearch 
+            setView={setView} 
+            onSelectCountry={onSelectCountry} 
+            onSelectCompany={onSelectCompany} 
+            onSelectAsset={onSelectAsset} 
+            onSelectComparison={onSelectComparison} 
+          />
+        </div>
+        
+        {/* Right side actions */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexShrink: 0
+        }}>
+          {/* Theme Toggle - hide on mobile */}
+          <button 
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="hide-on-mobile"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: 0, display: 'flex', alignItems: 'center' }}
+            title="Toggle Theme"
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          {/* Settings - hide on mobile */}
+          <button 
+            onClick={() => setView('settings')}
+            className="hide-on-mobile"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: 0, display: 'flex', alignItems: 'center' }}
+            title="Settings"
+          >
+            <SettingsIcon size={16} />
+          </button>
+
+          {/* Language selector - hide on mobile */}
+          <div ref={langRef} className="relative hide-on-mobile" translate="no">
             <button
               onClick={() => setIsLangOpen(!isLangOpen)}
               style={{
@@ -533,12 +659,12 @@ export default function Header({
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: '4px',
                 padding: '2px 8px',
-                color: 'var(--text-secondary)',
+                color: 'rgba(255,255,255,0.6)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                fontSize: '10px'
+                fontSize: '11px'
               }}
             >
               <span>{languages.find(l => l.code === selectedLang)?.flag}</span>
@@ -583,194 +709,36 @@ export default function Header({
               </div>
             )}
           </div>
-
-          {/* Theme Toggle */}
-          <button 
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
-            title="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-          </button>
-
-          {/* Settings Button */}
-          <button 
-            onClick={() => setView('settings')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
-            title="Settings"
-          >
-            <SettingsIcon size={13} />
-          </button>
-
-          {/* X (Twitter) */}
-          <a
-            href="https://x.com/ERNewsDesk"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
-            title="Follow us on X"
-          >
-            <FaXTwitter size={13} />
-          </a>
-
-          {/* Instagram */}
-          <a
-            href="https://www.instagram.com/economical.research"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
-            title="Follow us on Instagram"
-          >
-            <FaInstagram size={13} />
-          </a>
-        </div>
-      </div>
-      
-      {/* Main nav */}
-      <div style={{
-        padding: '16px 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        {/* Brand Logo and Title */}
-        <div 
-          style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}
-          onClick={() => { onCategoryChange('world'); setSearchQuery(''); setView('feed'); }}
-        >
-          <div style={{
-            width: '32px', height: '32px',
-            background: 'var(--gold-primary)',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: '900',
-            color: 'var(--navy-darkest)',
-            fontFamily: 'Playfair Display, serif'
-          }}>ER</div>
-          <span style={{
-            fontFamily: 'Playfair Display, serif',
-            fontWeight: '700',
-            fontSize: '20px',
-            color: '#fff',
-            letterSpacing: '0.5px'
-          }}>ECONOMICAL RESEARCH</span>
-        </div>
-        
-        {/* Navigation Categories */}
-        <nav style={{display: 'flex', gap: '28px', alignItems: 'center'}} className="hidden md:flex">
-          {[
-            { name: 'Markets', id: 'business', isCat: true },
-            { name: 'Dashboard', id: 'live-dashboard' },
-            { name: 'Calendar', id: 'calendar' },
-            { name: 'Comparison', id: 'comparison' },
-            { name: 'Watchlist', id: 'watchlist' },
-            { name: 'News Intel', id: 'news-intel' }
-          ].map(item => (
-            <a 
-              key={item.name} 
-              onClick={() => {
-                setSearchQuery('');
-                if (item.isCat) {
-                  onCategoryChange(item.id);
-                  setView('feed');
-                } else {
-                  setView(item.id);
-                }
-              }}
-              style={{
-                color: (item.isCat ? (activeCategory === item.id && view === 'feed' && !searchQuery) : (view === item.id)) ? 'var(--gold-primary)' : 'var(--text-secondary)',
-                fontSize: '13px',
-                fontWeight: '500',
-                textTransform: 'uppercase',
-                letterSpacing: '0.8px',
-                cursor: 'pointer',
-                transition: 'color 0.2s',
-                paddingBottom: '2px',
-                borderBottom: (item.isCat ? (activeCategory === item.id && view === 'feed' && !searchQuery) : (view === item.id)) ? '2px solid var(--gold-primary)' : 'none'
-              }}
-            >
-              {item.name}
-            </a>
-          ))}
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setView('er-research');
-            }}
-            style={{
-              background: 'rgba(244,167,38,0.1)',
-              border: '1px solid var(--gold-primary)',
-              color: 'var(--gold-primary)',
-              padding: '4px 10px',
-              borderRadius: '4px',
-              fontSize: '11px',
-              fontWeight: '700',
-              textTransform: 'uppercase',
-              letterSpacing: '0.8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            className="hover:bg-[#F4A726] hover:text-navy"
-          >
-            🔬 Deep Research
-          </button>
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setView('research-library');
-            }}
-            style={{
-              background: 'rgba(244,167,38,0.05)',
-              border: '1px solid rgba(244,167,38,0.4)',
-              color: 'var(--gold-primary)',
-              padding: '4px 10px',
-              borderRadius: '4px',
-              fontSize: '11px',
-              fontWeight: '700',
-              textTransform: 'uppercase',
-              letterSpacing: '0.8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              marginLeft: '8px'
-            }}
-            className="hover:bg-[#F4A726] hover:text-navy"
-          >
-            📁 Library
-          </button>
-        </nav>
-        
-        {/* Right Area: Search, Notifications, Auth CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          {/* Smart Universal Search Bar */}
-          <div className="relative hidden lg:block w-72">
-            <SmartSearch 
-              setView={setView} 
-              onSelectCountry={onSelectCountry} 
-              onSelectCompany={onSelectCompany} 
-              onSelectAsset={onSelectAsset} 
-              onSelectComparison={onSelectComparison} 
-            />
-          </div>
-
-          {/* Notifications bell */}
+          
+          {/* Notification badge */}
           {user && (
-            <div ref={notifRef} className="relative">
+            <div ref={notifRef} style={{position: 'relative', cursor: 'pointer'}}>
               <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="text-white hover:text-[#F4A726] transition-colors focus:outline-none flex items-center justify-center p-1 bg-transparent border-none cursor-pointer"
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
                 title="Alert Ledger"
               >
                 {totalBadgeCount > 0 ? (
                   <>
-                    <BellRing size={16} className="text-[#F4A726] animate-bounce" />
-                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-600 rounded-full text-[7px] font-black text-white flex items-center justify-center">
-                      {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
-                    </span>
+                    <BellRing size={18} className="text-[#F4A726] animate-bounce" />
+                    <span style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      background: '#FF5252',
+                      color: '#fff',
+                      fontSize: '9px',
+                      fontWeight: '700',
+                      borderRadius: '50%',
+                      width: '14px',
+                      height: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>{totalBadgeCount > 9 ? '9+' : totalBadgeCount}</span>
                   </>
                 ) : (
-                  <Bell size={16} />
+                  <Bell size={18} />
                 )}
               </button>
 
@@ -858,7 +826,7 @@ export default function Header({
                             key={alert.id}
                             className="px-1.5 py-0.5 bg-[#F4A726]/10 border border-[#F4A726]/20 text-[#F4A726] text-[8.5px] font-bold rounded"
                           >
-                            🔔 {alert.topic}
+                            {alert.topic}
                           </span>
                         ))}
                       </div>
@@ -868,215 +836,264 @@ export default function Header({
               )}
             </div>
           )}
-
-          {/* Header Action Button (GO PRO / PRO / LOGIN) */}
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          
+          {/* PRO button - hide text on mobile */}
+          {!user ? (
+            <button 
+              onClick={openAuthModal}
+              style={{
+                background: '#F4A726',
+                color: '#0A1628',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontWeight: '700',
+                fontSize: '11px',
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              PRO
+            </button>
+          ) : (
+            <>
+              {subscription?.tier !== 'PRO' ? (
+                <button 
+                  onClick={() => setView('billing')}
+                  style={{
+                    background: '#F4A726',
+                    color: '#0A1628',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    fontWeight: '700',
+                    fontSize: '11px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  GO PRO
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setView('profile')}
+                  style={{
+                    background: 'rgba(244,167,38,0.1)',
+                    border: '1px solid #F4A726',
+                    color: '#F4A726',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    fontWeight: '700',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  PRO
+                </button>
+              )}
+              
+              {/* Profile - always visible */}
               <button 
                 onClick={() => setView('profile')} 
                 style={{
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  padding: '4px',
+                  padding: 0,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}
               >
-                <ProfileAvatar user={user} size={28} />
+                <ProfileAvatar user={user} size={32} />
               </button>
-              {subscription?.tier !== 'PRO' ? (
-                <button 
-                  onClick={() => setView('billing')}
-                  style={{
-                    background: 'var(--gold-primary)',
-                    color: 'var(--navy-darkest)',
-                    padding: '8px 20px',
-                    borderRadius: '4px',
-                    fontWeight: '700',
-                    fontSize: '12px',
-                    letterSpacing: '0.5px',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  GO PRO
-                </button>
-              ) : (
-                <button
-                  onClick={() => setView('profile')}
-                  style={{
-                    background: 'rgba(244,167,38,0.1)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--gold-primary)',
-                    padding: '8px 20px',
-                    borderRadius: '4px',
-                    fontWeight: '700',
-                    fontSize: '12px',
-                    letterSpacing: '0.5px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  PRO PROFILE
-                </button>
-              )}
-            </div>
-          ) : (
+            </>
+          )}
+          
+          {/* Hamburger - ONLY on mobile */}
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="show-on-mobile-only"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '4px'
+            }}
+          >
+            ☰
+          </button>
+        </div>
+      </div>
+
+      {/* LAYER 3 - Navigation Bar */}
+      <nav style={{
+        background: '#0A1628',
+        borderBottom: '2px solid rgba(244,167,38,0.1)',
+        padding: '0 16px',
+        display: 'flex',
+        gap: '4px',
+        overflowX: 'auto',
+        scrollbarWidth: 'none'
+      }}
+        className="hide-on-mobile">
+        {[
+          'Markets', 'Dashboard', 'Calendar', 
+          'Comparison', 'Watchlist', 'News Intel',
+          '🔬 Deep Research', '📁 Library'
+        ].map(item => {
+          const isActive = (item === 'Markets' && activeCategory === 'business' && view === 'feed' && !searchQuery) || 
+                           (item === 'Dashboard' && view === 'live-dashboard') ||
+                           (item === 'Calendar' && view === 'calendar') ||
+                           (item === 'Comparison' && view === 'comparison') ||
+                           (item === 'Watchlist' && view === 'watchlist') ||
+                           (item === 'News Intel' && view === 'news-intel') ||
+                           (item === '🔬 Deep Research' && view === 'er-research') ||
+                           (item === '📁 Library' && view === 'research-library');
+          return (
             <button 
-              onClick={openAuthModal}
+              key={item} 
+              onClick={() => handleNavClick(item)}
               style={{
-                background: 'var(--gold-primary)',
-                color: 'var(--navy-darkest)',
-                padding: '8px 20px',
-                borderRadius: '4px',
-                fontWeight: '700',
-                fontSize: '12px',
-                letterSpacing: '0.5px',
+                padding: '10px 14px',
+                background: 'none',
                 border: 'none',
-                cursor: 'pointer'
+                color: isActive ? '#F4A726' : 'rgba(255,255,255,0.6)',
+                fontSize: '12px',
+                fontWeight: isActive ? '700' : '500',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                borderBottom: isActive ? '2px solid #F4A726' : '2px solid transparent',
+                transition: 'all 0.2s'
               }}
             >
-              GO PRO
+              {item}
             </button>
-          )}
-        </div>
-      </div>
+          );
+        })}
+      </nav>
 
-      {/* Breaking news marquee sub-strip */}
+      {/* LAYER 4 - Breaking News Ticker */}
       <div style={{
-        background: '#040910',
-        borderTop: '1px solid var(--border-subtle)',
-        borderBottom: '1px solid var(--border-subtle)',
-        padding: '4px 24px',
-        fontSize: '10px',
-        color: '#fff',
+        background: '#FF5252',
+        padding: '6px 16px',
         display: 'flex',
         alignItems: 'center',
-        height: '24px',
+        gap: '12px',
         overflow: 'hidden'
       }}>
-        <div style={{
-          background: 'var(--gold-primary)',
-          color: 'var(--navy-darkest)',
-          padding: '1px 6px',
-          fontWeight: '900',
-          fontSize: '9px',
-          marginRight: '12px',
+        <span style={{
+          background: '#fff',
+          color: '#FF5252',
+          padding: '2px 8px',
           borderRadius: '2px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }} className="animate-pulse">
-          Breaking
-        </div>
-        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', flexGrow: 1 }}>
-          {tickerNews.length > 0 ? (
-            <span style={{ cursor: 'pointer', fontFamily: 'Inter, sans-serif' }} className="hover:text-gold transition-colors">
-              ✦ {tickerNews[tickerIndex]?.title}
-            </span>
-          ) : (
-            <span style={{ color: 'var(--text-tertiary)' }}>✦ Loading global macroeconomic updates... ✦ Deep synthesis online...</span>
-          )}
-        </div>
-      </div>
-
-      {/* MOBILE DRAWER OVERLAY */}
-      <div className="md:hidden font-sans">
-        <div 
-          className={`mobile-menu-backdrop ${isMenuOpen ? 'open' : ''}`} 
-          onClick={() => setIsMenuOpen(false)}
-        ></div>
-        <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
-          <div className="mobile-menu-header">
-            <span style={{ color: '#F4A726', fontWeight: 'bold', fontSize: '18px', letterSpacing: '2px' }}>MENU</span>
-            <button className="mobile-menu-close" onClick={() => setIsMenuOpen(false)}>✕</button>
-          </div>
-          <div style={{ paddingBottom: '40px' }}>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('foryou'); setView('feed'); setIsMenuOpen(false); }}>For You ⭐</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Home</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('world'); setView('feed'); setIsMenuOpen(false); }}>Global Affairs</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('india'); setView('feed'); setIsMenuOpen(false); }}>India News</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('politics'); setView('feed'); setIsMenuOpen(false); }}>Policy & Regulation</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('tech'); setView('feed'); setIsMenuOpen(false); }}>Tech & Innovation</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('business'); setView('feed'); setIsMenuOpen(false); }}>Markets & Business</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('finance'); setView('feed'); setIsMenuOpen(false); }}>Economics & Finance</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('science'); setView('feed'); setIsMenuOpen(false); }}>Research & Science</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('environment'); setView('feed'); setIsMenuOpen(false); }}>Climate & Energy</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('health'); setView('feed'); setIsMenuOpen(false); }}>Health</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('education'); setView('feed'); setIsMenuOpen(false); }}>Education</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('law'); setView('feed'); setIsMenuOpen(false); }}>Law & Crime</button>
-            <button className="mobile-menu-item" onClick={() => { onCategoryChange('research'); setView('feed'); setIsMenuOpen(false); }}>Research</button>
-            
-            <button className="mobile-menu-item" onClick={() => { setView('fake-news'); setIsMenuOpen(false); }} style={{ marginTop: '10px', borderTop: '1px solid #1A3A5C' }}>Fake News Checker</button>
-            <button className="mobile-menu-item" onClick={() => { setView('bias-detector'); setIsMenuOpen(false); }}>Bias Detector</button>
-            <button className="mobile-menu-item" onClick={() => { setView('world-map'); setIsMenuOpen(false); }}>World News Map</button>
-            <button className="mobile-menu-item" onClick={() => { setView('outcome-tracker'); setIsMenuOpen(false); }}>Outcome Tracker</button>
-            <button className="mobile-menu-item" onClick={() => { setView('epaper'); setIsMenuOpen(false); }}>E-Paper</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('er-research'); setIsMenuOpen(false); }}>🔬 Deep Research</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('research-library'); setIsMenuOpen(false); }}>📁 Research Library</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('live-dashboard'); setIsMenuOpen(false); }}>📊 Live Dashboard</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('calendar'); setIsMenuOpen(false); }}>📅 Economic Calendar</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('comparison'); setIsMenuOpen(false); }}>⚖️ Global Comparison</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('watchlist'); setIsMenuOpen(false); }}>⭐ Watchlist</button>
-            <button className="mobile-menu-item text-gold font-bold" onClick={() => { setView('news-intel'); setIsMenuOpen(false); }}>📰 News Intelligence</button>
-            <button className="mobile-menu-item" onClick={() => { setView('assistant'); setIsMenuOpen(false); }}>Intelligence Assistant</button>
-            <button className="mobile-menu-item" onClick={() => { setView('billing'); setIsMenuOpen(false); }}>Pricing</button>
-            
-            {user ? (
-              <>
-                <div onClick={() => { setView('profile'); setIsMenuOpen(false); }} style={{ cursor: 'pointer' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '12px 16px',
-                    background: 'rgba(244,167,38,0.1)',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(244,167,38,0.3)',
-                    marginBottom: '16px'
-                  }}>
-                    <ProfileAvatar user={user} size={48} />
-                    <div>
-                      <p style={{
-                        color: '#F4A726',
-                        fontWeight: '700',
-                        fontSize: '15px',
-                        margin: 0
-                      }}>
-                        {user.displayName || 'User'}
-                      </p>
-                      <p style={{
-                        color: 'rgba(255,255,255,0.6)',
-                        fontSize: '12px',
-                        margin: 0
-                      }}>
-                        {user.email}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <button className="mobile-menu-item" onClick={() => { setView('profile'); setIsMenuOpen(false); }}>Profile Settings</button>
-              </>
-            ) : (
-              <button className="mobile-menu-item" onClick={() => { openAuthModal(); setIsMenuOpen(false); }}>Login</button>
-            )}
+          fontSize: '10px',
+          fontWeight: '900',
+          flexShrink: 0
+        }}>BREAKING</span>
+        <div style={{
+          overflow: 'hidden',
+          flex: 1
+        }}>
+          <div style={{
+            color: '#fff',
+            fontSize: '12px',
+            whiteSpace: 'nowrap',
+            display: 'inline-block',
+            animation: 'marquee 30s linear infinite'
+          }}>
+            {breakingNews}
           </div>
         </div>
       </div>
 
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes slideRight {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-        .animate-slide-right {
-          animation: slideRight 0.25s ease-out forwards;
-        }
-      `}</style>
+      {/* STEP 2 - Mobile Menu (Full Screen Overlay) */}
+      <div style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: '#0A1628',
+        zIndex: 99999,
+        display: isMenuOpen ? 'flex' : 'none',
+        flexDirection: 'column',
+        padding: '20px'
+      }}>
+        {/* Close button */}
+        <button onClick={() => setIsMenuOpen(false)}
+          style={{
+            alignSelf: 'flex-end',
+            background: 'none',
+            border: 'none',
+            color: '#fff',
+            fontSize: '28px',
+            cursor: 'pointer',
+            marginBottom: '20px'
+          }}>✕</button>
+        
+        {/* All nav items as full width buttons */}
+        {[
+          { label: 'Markets', icon: '📈' },
+          { label: 'Dashboard', icon: '📊' },
+          { label: 'Calendar', icon: '📅' },
+          { label: 'Comparison', icon: '⚖️' },
+          { label: 'Watchlist', icon: '👁️' },
+          { label: 'News Intelligence', icon: '📰' },
+          { label: 'Deep Research', icon: '🔬' },
+          { label: 'Library', icon: '📁' },
+          { label: 'Profile', icon: '👤' },
+          { label: 'PRO Plans', icon: '💎' }
+        ].map(item => (
+          <button key={item.label}
+            onClick={() => {
+              handleNavClick(item.label)
+              setIsMenuOpen(false)
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '16px 12px',
+              background: 'none',
+              border: 'none',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              color: '#fff',
+              fontSize: '16px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              width: '100%'
+            }}>
+            <span>{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+        
+        {/* Social links at bottom */}
+        <div style={{
+          marginTop: 'auto',
+          display: 'flex',
+          gap: '16px',
+          paddingTop: '20px',
+          borderTop: '1px solid rgba(255,255,255,0.1)'
+        }}>
+          <a href="https://x.com/ERNewsDesk" 
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{color: 'rgba(255,255,255,0.4)',
+              fontSize: '13px'}}>
+            X (Twitter)
+          </a>
+          <a href="https://instagram.com/economical.research"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{color: 'rgba(255,255,255,0.4)',
+              fontSize: '13px'}}>
+            Instagram
+          </a>
+        </div>
+      </div>
     </header>
   );
 }
