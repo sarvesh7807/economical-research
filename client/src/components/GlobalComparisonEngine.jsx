@@ -1,10 +1,8 @@
 // client/src/components/GlobalComparisonEngine.jsx
 import React, { useState, useEffect } from 'react';
-import ReactECharts from 'echarts-for-react';
-import AIRouter from '../ai/AIRouter';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import VerificationPanel from './research/VerificationPanel';
+import { useAuth } from '../contexts/AuthContext';
 
 const COMPARISON_PRESETS = [
   { label: 'India vs China (Sovereign)', type: 'country', a: 'India', b: 'China' },
@@ -12,116 +10,176 @@ const COMPARISON_PRESETS = [
   { label: 'Tech vs Finance (Sectors)', type: 'sector', a: 'Tech Sector', b: 'Financial Sector' }
 ];
 
-export default function GlobalComparisonEngine({ setView }) {
-  const [selectedType, setSelectedType] = useState('country'); // 'country' | 'company' | 'sector'
-  const [itemA, setItemA] = useState('India');
-  const [itemB, setItemB] = useState('China');
-  const [loading, setLoading] = useState(false);
+export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) {
+  const { user } = useAuth();
+  
+  const [comparisonType, setComparisonType] = useState('country');
+  const [item1, setItem1] = useState(defaultA || 'India');
+  const [item2, setItem2] = useState(defaultB || 'China');
+  const [isComparing, setIsComparing] = useState(false);
   const [comparisonResult, setComparisonResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [arbitrageCommentary, setArbitrageCommentary] = useState(null);
 
   const handlePresetSelect = (preset) => {
-    setSelectedType(preset.type);
-    setItemA(preset.a);
-    setItemB(preset.b);
-    runComparison(preset.a, preset.b, preset.type);
+    setComparisonType(preset.type);
+    setItem1(preset.a);
+    setItem2(preset.b);
+    handleCompare(preset.type, preset.a, preset.b);
   };
 
-  // Compile Live Comparison
-  const runComparison = async (nameA = itemA, nameB = itemB, type = selectedType) => {
-    if (!nameA.trim() || !nameB.trim()) return;
-    setLoading(true);
+  const handleCompare = async (overrideType, overrideItem1, overrideItem2) => {
+    const type = overrideType || comparisonType;
+    const i1 = overrideItem1 || item1;
+    const i2 = overrideItem2 || item2;
+
+    if (!i1.trim() || !i2.trim()) {
+      setError('Please enter both items to compare');
+      return;
+    }
+    
+    setIsComparing(true);
     setComparisonResult(null);
-
+    setError(null);
+    setArbitrageCommentary(null);
+    
     try {
-      const prompt = `You are a Lead Financial Economist. Generate a side-by-side comparative analysis of ${nameA} and ${nameB} (Type: ${type}).
-      Return ONLY a valid JSON object matching this structure (no markdown fences, no comments):
-      {
-        "comparisonTable": [
-          { "metric": "GDP Growth / Revenue Growth", "valueA": "7.20%", "valueB": "5.20%" },
-          { "metric": "Inflation / Net Margin", "valueA": "4.80%", "valueB": "1.20%" },
-          { "metric": "Debt Level / Total Debt", "valueA": "58% of GDP", "valueB": "82% of GDP" },
-          { "metric": "Population / Market Share", "valueA": "1.42B", "valueB": "1.41B" }
-        ],
-        "aiSummary": "A highly detailed summary of the main divergences, competitive advantages, or sovereign risks.",
-        "chartData": [
-          { "label": "Q1", "valueA": 7.2, "valueB": 5.2 },
-          { "label": "Q2", "valueA": 6.8, "valueB": 5.0 },
-          { "label": "Q3", "valueA": 7.5, "valueB": 5.3 },
-          { "label": "Q4", "valueA": 7.3, "valueB": 5.1 }
-        ],
-        "verification": {
-          "primarySource": "World Bank / SEC Edgar",
-          "conflictingSources": [
-            { "source": "IMF Database", "valueA": "6.80%", "valueB": "4.90%", "confidence": 93 }
-          ],
-          "explanation": "Why calculations differ between calendar periods."
+      const prompt = `
+      You are Economical Research AI.
+      Create a professional comparison report.
+      
+      Comparison Type: ${type}
+      Item 1: ${i1}
+      Item 2: ${i2}
+      
+      Provide detailed comparison:
+      
+      OVERVIEW:
+      Brief description of both items.
+      
+      KEY METRICS COMPARISON:
+      | Metric | ${i1} | ${i2} |
+      List 8-10 key metrics in table format.
+      
+      STRENGTHS:
+      ${i1}: List 3 strengths
+      ${i2}: List 3 strengths
+      
+      WEAKNESSES:
+      ${i1}: List 3 weaknesses
+      ${i2}: List 3 weaknesses
+      
+      WINNER BY CATEGORY:
+      List which item wins in each category.
+      
+      ER VERDICT:
+      Which is better overall and why?
+      
+      Write professionally. Never mention 
+      Gemini or any AI provider.
+      Use "Economical Research AI" only.
+      `;
+      
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 1000 }
+          })
         }
-      }`;
-
-      const response = await AIRouter.route(prompt, 'research');
-      let parsed = {};
-      try {
-        parsed = JSON.parse(response);
-      } catch (err) {
-        console.error('Failed to parse comparison JSON:', err);
+      );
+      
+      if (!res.ok) throw new Error('API failed');
+      
+      const data = await res.json();
+      const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      setComparisonResult(result);
+      
+      // Save to Firebase
+      if (db && user) {
+        await addDoc(
+          collection(db, 'comparison_history'),
+          {
+            userId: user.uid,
+            type: type,
+            item1: i1,
+            item2: i2,
+            result,
+            createdAt: new Date()
+          }
+        );
       }
-
-      setComparisonResult(parsed);
-
-      // Auto-save to Research Memory (FEATURE 4)
-      try {
-        await addDoc(collection(db, 'er_research_reports'), {
-          userId: 'guest',
-          query: `Comparison: ${nameA} vs ${nameB}`,
-          title: `Comparative: ${nameA} vs ${nameB}`,
-          report: `Comparative Analysis for ${nameA} vs ${nameB}. Summary: ${parsed.aiSummary || ''}`,
-          createdAt: new Date().toISOString(),
-          isFavorite: false,
-          tags: ['comparison', nameA.toLowerCase(), nameB.toLowerCase()]
-        });
-      } catch (fsErr) {
-        console.error('Failed to auto-save comparison:', fsErr);
-      }
-    } catch (e) {
-      console.error(e);
+      
+    } catch (err) {
+      setError('Comparison failed. Please try again.');
+      console.error('Comparison error:', err);
     } finally {
-      setLoading(false);
+      setIsComparing(false);
+    }
+  };
+
+  const generateArbitrageCommentary = async () => {
+    if (!comparisonResult) return;
+    
+    const prompt = `
+    You are Economical Research AI.
+    Based on this comparison between 
+    ${item1} and ${item2}:
+    
+    ${comparisonResult}
+    
+    Generate "AI Arbitrage Commentary":
+    
+    1. OPPORTUNITY: What arbitrage or 
+       investment opportunity exists?
+    2. RISK DIFFERENTIAL: Key risk differences
+    3. TIMING: When to act on this comparison
+    4. ER RECOMMENDATION: 
+       Buy/Hold/Avoid for each item
+    
+    Keep under 200 words. Professional tone.
+    `;
+    
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 400 }
+          })
+        }
+      );
+      const data = await res.json();
+      setArbitrageCommentary(
+        data.candidates?.[0]?.content?.parts?.[0]?.text
+      );
+    } catch (err) {
+      console.error('Arbitrage commentary error:', err);
     }
   };
 
   useEffect(() => {
-    runComparison();
-  }, []);
+    const initialItem1 = defaultA || 'India';
+    const initialItem2 = defaultB || 'China';
+    setItem1(initialItem1);
+    setItem2(initialItem2);
+    handleCompare(comparisonType, initialItem1, initialItem2);
+  }, [defaultA, defaultB]);
 
-  // ECharts comparative chart options
-  const getChartOptions = () => {
-    if (!comparisonResult || !comparisonResult.chartData) return {};
-    const labels = comparisonResult.chartData.map(c => c.label);
-    const dataA = comparisonResult.chartData.map(c => c.valueA);
-    const dataB = comparisonResult.chartData.map(c => c.valueB);
-
-    return {
-      backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      legend: { textStyle: { color: '#9CA3AF' }, bottom: '0' },
-      xAxis: { type: 'category', data: labels, axisLabel: { color: '#9CA3AF' } },
-      yAxis: { type: 'value', axisLabel: { color: '#9CA3AF' }, splitLine: { lineStyle: { color: '#142B47' } } },
-      series: [
-        {
-          name: itemA,
-          type: 'bar',
-          data: dataA,
-          itemStyle: { color: '#F4A726' }
-        },
-        {
-          name: itemB,
-          type: 'bar',
-          data: dataB,
-          itemStyle: { color: '#3B82F6' }
-        }
-      ]
-    };
-  };
+  useEffect(() => {
+    if (comparisonResult) {
+      generateArbitrageCommentary();
+    }
+  }, [comparisonResult]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)]">
@@ -130,7 +188,7 @@ export default function GlobalComparisonEngine({ setView }) {
       <div className="border-b border-[#F4A726]/10 pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <span className="text-[10px] font-mono font-bold text-[#F4A726] uppercase tracking-widest block mb-1">
-            sovereign & corporate arbitrage engine
+            sovereign & corporate arbitrage ledger
           </span>
           <h1 className="font-serif text-3xl font-black uppercase tracking-tight text-white">
             Global Comparison Engine
@@ -185,20 +243,20 @@ export default function GlobalComparisonEngine({ setView }) {
               { label: 'Market vs Market', icon: '📈', value: 'market' }
             ].map(type => (
               <button key={type.label}
-                onClick={() => setSelectedType(type.value)}
+                onClick={() => setComparisonType(type.value)}
                 type="button"
                 style={{
                   padding: '12px 8px',
-                  background: selectedType === type.value
+                  background: comparisonType === type.value
                     ? 'rgba(244,167,38,0.2)'
                     : 'rgba(26,58,92,0.5)',
                   border: `1px solid ${
-                    selectedType === type.value
+                    comparisonType === type.value
                       ? '#F4A726'
                       : 'rgba(244,167,38,0.15)'
                   }`,
                   borderRadius: '8px',
-                  color: selectedType === type.value
+                  color: comparisonType === type.value
                     ? '#F4A726' : '#fff',
                   fontSize: '12px',
                   cursor: 'pointer',
@@ -223,8 +281,8 @@ export default function GlobalComparisonEngine({ setView }) {
             <input 
               type="text"
               placeholder="India..."
-              value={itemA}
-              onChange={e => setItemA(e.target.value)}
+              value={item1}
+              onChange={e => setItem1(e.target.value)}
               style={{
                 width: '100%',
                 maxWidth: '100%',
@@ -248,8 +306,8 @@ export default function GlobalComparisonEngine({ setView }) {
             <input 
               type="text"
               placeholder="China..."
-              value={itemB}
-              onChange={e => setItemB(e.target.value)}
+              value={item2}
+              onChange={e => setItem2(e.target.value)}
               style={{
                 width: '100%',
                 maxWidth: '100%',
@@ -267,8 +325,8 @@ export default function GlobalComparisonEngine({ setView }) {
         </div>
 
         <button
-          onClick={() => runComparison()}
-          disabled={loading || !itemA.trim() || !itemB.trim()}
+          onClick={() => handleCompare()}
+          disabled={isComparing || !item1.trim() || !item2.trim()}
           className="comparison-button"
           style={{
             width: '100%',
@@ -283,91 +341,83 @@ export default function GlobalComparisonEngine({ setView }) {
             boxSizing: 'border-box'
           }}
         >
-          {loading ? '⚖️ Comparing...' : 'Compare Now'}
+          {isComparing ? '⚖️ Comparing...' : 'Compare Now'}
         </button>
       </div>
 
       {/* Results view */}
-      {loading ? (
+      {isComparing ? (
         <div className="text-center py-20 text-[11px] font-mono text-[#F4A726] uppercase tracking-widest animate-pulse">
           ⏳ Arbitraging sovereign records...
         </div>
-      ) : comparisonResult ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
-          
-          {/* Left/Middle: Table and Charts */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Side-by-Side Table */}
-            <div className="bg-[#0A1628] border border-white/5 rounded-lg p-5">
-              <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wide border-b border-white/5 pb-2 mb-3">
-                Metrics Arbitrage Ledger
+      ) : (
+        <div className="space-y-6">
+          {comparisonResult && (
+            <div style={{
+              marginTop: '24px',
+              padding: '24px',
+              background: 'rgba(26,58,92,0.5)',
+              border: '1px solid rgba(244,167,38,0.2)',
+              borderRadius: '12px'
+            }}>
+              <h3 style={{
+                color: '#F4A726',
+                fontFamily: 'Playfair Display, serif',
+                fontSize: '18px',
+                marginBottom: '16px'
+              }}>
+                {item1} vs {item2} — ER Analysis
               </h3>
-              
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 text-[9px] font-mono text-gray-400 uppercase">
-                    <th className="p-2">Comparative Metric</th>
-                    <th className="p-2 text-[#F4A726]">{itemA}</th>
-                    <th className="p-2 text-blue-400">{itemB}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonResult.comparisonTable?.map((row, i) => (
-                    <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                      <td className="p-3 font-medium text-gray-300">{row.metric}</td>
-                      <td className="p-3 font-mono font-bold text-white">{row.valueA}</td>
-                      <td className="p-3 font-mono font-bold text-white">{row.valueB}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{
+                color: '#fff',
+                fontSize: '14px',
+                lineHeight: '1.8',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {comparisonResult}
+              </div>
+
+              {/* Show Arbitrage Commentary */}
+              {arbitrageCommentary && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, rgba(244,167,38,0.1), rgba(244,167,38,0.05))',
+                  border: '1px solid rgba(244,167,38,0.3)',
+                  borderRadius: '12px'
+                }}>
+                  <h4 style={{
+                    color: '#F4A726',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    marginBottom: '12px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px'
+                  }}>
+                    ⚡ AI Arbitrage Commentary
+                  </h4>
+                  <p style={{
+                    color: '#fff',
+                    fontSize: '13px',
+                    lineHeight: '1.7',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {arbitrageCommentary}
+                  </p>
+                </div>
+              )}
             </div>
+          )}
 
-            {/* AI Summary */}
-            <div className="bg-[#0A1628]/40 border border-white/5 rounded-lg p-5 space-y-2">
-              <h3 className="text-xs font-mono font-bold text-[#F4A726] uppercase tracking-wide">
-                AI Arbitrage Commentary
-              </h3>
-              <p className="text-xs text-gray-300 font-serif leading-relaxed">
-                {comparisonResult.aiSummary}
-              </p>
-            </div>
-
-          </div>
-
-          {/* Right: EChart & Verification Layer */}
-          <div className="space-y-6">
-            {/* Chart */}
-            <div className="bg-[#0A1628] border border-white/5 rounded-lg p-5 min-h-[260px] flex flex-col justify-center">
-              <ReactECharts 
-                option={getChartOptions()} 
-                style={{ height: '220px', width: '100%' }} 
-                theme="dark"
-                lazyUpdate={true}
-              />
-            </div>
-
-            {/* Verification Panel (FEATURE 8 & 9) */}
-            {comparisonResult.verification && (
-              <VerificationPanel 
-                statistic="Comparative Spread Discrepancies"
-                primaryValue={comparisonResult.comparisonTable?.[0]?.valueA || '7.20%'}
-                primarySource={comparisonResult.verification.primarySource}
-                publishedDate="2026-02-15"
-                conflictingSources={
-                  comparisonResult.verification.conflictingSources?.map(c => ({
-                    source: c.source,
-                    value: `A: ${c.valueA} / B: ${c.valueB}`,
-                    confidence: c.confidence
-                  })) || []
-                }
-              />
-            )}
-          </div>
-
+          {error && (
+            <p style={{
+              color: '#FF5252',
+              marginTop: '12px',
+              fontSize: '13px'
+            }}>{error}</p>
+          )}
         </div>
-      ) : null}
+      )}
 
     </div>
   );
