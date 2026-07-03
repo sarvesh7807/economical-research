@@ -114,48 +114,63 @@ function AppContent() {
     }
   };
 
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [subscribeStatus, setSubscribeStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('');
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
-  const handleNewsletterSubscribe = async (e) => {
-    if (e) e.preventDefault();
-    if (!newsletterEmail.trim() || !newsletterEmail.includes('@')) {
-      setSubscribeStatus('error');
+  const handleSubscribe = async () => {
+    if (!email || !email.includes('@')) {
+      setStatus('error');
+      setStatusMessage('Please enter a valid email');
       return;
     }
-
+    
+    setNewsletterLoading(true);
+    setStatus('');
+    setStatusMessage('');
+    
     try {
-      setSubscribeStatus('loading');
-      
-      // Send via emailjs
-      await emailjs.send(
-        'service_default', // Service ID fallback
-        'template_default', // Template ID fallback
-        { to_email: newsletterEmail },
-        'H2ZrOGdhj8r18dSh5' // Public Key
-      );
-
       // Save to Firestore
-      await addDoc(collection(db, 'newsletter_subscribers'), {
-        email: newsletterEmail,
-        subscribedAt: new Date().toISOString()
-      });
-
-      setSubscribeStatus('success');
-      setNewsletterEmail('');
-    } catch (err) {
-      console.error('Newsletter subscription failed, saving locally:', err);
-      // Attempt saving to Firestore anyway
+      await addDoc(
+        collection(db, 'newsletter_subscribers'),
+        {
+          email: email,
+          subscribedAt: new Date(),
+          source: 'website_footer',
+          active: true
+        }
+      );
+      
+      // Send welcome email via EmailJS
       try {
-        await addDoc(collection(db, 'newsletter_subscribers'), {
-          email: newsletterEmail,
-          subscribedAt: new Date().toISOString()
-        });
-        setSubscribeStatus('success');
-        setNewsletterEmail('');
-      } catch (e2) {
-        setSubscribeStatus('error');
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_default';
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_default';
+        await emailjs.send(
+          serviceId,
+          templateId,
+          {
+            to_email: email,
+            to_name: 'Subscriber',
+            message: 'Welcome to ER Daily Intelligence!'
+          },
+          'H2ZrOGdhj8r18dSh5'
+        );
+      } catch (emailErr) {
+        console.error('Email send failed:', emailErr);
+        // Still show success even if email fails (subscriber is saved in Firestore)
       }
+      
+      setStatus('success');
+      setStatusMessage('✅ Subscribed! Check your email.');
+      setEmail('');
+      
+    } catch (err) {
+      console.error('Subscribe error:', err);
+      setStatus('error');
+      setStatusMessage('❌ Could not subscribe. Please try again.');
+    } finally {
+      setNewsletterLoading(false);
     }
   };
 
@@ -934,51 +949,64 @@ function AppContent() {
               <p style={{color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: '0 0 16px'}}>
                 Subscribe to ER Daily Briefing
               </p>
-              <form onSubmit={handleNewsletterSubscribe} style={{display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap'}}>
-                <input 
-                  type="email" 
-                  placeholder="Enter your email"
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  required
-                  style={{
-                    padding: '10px 16px', 
-                    borderRadius: '6px', 
-                    border: '1px solid rgba(244,167,38,0.3)',
-                    background: 'transparent', 
-                    color: '#fff',
+              
+              <div style={{
+                width: '100%',
+                maxWidth: '500px',
+                margin: '0 auto'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleSubscribe()}
+                    placeholder="Enter your email address"
+                    style={{
+                      flex: 1,
+                      minWidth: '200px',
+                      padding: '12px 16px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(244,167,38,0.3)',
+                      borderRadius: '6px',
+                      color: '#fff',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={newsletterLoading}
+                    style={{
+                      padding: '12px 24px',
+                      background: newsletterLoading ? 'rgba(244,167,38,0.5)' : '#F4A726',
+                      color: '#0A1628',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: '700',
+                      fontSize: '14px',
+                      cursor: newsletterLoading ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}>
+                    {newsletterLoading ? '⏳ Subscribing...' : 'Subscribe'}
+                  </button>
+                </div>
+                
+                {statusMessage && (
+                  <p style={{
+                    marginTop: '8px',
+                    color: status === 'success' ? '#00C896' : '#FF5252',
                     fontSize: '13px',
-                    outline: 'none',
-                    minWidth: '240px'
-                  }}
-                />
-                <button 
-                  type="submit"
-                  disabled={subscribeStatus === 'loading'}
-                  style={{
-                    background: '#F4A726',
-                    color: '#0A1628',
-                    padding: '10px 20px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    fontSize: '13px'
-                  }}
-                >
-                  {subscribeStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
-                </button>
-              </form>
-              {subscribeStatus === 'success' && (
-                <p style={{ color: '#4CAF50', fontSize: '12px', marginTop: '10px', fontWeight: 'bold' }}>
-                  ✓ Subscription successful! You will now receive daily intelligence updates.
-                </p>
-              )}
-              {subscribeStatus === 'error' && (
-                <p style={{ color: '#F44336', fontSize: '12px', marginTop: '10px', fontWeight: 'bold' }}>
-                  ⚠ Please enter a valid email address.
-                </p>
-              )}
+                    textAlign: 'center'
+                  }}>
+                    {statusMessage}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left text-xs text-gray-300 font-sans">
