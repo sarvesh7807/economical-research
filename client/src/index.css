@@ -756,3 +756,35 @@ html {
     padding-right: 16px !important;
   }
 }
+
+/* =========================================
+   DEEP RESEARCH DESK MOBILE RESPONSIVENESS
+   ========================================= */
+@media (max-width: 768px) {
+  .deep-research-desk,
+  .deep-research-form,
+  .research-query-section {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  
+  .deep-research-desk input,
+  .deep-research-desk textarea,
+  .deep-research-desk button,
+  .deep-research-desk select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* =========================================
+   GLOBAL OVERFLOW PREVENTION
+   ========================================= */
+input, textarea, select, button {
+  max-width: 100%;
+  box-sizing: border-box;
+}

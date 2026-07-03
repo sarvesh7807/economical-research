@@ -356,28 +356,75 @@ export default function ERResearchPage() {
       </div>
 
       {/* Query input console */}
-      <div className="bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-5 shadow-lg space-y-4">
-        <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-mono font-bold text-[#F4A726] uppercase tracking-wider">
-            Research Target brief / query
+      <div className="deep-research-desk bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-5 shadow-lg space-y-4">
+        <div className="research-query-section" style={{
+          width: '100%',
+          maxWidth: '100%',
+          padding: '16px',
+          boxSizing: 'border-box'
+        }}>
+          <label style={{
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: '12px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            display: 'block',
+            marginBottom: '8px'
+          }}>
+            Research Target / Query
           </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter economic query (e.g. 'Impact of global semiconductor shortages on automobile pricing...')"
-              value={queryInput}
-              onChange={(e) => setQueryInput(e.target.value)}
-              disabled={running}
-              className="flex-grow bg-[#060D17] border border-white/5 rounded px-4 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#F4A726]/40 transition-colors"
-            />
-            <button
-              onClick={() => handleTriggerResearch()}
-              disabled={running || !queryInput.trim()}
-              className="bg-[#F4A726] hover:bg-[#D48E19] text-navy font-bold px-6 py-3 rounded text-xs uppercase tracking-wide transition-colors duration-200 disabled:opacity-50 shrink-0 cursor-pointer"
-            >
-              {running ? 'Processing...' : '🔬 Research'}
-            </button>
-          </div>
+          
+          <textarea
+            value={queryInput}
+            onChange={e => setQueryInput(e.target.value)}
+            disabled={running}
+            placeholder="Enter economic query (e.g. 'Impact of global semiconductor shortages on automobile pricing...')"
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              padding: '12px 16px',
+              background: 'rgba(26,58,92,0.5)',
+              border: '1px solid rgba(244,167,38,0.2)',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '14px',
+              resize: 'vertical',
+              minHeight: '100px',
+              boxSizing: 'border-box',
+              fontFamily: 'Inter, sans-serif',
+              display: 'block'
+            }}
+          />
+          
+          <button
+            onClick={() => handleTriggerResearch()}
+            disabled={running || !queryInput.trim()}
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              marginTop: '12px',
+              padding: '14px 24px',
+              background: running 
+                ? 'rgba(244,167,38,0.5)' 
+                : '#F4A726',
+              color: '#0A1628',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '700',
+              fontSize: '15px',
+              cursor: running ? 'not-allowed' : 'pointer',
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+            {running ? (
+              <>⏳ Researching...</>
+            ) : (
+              <>🔬 Start Deep Research</>
+            )}
+          </button>
         </div>
 
         {/* Daily limit badge */}
