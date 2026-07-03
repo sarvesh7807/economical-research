@@ -740,3 +740,19 @@ html {
     padding: 14px 20px !important;
   }
 }
+
+/* =========================================
+   GLOBAL COMPARISON ENGINE RESPONSIVENESS
+   ========================================= */
+@media (max-width: 768px) {
+  .comparison-container,
+  .comparison-types,
+  .comparison-inputs,
+  .comparison-button {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}

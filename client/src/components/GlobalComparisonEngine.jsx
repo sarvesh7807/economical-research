@@ -156,57 +156,134 @@ export default function GlobalComparisonEngine({ setView }) {
       </div>
 
       {/* Inputs bar */}
-      <div className="bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-5 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-lg">
-        <div className="flex gap-4 items-center flex-wrap flex-grow">
-          {/* Comparison Type */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] font-mono text-gray-500 uppercase">Comparison type</label>
-            <select
-              value={selectedType}
-              onChange={e => setSelectedType(e.target.value)}
-              className="bg-[#060D17] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F4A726]/40"
-            >
-              <option value="country">Country vs Country</option>
-              <option value="company">Company vs Company</option>
-              <option value="sector">Sector vs Sector</option>
-            </select>
+      <div className="comparison-container bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-5 flex flex-col gap-6 shadow-lg">
+        {/* Comparison Type */}
+        <div style={{
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+          overflowX: 'hidden'
+        }} className="comparison-types">
+          <p style={{
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: '13px',
+            marginBottom: '12px'
+          }}>
+            Select Comparison Type:
+          </p>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '8px',
+            width: '100%'
+          }}>
+            {[
+              { label: 'Country vs Country', icon: '🌍', value: 'country' },
+              { label: 'Company vs Company', icon: '🏢', value: 'company' },
+              { label: 'Sector vs Sector', icon: '📊', value: 'sector' },
+              { label: 'Market vs Market', icon: '📈', value: 'market' }
+            ].map(type => (
+              <button key={type.label}
+                onClick={() => setSelectedType(type.value)}
+                type="button"
+                style={{
+                  padding: '12px 8px',
+                  background: selectedType === type.value
+                    ? 'rgba(244,167,38,0.2)'
+                    : 'rgba(26,58,92,0.5)',
+                  border: `1px solid ${
+                    selectedType === type.value
+                      ? '#F4A726'
+                      : 'rgba(244,167,38,0.15)'
+                  }`,
+                  borderRadius: '8px',
+                  color: selectedType === type.value
+                    ? '#F4A726' : '#fff',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                <div>{type.icon}</div>
+                <div style={{marginTop: '4px'}}>
+                  {type.label}
+                </div>
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            {/* Input A */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-mono text-gray-500 uppercase">Asset A</label>
-              <input 
-                type="text"
-                placeholder="India..."
-                value={itemA}
-                onChange={e => setItemA(e.target.value)}
-                className="bg-[#060D17] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F4A726]/40"
-              />
-            </div>
-            
-            <span className="text-[#F4A726] font-mono text-xs pt-4 font-bold select-none">VS</span>
+        {/* Inputs */}
+        <div className="comparison-inputs flex flex-col sm:flex-row gap-4 items-center w-full">
+          {/* Input A */}
+          <div className="flex flex-col gap-1 w-full sm:flex-grow">
+            <label className="text-[9px] font-mono text-gray-500 uppercase">Asset A</label>
+            <input 
+              type="text"
+              placeholder="India..."
+              value={itemA}
+              onChange={e => setItemA(e.target.value)}
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                padding: '12px 16px',
+                boxSizing: 'border-box',
+                background: 'rgba(26,58,92,0.5)',
+                border: '1px solid rgba(244,167,38,0.2)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                outline: 'none'
+              }}
+            />
+          </div>
+          
+          <span className="text-[#F4A726] font-mono text-xs pt-4 font-bold select-none hidden sm:inline">VS</span>
 
-            {/* Input B */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-mono text-gray-500 uppercase">Asset B</label>
-              <input 
-                type="text"
-                placeholder="China..."
-                value={itemB}
-                onChange={e => setItemB(e.target.value)}
-                className="bg-[#060D17] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#F4A726]/40"
-              />
-            </div>
+          {/* Input B */}
+          <div className="flex flex-col gap-1 w-full sm:flex-grow">
+            <label className="text-[9px] font-mono text-gray-500 uppercase">Asset B</label>
+            <input 
+              type="text"
+              placeholder="China..."
+              value={itemB}
+              onChange={e => setItemB(e.target.value)}
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                padding: '12px 16px',
+                boxSizing: 'border-box',
+                background: 'rgba(26,58,92,0.5)',
+                border: '1px solid rgba(244,167,38,0.2)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '14px',
+                outline: 'none'
+              }}
+            />
           </div>
         </div>
 
         <button
           onClick={() => runComparison()}
           disabled={loading || !itemA.trim() || !itemB.trim()}
-          className="bg-[#F4A726] hover:bg-[#D48E19] text-navy font-bold px-6 py-3 rounded text-xs uppercase tracking-wide transition-colors shrink-0 cursor-pointer w-full sm:w-auto"
+          className="comparison-button"
+          style={{
+            width: '100%',
+            padding: '14px',
+            background: '#F4A726',
+            color: '#0A1628',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '15px',
+            cursor: 'pointer',
+            boxSizing: 'border-box'
+          }}
         >
-          {loading ? '⚖️ Comparing...' : '⚖️ Compare Assets'}
+          {loading ? '⚖️ Comparing...' : 'Compare Now'}
         </button>
       </div>
 
