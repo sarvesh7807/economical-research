@@ -3,6 +3,32 @@ import React, { useState, useEffect } from 'react';
 import AIRouter from '../ai/AIRouter';
 import { RefreshCw } from 'lucide-react';
 
+const parseAIResponse = (text) => {
+  try {
+    // Remove markdown code blocks if present
+    const cleaned = text
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .trim()
+    
+    // Try to find JSON in the response
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/) || 
+                      cleaned.match(/\{[\s\S]*\}/)
+    
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    
+    // If no JSON found, return empty array
+    console.warn('No valid JSON in AI response')
+    return []
+    
+  } catch (err) {
+    console.error('JSON parse failed:', err.message)
+    return [] // Return empty array, don't crash
+  }
+}
+
 export default function LiveNewsIntelligence() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,6 +66,12 @@ export default function LiveNewsIntelligence() {
       const prompt = `You are a Media Analyst. Group these top news stories, classify importance (CRITICAL, HIGH, MEDIUM, LOW), detect bias (Left, Right, Neutral), generate a 1-sentence AI summary, and determine a confidence score.
       Stories:
       ${storiesText}
+      
+      IMPORTANT: Respond with ONLY valid JSON.
+      No explanations, no markdown, no code blocks.
+      Start your response with [ or {
+      Example format: [{"title": "...", "summary": "..."}]
+
       Return ONLY a valid JSON array matching this structure (no markdown fences, no comments):
       [
         {
@@ -53,24 +85,20 @@ export default function LiveNewsIntelligence() {
       ]`;
 
       const analysisRaw = await AIRouter.route(prompt, 'factcheck');
-      let analysis = [];
-      try {
-        analysis = JSON.parse(analysisRaw);
-      } catch (err) {
-        console.error('Failed to parse news intelligence JSON:', err);
-      }
+      const analysis = parseAIResponse(analysisRaw);
 
       const analyzedNews = topStories.map((story, idx) => {
-        const intel = analysis.find(a => a.index === idx) || {
-          summary: story.description || 'Global affairs update.',
-          bias: 'Neutral',
-          importance: 'MEDIUM',
-          confidenceScore: 85,
-          groupCount: 1
-        };
+        const intel = analysis.find(a => a.index === idx);
         return {
           ...story,
-          ...intel
+          ...(intel || {
+            summary: '',
+            bias: 'Neutral',
+            importance: 'MEDIUM',
+            confidenceScore: 85,
+            groupCount: 1,
+            intelMissing: true
+          })
         };
       });
 
@@ -176,12 +204,18 @@ export default function LiveNewsIntelligence() {
                 </h3>
 
                 {/* AI Summary */}
-                <div className="mt-4 p-3 bg-[#060D17]/80 border border-white/5 rounded text-xs">
-                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block mb-1">
-                    AI Intelligence Summary
-                  </span>
-                  <p className="text-gray-300 font-serif leading-relaxed">{item.summary}</p>
-                </div>
+                {item.intelMissing ? (
+                  <div className="mt-4 p-3 bg-[#060D17]/80 border border-white/5 rounded text-xs italic text-gray-500">
+                    Loading intelligence...
+                  </div>
+                ) : (
+                  <div className="mt-4 p-3 bg-[#060D17]/80 border border-white/5 rounded text-xs">
+                    <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block mb-1">
+                      AI Intelligence Summary
+                    </span>
+                    <p className="text-gray-300 font-serif leading-relaxed">{item.summary}</p>
+                  </div>
+                )}
               </div>
 
               {/* Source info */}

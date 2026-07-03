@@ -1,25 +1,8 @@
-*, *::before, *::after {
-  box-sizing: border-box !important;
-}
-
-html {
+html, body, #root {
   overflow-x: hidden !important;
   max-width: 100% !important;
-  width: 100% !important;
 }
-
-body {
-  overflow-x: hidden !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  position: relative !important;
-}
-
-#root {
-  overflow-x: hidden !important;
-  max-width: 100% !important;
-  width: 100% !important;
-}
+* { box-sizing: border-box !important; }
 
 @tailwind base;
 @tailwind components;
