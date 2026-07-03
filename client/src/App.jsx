@@ -106,12 +106,15 @@ function AppContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const navigate = (path) => {
-    if (path === '/pricing' || path === '/billing') {
+  const navigate = (pathOrView, detailId = null) => {
+    if (pathOrView === '/pricing' || pathOrView === '/billing') {
       setView('billing');
-    } else {
+    } else if (pathOrView === '/' || pathOrView === '') {
       setView('feed');
+    } else {
+      setView(pathOrView, detailId);
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const [email, setEmail] = useState('');
@@ -230,6 +233,10 @@ function AppContent() {
       setAuthModalOpen(true);
     }
   }, [view, user]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [view]);
   
   // Theme state synced with Context preferences
   const [theme, setTheme] = useState(() => {
