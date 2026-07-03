@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import DataRouter from '../providers/DataRouter';
 import AIRouter from '../ai/AIRouter';
 import { db } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
 import VerificationPanel from './research/VerificationPanel';
 
 const INDICATOR_WIDGETS = [
@@ -26,11 +27,15 @@ const INDICATOR_WIDGETS = [
 ];
 
 export default function LiveEconomicDashboard({ setView }) {
+  const { user } = useAuth();
   const [widgetsData, setWidgetsData] = useState({});
   const [selectedWidget, setSelectedWidget] = useState(null);
   const [aiInsights, setAiInsights] = useState({});
   const [loadingInsights, setLoadingInsights] = useState({});
-  const [archiveStatus, setArchiveStatus] = useState('');
+  const [isArchived, setIsArchived] = useState(false);
+  const [archiveId, setArchiveId] = useState(null);
+  const [archivedSessions, setArchivedSessions] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Fetch data for a specific widget
   const fetchWidgetData = async (w) => {
@@ -83,7 +88,6 @@ export default function LiveEconomicDashboard({ setView }) {
       try {
         parsed = JSON.parse(response);
       } catch (err) {
-        // Fallback parser if JSON wrap is messy
         console.error('Failed to parse AI insights JSON:', err);
       }
 
@@ -95,24 +99,102 @@ export default function LiveEconomicDashboard({ setView }) {
     }
   };
 
-  // Archive session to Research Library (FEATURE 4)
-  const archiveSession = async () => {
-    setArchiveStatus('archiving');
+  const archiveDashboardSession = async () => {
     try {
-      await addDoc(collection(db, 'er_research_reports'), {
-        userId: 'guest', // or logged in user via context
-        query: 'Live Economic Dashboard Snapshot',
-        title: `Dashboard Snapshot (${new Date().toLocaleDateString()})`,
-        report: `Live Economic Indicators Snapshot. GDP Growth, Inflation, Currencies, Stock indices and Commodities archived at ${new Date().toLocaleTimeString()}.`,
-        createdAt: new Date().toISOString(),
-        isFavorite: false,
-        tags: ['dashboard', 'macro', 'live']
-      });
-      setArchiveStatus('success');
-      setTimeout(() => setArchiveStatus(''), 2500);
+      setIsArchived(false);
+      
+      const currentSensex = widgetsData.stocks?.data?.value;
+      const currentNifty = 'N/A';
+      const currentUsdInr = widgetsData.exchange?.data?.value;
+      const currentGold = widgetsData.gold?.data?.value;
+
+      const gdpData = widgetsData.gdp?.data?.value;
+      const inflationData = widgetsData.inflation?.data?.value;
+      const cryptoData = widgetsData.bitcoin?.data?.value;
+      const currencyData = widgetsData.exchange?.data?.value;
+
+      // Collect current dashboard data
+      const sessionData = {
+        userId: user?.uid || 'guest',
+        archivedAt: new Date(),
+        title: `Dashboard Session - ${
+          new Date().toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }`,
+        marketData: {
+          sensex: currentSensex || 'N/A',
+          nifty: currentNifty || 'N/A',
+          usdInr: currentUsdInr || 'N/A',
+          gold: currentGold || 'N/A'
+        },
+        economicData: {
+          gdp: gdpData || null,
+          inflation: inflationData || null,
+          crypto: cryptoData || null,
+          currency: currencyData || null
+        },
+        notes: 'Archived from Live Economic Dashboard'
+      };
+      
+      // Save to Firestore
+      const docRef = await addDoc(
+        collection(db, 'archived_dashboards'),
+        sessionData
+      );
+      
+      setArchiveId(docRef.id);
+      setIsArchived(true);
+      
+      // Show success message
+      setTimeout(() => setIsArchived(false), 3000);
+      
+      // Auto-reload list if visible
+      if (showArchived) {
+        loadArchivedSessions();
+      }
     } catch (err) {
-      console.error('Failed to archive:', err);
-      setArchiveStatus('error');
+      console.error('Archive failed:', err);
+      alert('Archive failed. Please try again.');
+    }
+  };
+
+  const loadArchivedSessions = async () => {
+    if (!user) {
+      alert('Please log in to view archived sessions.');
+      return;
+    }
+    try {
+      const q = query(
+        collection(db, 'archived_dashboards'),
+        where('userId', '==', user.uid)
+      );
+      const snapshot = await getDocs(q);
+      const sessions = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let archivedAtDate = new Date();
+        if (data.archivedAt) {
+          if (typeof data.archivedAt.toDate === 'function') {
+            archivedAtDate = data.archivedAt.toDate();
+          } else {
+            archivedAtDate = new Date(data.archivedAt);
+          }
+        }
+        return {
+          id: doc.id,
+          ...data,
+          archivedAtDate
+        };
+      });
+      sessions.sort((a, b) => b.archivedAtDate - a.archivedAtDate);
+      setArchivedSessions(sessions.slice(0, 10));
+      setShowArchived(true);
+    } catch (err) {
+      console.error('Failed to load archived sessions:', err);
     }
   };
 
@@ -133,14 +215,76 @@ export default function LiveEconomicDashboard({ setView }) {
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={archiveSession}
-            disabled={archiveStatus === 'archiving'}
-            className="bg-transparent border border-[#F4A726]/50 text-[#F4A726] hover:bg-[#F4A726] hover:text-[#0A1628] font-bold px-4 py-2.5 rounded text-xs uppercase tracking-wide transition-colors shrink-0"
-          >
-            {archiveStatus === 'archiving' ? '⏳ Archiving...' : archiveStatus === 'success' ? '✓ Archived' : '📁 Archive Dashboard Session'}
-          </button>
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex gap-2">
+            <button
+              onClick={archiveDashboardSession}
+              style={{
+                padding: '10px 20px',
+                background: isArchived 
+                  ? '#00C896' 
+                  : '#F4A726',
+                color: '#0A1628',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: '700',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}>
+              {isArchived ? '✅ Session Archived!' : '📁 Archive Dashboard Session'}
+            </button>
+
+            <button
+              onClick={loadArchivedSessions}
+              style={{
+                padding: '10px 20px',
+                background: 'transparent',
+                border: '1px solid #F4A726',
+                color: '#F4A726',
+                borderRadius: '6px',
+                fontWeight: '700',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}>
+              📁 View Archived Sessions
+            </button>
+          </div>
+
+          {showArchived && archivedSessions.length > 0 && (
+            <div style={{
+              marginTop: '16px',
+              minWidth: '280px',
+              maxWidth: '350px',
+              textAlign: 'left'
+            }}>
+              <h4 style={{color: '#F4A726', fontSize: '13px', marginBottom: '12px'}}>
+                📁 Archived Sessions
+              </h4>
+              <div style={{maxHeight: '200px', overflowY: 'auto'}} className="space-y-2">
+                {archivedSessions.map(session => (
+                  <div key={session.id} style={{
+                    padding: '12px',
+                    background: 'rgba(26,58,92,0.5)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(244,167,38,0.1)'
+                  }}>
+                    <p style={{color: '#fff', fontSize: '13px', margin: '0 0 4px'}}>
+                      {session.title}
+                    </p>
+                    <p style={{
+                      color: 'rgba(255,255,255,0.4)',
+                      fontSize: '11px', margin: 0
+                    }}>
+                      Sensex: {session.marketData?.sensex} | 
+                      Gold: {session.marketData?.gold}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -190,6 +334,7 @@ export default function LiveEconomicDashboard({ setView }) {
                     </span>
                   </div>
                 )}
+
               </div>
 
               <span className="text-[9px] text-[#F4A726]/60 font-mono uppercase hover:text-white transition-colors">
