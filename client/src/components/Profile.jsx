@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Award, Mail, Calendar, KeyRound, Clock, ShieldCheck, Trash2, ArrowLeft, Bookmark, BookOpen, Search, User, Edit2, CheckCircle, LogOut, Bell, Plus, BellRing, Receipt } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function Profile({ setView, onSearchSubmit }) {
   const { 
@@ -35,6 +35,32 @@ export default function Profile({ setView, onSearchSubmit }) {
   const [alertAddError, setAlertAddError] = useState('');
   const [preferences, setPreferences] = useState(null);
 
+  // Learning Profile States
+  const [learningProfile, setLearningProfile] = useState(null);
+  const [learningLoading, setLearningLoading] = useState(false);
+
+  const getFavoriteTopic = () => {
+    if (!learningProfile?.topicsCount) return 'N/A';
+    const entries = Object.entries(learningProfile.topicsCount);
+    if (entries.length === 0) return 'N/A';
+    entries.sort((a, b) => b[1] - a[1]);
+    return `${entries[0][0]} (${entries[0][1]} times)`;
+  };
+
+  const getSuggestions = () => {
+    if (!learningProfile?.topicsResearched || learningProfile.topicsResearched.length === 0) {
+      return ['Global inflation trajectories', 'Semiconductor supply chains', 'Central Bank Digital Currencies (CBDCs)'];
+    }
+    const favorite = Object.entries(learningProfile.topicsCount || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    if (favorite.toLowerCase().includes('india')) {
+      return ['India monetary policy forecasts', 'Tata Motors EV strategy', 'India GDP growth trajectory 2030'];
+    }
+    if (favorite.toLowerCase().includes('tesla') || favorite.toLowerCase().includes('elon') || favorite.toLowerCase().includes('stock')) {
+      return ['Global EV supply chain risks', 'Tesla vs BYD market competition', 'US Federal Reserve interest rates'];
+    }
+    return [`Deep dive into ${favorite}`, `Emerging competitors to ${favorite}`, `Global policy impacts on ${favorite}`];
+  };
+
   useEffect(() => {
     if (!user) return;
     const fetchPrefs = async () => {
@@ -49,6 +75,28 @@ export default function Profile({ setView, onSearchSubmit }) {
     };
     fetchPrefs();
   }, [user]);
+
+  useEffect(() => {
+    if (!user || activeTab !== 'learning') return;
+    const fetchLearningProfile = async () => {
+      setLearningLoading(true);
+      try {
+        const q = query(
+          collection(db, 'user_learning_profiles'),
+          where('userId', '==', user.uid)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setLearningProfile(snap.docs[0].data());
+        }
+      } catch (err) {
+        console.error('Error fetching learning profile:', err);
+      } finally {
+        setLearningLoading(false);
+      }
+    };
+    fetchLearningProfile();
+  }, [user, activeTab]);
 
   useEffect(() => {
     if (!db || !user) return;
@@ -356,6 +404,7 @@ export default function Profile({ setView, onSearchSubmit }) {
               { id: 'history', name: 'Reading Logs' },
               { id: 'search', name: 'Search Ledger' },
               { id: 'alerts', name: `🔔 My Alerts${userAlerts.length > 0 ? ` (${userAlerts.length})` : ''}` },
+              { id: 'learning', name: '🎓 Research Profile' },
               { id: 'settings', name: 'Edit Profile' }
             ].map(tab => (
               <button
@@ -375,6 +424,60 @@ export default function Profile({ setView, onSearchSubmit }) {
           {/* Tab content panel */}
           <div class="p-6">
             
+            {/* RESEARCH PROFILE TAB */}
+            {activeTab === 'learning' && (
+              <div className="space-y-6 text-navy dark:text-white">
+                <div className="border-b border-[#F4A726]/10 pb-3">
+                  <h3 className="font-serif text-lg font-bold text-navy dark:text-[#F4A726] uppercase">Your Research Profile</h3>
+                  <p className="text-xs text-gray-400">Tracked research analytics and personalized recommendations.</p>
+                </div>
+
+                {learningLoading ? (
+                  <p className="text-xs font-mono text-gray-500 animate-pulse">Loading profile credentials...</p>
+                ) : learningProfile ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-gray-50 dark:bg-[#060D17] border border-paper-border dark:border-white/5 rounded text-center">
+                      <span className="text-[10px] font-mono text-gray-500 uppercase block mb-1">Topics Researched</span>
+                      <span className="text-3xl font-black text-navy dark:text-white font-mono">{learningProfile.topicsResearched?.length || 0}</span>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-[#060D17] border border-paper-border dark:border-white/5 rounded text-center">
+                      <span className="text-[10px] font-mono text-gray-500 uppercase block mb-1">Expertise Level</span>
+                      <span className="text-lg font-bold text-[#F4A726] uppercase block mt-1">{learningProfile.expertiseLevel || 'beginner'}</span>
+                    </div>
+                    <div className="p-4 bg-gray-50 dark:bg-[#060D17] border border-paper-border dark:border-white/5 rounded text-center">
+                      <span className="text-[10px] font-mono text-gray-500 uppercase block mb-1">Favorite Topic</span>
+                      <span className="text-xs font-bold text-navy dark:text-white block mt-2 truncate px-2" title={getFavoriteTopic()}>{getFavoriteTopic()}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-gray-50 dark:bg-[#060D17] border border-paper-border dark:border-white/5 rounded">
+                    <p className="text-xs text-gray-400">No active learning profile found yet. Start using the Deep Research Desk, Forecasting, or Company Intelligence pages to build your profile.</p>
+                  </div>
+                )}
+
+                {/* Suggestions Card */}
+                <div className="bg-gray-50 dark:bg-[#0A1628] border border-paper-border dark:border-[#F4A726]/15 rounded-lg p-5 mt-4">
+                  <h4 className="text-xs font-mono font-bold text-navy dark:text-[#F4A726] uppercase tracking-wider mb-3">Suggested Topics for You</h4>
+                  <div className="space-y-2">
+                    {getSuggestions().map((topic, i) => (
+                      <div key={i} className="flex justify-between items-center p-2.5 bg-white dark:bg-[#060D17] border border-paper-border dark:border-white/5 rounded text-xs text-navy dark:text-gray-300">
+                        <span>{topic}</span>
+                        <button
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('er-research-prefill', { detail: { query: topic } }));
+                            setView('er-research');
+                          }}
+                          className="text-[#F4A726] hover:underline font-bold font-mono text-[10px] uppercase cursor-pointer"
+                        >
+                          Research →
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* WATCHLIST TAB */}
             {activeTab === 'watchlist' && (
               <div class="space-y-4">

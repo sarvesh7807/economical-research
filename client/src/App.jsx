@@ -38,6 +38,8 @@ const CountryIntelligencePage = React.lazy(() => import('./components/CountryInt
 const CountryPage = React.lazy(() => import('./components/CountryPage'));
 const EconomicWidgets = React.lazy(() => import('./components/EconomicWidgets'));
 const CompanyIntelligencePage = React.lazy(() => import('./components/CompanyIntelligencePage'));
+const ForecastingPage = React.lazy(() => import('./components/ForecastingPage'));
+const DebatePage = React.lazy(() => import('./components/DebatePage'));
 const GlobalComparisonEngine = React.lazy(() => import('./components/GlobalComparisonEngine'));
 const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
 const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntelligence'));
@@ -292,6 +294,12 @@ function AppContent() {
         window.history.pushState({}, '', '/er-research');
       } else if (newView === 'research-library') {
         window.history.pushState({}, '', '/research-library');
+      } else if (newView === 'company') {
+        window.history.pushState({}, '', '/company');
+      } else if (newView === 'forecasting') {
+        window.history.pushState({}, '', '/forecasting');
+      } else if (newView === 'debate') {
+        window.history.pushState({}, '', '/debate');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -343,6 +351,12 @@ function AppContent() {
         setViewInternal('er-research');
       } else if (path === '/research-library') {
         setViewInternal('research-library');
+      } else if (path === '/company') {
+        setViewInternal('company');
+      } else if (path === '/forecasting') {
+        setViewInternal('forecasting');
+      } else if (path === '/debate') {
+        setViewInternal('debate');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -814,8 +828,12 @@ function AppContent() {
             <CountryPage setView={setView} countryCode={selectedCountryCode} />
           ) : view === 'country-intel' ? (
             <CountryIntelligencePage setView={setView} defaultCountry={selectedCountry} />
-          ) : view === 'company-intel' ? (
+          ) : view === 'company-intel' || view === 'company' ? (
             <CompanyIntelligencePage setView={setView} defaultCompany={selectedCompany} />
+          ) : view === 'forecasting' ? (
+            <ForecastingPage setView={setView} />
+          ) : view === 'debate' ? (
+            <DebatePage setView={setView} />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (

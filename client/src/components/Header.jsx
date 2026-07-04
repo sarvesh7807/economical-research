@@ -513,6 +513,12 @@ export default function Header({
       setView('profile');
     } else if (label === 'PRO Plans') {
       setView('billing');
+    } else if (label === 'Company') {
+      setView('company');
+    } else if (label === 'Forecasting') {
+      setView('forecasting');
+    } else if (label === 'Debate') {
+      setView('debate');
     }
   };
 
@@ -981,6 +987,7 @@ export default function Header({
         {[
           'Markets', 'Dashboard', 'Calendar', 
           'Comparison', 'Watchlist', 'News Intel',
+          'Company', 'Forecasting', 'Debate',
           '🔬 Deep Research', '📁 Library'
         ].map(item => {
           const isActive = (item === 'Markets' && activeCategory === 'business' && view === 'feed' && !searchQuery) || 
@@ -989,6 +996,9 @@ export default function Header({
                            (item === 'Comparison' && view === 'comparison') ||
                            (item === 'Watchlist' && view === 'watchlist') ||
                            (item === 'News Intel' && view === 'news-intel') ||
+                           (item === 'Company' && view === 'company') ||
+                           (item === 'Forecasting' && view === 'forecasting') ||
+                           (item === 'Debate' && view === 'debate') ||
                            (item === '🔬 Deep Research' && view === 'er-research') ||
                            (item === '📁 Library' && view === 'research-library');
           return (
@@ -1086,6 +1096,9 @@ export default function Header({
           { label: 'Dashboard', icon: '📊' },
           { label: 'Calendar', icon: '📅' },
           { label: 'Comparison', icon: '⚖️' },
+          { label: 'Company', icon: '🏢' },
+          { label: 'Forecasting', icon: '🔮' },
+          { label: 'Debate', icon: '💬' },
           { label: 'Watchlist', icon: '👁️' },
           { label: 'News Intelligence', icon: '📰' },
           { label: 'Deep Research', icon: '🔬' },

@@ -1,9 +1,11 @@
 // client/src/components/CompanyIntelligencePage.jsx
 import React, { useState, useEffect } from 'react';
 import DataRouter from '../providers/DataRouter';
-import AIRouter from '../ai/AIRouter';
+import { callGeminiWithRotation } from '../utils/GeminiRotator';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { trackUserResearch } from '../utils/LearningTracker';
 
 const COMPANIES = [
   { symbol: 'TSLA', name: 'Tesla Inc.' },
@@ -14,7 +16,10 @@ const COMPANIES = [
 ];
 
 export default function CompanyIntelligencePage({ setView, defaultCompany }) {
-  const [selectedCompany, setSelectedCompany] = useState(COMPANIES.find(c => c.symbol === defaultCompany || c.name === defaultCompany) || COMPANIES[0]);
+  const { user } = useAuth();
+  const [selectedCompanySymbol, setSelectedCompanySymbol] = useState(defaultCompany || 'TSLA');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [companyTitle, setCompanyTitle] = useState('Tesla Inc. (TSLA)');
   const [secData, setSecData] = useState(null);
   const [aiReport, setAiReport] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,38 +27,101 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
   const [watchlistLoading, setWatchlistLoading] = useState(false);
 
   // Fetch live SEC EDGAR stubs & compile complete AI corporate profile
-  const loadCompanyData = async (company) => {
+  const loadCompanyData = async (companyNameOrSymbol, isCustom = false) => {
     setLoading(true);
     setAiReport('');
+    setSecData(null);
+    
+    let symbol = companyNameOrSymbol;
+    let name = companyNameOrSymbol;
+    
+    if (!isCustom) {
+      const match = COMPANIES.find(c => c.symbol === companyNameOrSymbol);
+      if (match) {
+        symbol = match.symbol;
+        name = match.name;
+      }
+    }
+    
+    setCompanyTitle(`${name} (${symbol})`);
+
     try {
-      const data = await DataRouter.route(company.symbol, { providerType: 'sec' });
-      setSecData(data);
+      // Try to load SEC data if a standard symbol is selected
+      if (!isCustom) {
+        const data = await DataRouter.route(symbol, { providerType: 'sec' });
+        setSecData(data);
+      }
+      
+      const prompt = `
+      You are Economical Research AI.
+      Generate a professional company 
+      intelligence report for: ${name} (${symbol})
+      
+      Include these sections:
+      
+      ## Company Overview
+      [2-3 paragraphs about the company]
+      
+      ## Key Financial Indicators
+      - Revenue: [estimate with year]
+      - Market Cap: [estimate]
+      - Employees: [approximate]
+      - Founded: [year]
+      - Headquarters: [location]
+      
+      ## SWOT Analysis
+      Strengths: [3 points]
+      Weaknesses: [3 points]
+      Opportunities: [3 points]
+      Threats: [3 points]
 
-      const prompt = `You are a Lead Equity Analyst. Compile a comprehensive, mock-free Corporate Analysis Briefing for "${company.name} (${company.symbol})" utilizing filings data.
-      Provide detailed sections covering:
-      1. Business Overview & Market Capitalization
-      2. Revenue Dynamics, Net Profit Margins, and Debt-to-Equity ratios
-      3. Global Market Share & Competitors
-      4. SWOT Analysis (SWOT - Strengths, Weaknesses, Opportunities, Risks)
-      5. Recent Developments & 12-Month Shareholder Forecast
-      Provide real data, verified financial details, and strict corporate phrasings. Do not mention Gemini or AI.`;
+      ## Porter's Five Forces
+      - Threat of New Entrants: [brief point]
+      - Bargaining Power of Buyers: [brief point]
+      - Bargaining Power of Suppliers: [brief point]
+      - Threat of Substitute Products: [brief point]
+      - Competitive Rivalry: [brief point]
+      
+      ## Competitive Landscape
+      [Top 3 competitors with brief comparison]
+      
+      ## Recent Developments (2024-2026)
+      [3-4 key recent events]
+      
+      ## ER Investment Rating
+      Rating: [Buy/Hold/Watch/Avoid]
+      Rationale: [2-3 sentences]
+      Risk Level: [Low/Medium/High]
+      
+      Note: Mark AI-estimated data clearly.
+      Never mention Gemini or AI provider.
+      Write as Economical Research AI.
+      `;
 
-      const response = await AIRouter.route(prompt, 'research');
+      const response = await callGeminiWithRotation(prompt);
       setAiReport(response);
 
-      // Auto-save to Research Memory (FEATURE 4)
+      // Auto-save to er_research_reports
       try {
         await addDoc(collection(db, 'er_research_reports'), {
-          userId: 'guest',
-          query: `${company.symbol} Corporate Report`,
-          title: `${company.symbol} Equity Briefing`,
+          userId: user?.uid || 'guest',
+          query: `${symbol} Corporate Report`,
+          title: `${symbol} Equity Briefing`,
           report: response,
           createdAt: new Date().toISOString(),
           isFavorite: false,
-          tags: ['company', company.symbol.toLowerCase(), 'equity']
+          tags: ['company', symbol.toLowerCase(), 'equity']
         });
       } catch (fsErr) {
         console.error('Failed to auto-save to library:', fsErr);
+      }
+
+      if (user) {
+        try {
+          await trackUserResearch(user.uid, name);
+        } catch (err) {
+          console.error('Failed to track company research:', err);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -64,11 +132,11 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
   };
 
   useEffect(() => {
-    loadCompanyData(selectedCompany);
-    checkWatchlist(selectedCompany.symbol);
-  }, [selectedCompany]);
+    loadCompanyData(selectedCompanySymbol);
+    checkWatchlist(selectedCompanySymbol);
+  }, [selectedCompanySymbol]);
 
-  // Check Watchlist (FEATURE 6)
+  // Check Watchlist
   const checkWatchlist = async (symbol) => {
     try {
       const q = query(
@@ -83,15 +151,16 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
     }
   };
 
-  // Toggle Watchlist (FEATURE 6)
+  // Toggle Watchlist
   const handleToggleWatchlist = async () => {
     setWatchlistLoading(true);
+    const symbol = selectedCompanySymbol;
     try {
       if (isWatched) {
         const q = query(
           collection(db, 'er_user_watchlists'),
           where('userId', '==', 'guest'),
-          where('itemId', '==', selectedCompany.symbol)
+          where('itemId', '==', symbol)
         );
         const snap = await getDocs(q);
         const promises = snap.docs.map(d => deleteDoc(doc(db, 'er_user_watchlists', d.id)));
@@ -100,8 +169,8 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
       } else {
         await addDoc(collection(db, 'er_user_watchlists'), {
           userId: 'guest',
-          itemId: selectedCompany.symbol,
-          itemName: selectedCompany.name,
+          itemId: symbol,
+          itemName: companyTitle,
           itemType: 'company',
           addedAt: new Date().toISOString()
         });
@@ -114,6 +183,15 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
     }
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const queryStr = searchQuery.trim();
+    if (!queryStr) return;
+    setSelectedCompanySymbol(queryStr);
+    loadCompanyData(queryStr, true);
+    checkWatchlist(queryStr);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)]">
       
@@ -124,23 +202,27 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
             corporate securities monitoring console
           </span>
           <h1 className="font-serif text-3xl font-black uppercase tracking-tight text-white">
-            Company Intelligence Page
+            Company Intelligence
           </h1>
           <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
-            Consolidated SEC Edgar filings, SWOT profiles, net revenue tables, and corporate debt sheets.
+            Consolidated SWOT profiles, AI-estimated Key Financials, Porter's Five Forces, Competitor Landscape, and ER Rating.
           </p>
         </div>
       </div>
 
-      {/* Selectors & Follow */}
-      <div className="flex flex-wrap gap-3 items-center justify-between border-b border-white/5 pb-4">
+      {/* Selectors & Search bar & Follow */}
+      <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center border-b border-white/5 pb-4">
+        {/* Preset Company Tabs */}
         <div className="flex flex-wrap gap-2">
           {COMPANIES.map(c => (
             <button
               key={c.symbol}
-              onClick={() => setSelectedCompany(c)}
+              onClick={() => {
+                setSelectedCompanySymbol(c.symbol);
+                setSearchQuery('');
+              }}
               className={`px-4 py-2 border rounded-md text-xs uppercase font-mono font-bold tracking-wide transition-all cursor-pointer ${
-                selectedCompany.symbol === c.symbol
+                selectedCompanySymbol === c.symbol
                   ? 'bg-[#F4A726] border-[#F4A726] text-navy'
                   : 'bg-[#0A1628] border-white/10 text-gray-400 hover:text-white'
               }`}
@@ -150,6 +232,42 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
           ))}
         </div>
 
+        {/* Custom Search Form */}
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Type company name or ticker..."
+            style={{
+              padding: '8px 12px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(244,167,38,0.2)',
+              borderRadius: '6px',
+              color: '#fff',
+              fontSize: '13px',
+              outline: 'none',
+              width: '220px'
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: '8px 16px',
+              background: '#F4A726',
+              color: '#0A1628',
+              border: 'none',
+              borderRadius: '6px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              fontSize: '13px'
+            }}
+          >
+            Search
+          </button>
+        </form>
+
+        {/* Watchlist Toggle */}
         <button
           onClick={handleToggleWatchlist}
           disabled={watchlistLoading}
@@ -192,11 +310,16 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
 
           {/* AI corporate analysis */}
           <div className="bg-[#0A1628] border border-white/5 rounded-lg p-6 min-h-[400px]">
+            <h2 className="text-lg font-serif font-black text-white uppercase border-b border-white/5 pb-2 mb-4">
+              Intelligence Briefing: {companyTitle}
+            </h2>
             {loading ? (
               <div className="space-y-6 animate-pulse">
                 <div className="h-6 bg-gray-800 rounded w-1/3"></div>
                 <div className="h-4 bg-gray-800 rounded w-2/3"></div>
-                <div className="h-32 bg-gray-850 rounded"></div>
+                <div className="h-32 bg-gray-850 rounded text-center py-10 text-gray-500">
+                  ⚡ Compiling equity dossier via Gemini core...
+                </div>
               </div>
             ) : (
               <div className="prose prose-invert text-xs text-gray-300 font-serif leading-relaxed max-w-none space-y-4">
@@ -217,7 +340,7 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
           </div>
         </div>
 
-        {/* Right 1 Col: Related Intelligence (FEATURE 5) */}
+        {/* Right 1 Col: Related Intelligence */}
         <div className="space-y-6">
           <div className="bg-[#0A1628] border border-[#F4A726]/10 rounded-lg p-5 shadow space-y-4">
             <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider border-b border-white/5 pb-2">
@@ -235,7 +358,7 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
               </div>
               <div>
                 <span className="text-[9px] font-mono text-gray-500 uppercase block">Related Companies</span>
-                <span className="text-gray-300 font-bold">Competitors: BYD, Nvidia, Microsoft, Amazon</span>
+                <span className="text-gray-300 font-bold">BYD, Nvidia, Microsoft, Amazon, Google</span>
               </div>
               <div>
                 <span className="text-[9px] font-mono text-gray-500 uppercase block">Related Reports</span>

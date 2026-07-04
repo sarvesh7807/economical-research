@@ -8,6 +8,7 @@ import AIRouter from '../ai/AIRouter';
 import { checkMessageLimit, incrementMessageCount } from '../utils/chatbotUsage';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { trackUserResearch } from '../utils/LearningTracker';
 
 // Lazy load the heavy ResearchWorkspace (FEATURE 8)
 const ResearchWorkspace = lazy(() => import('./ResearchWorkspace'));
@@ -186,6 +187,14 @@ export default function ERResearchPage() {
         });
       } catch (fsErr) {
         console.error('Failed to save report to Firestore collection:', fsErr);
+      }
+
+      if (user) {
+        try {
+          await trackUserResearch(user.uid, q);
+        } catch (trackErr) {
+          console.error('Failed to track user research:', trackErr);
+        }
       }
 
       await incrementMessageCount(user);

@@ -17,6 +17,43 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
   // Mobile layout state
   const [isMobile, setIsMobile] = useState(false);
 
+  const scoreSource = (sourceName) => {
+    const trustedSources = {
+      'reuters': 95,
+      'bloomberg': 92,
+      'financial times': 91,
+      'wall street journal': 90,
+      'bbc': 88,
+      'associated press': 94,
+      'the economist': 89,
+      'ndtv': 75,
+      'times of india': 72
+    };
+    
+    const name = sourceName?.toLowerCase() || '';
+    for (const [source, score] of Object.entries(trustedSources)) {
+      if (name.includes(source)) return score;
+    }
+    return 65; // Default score
+  };
+
+  const getReliabilityBadge = (sourceName) => {
+    const score = scoreSource(sourceName);
+    let color = '#9CA3AF'; // Gray
+    let label = 'Unverified';
+    if (score >= 95) {
+      color = '#00C896'; // Green
+      label = 'Highly Trusted';
+    } else if (score >= 80) {
+      color = '#3b82f6'; // Blue
+      label = 'Trusted';
+    } else if (score >= 65) {
+      color = '#F4A726'; // Yellow
+      label = 'Moderate';
+    }
+    return { score, color, label };
+  };
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -362,9 +399,20 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
             fontFamily: 'IBM Plex Mono, monospace',
             color: 'rgba(255,255,255,0.35)'
           }} className="flex-wrap gap-2">
-            <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span>{source?.name || 'Unknown'}</span>
-              <span style={{ margin: '0 8px' }}>·</span>
+              <span style={{
+                fontSize: '8px',
+                padding: '2px 6px',
+                borderRadius: '3px',
+                color: '#fff',
+                background: getReliabilityBadge(source?.name).color,
+                fontWeight: 'bold',
+                fontFamily: 'sans-serif'
+              }}>
+                {getReliabilityBadge(source?.name).label} ({getReliabilityBadge(source?.name).score}%)
+              </span>
+              <span>·</span>
               <span>{getRelativeTime(publishedAt)}</span>
             </div>
 
@@ -571,7 +619,22 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <span>{source?.name || 'Unknown'} · {getRelativeTime(publishedAt)}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span>{source?.name || 'Unknown'}</span>
+            <span style={{
+              fontSize: '8px',
+              padding: '1px 5px',
+              borderRadius: '3px',
+              color: '#fff',
+              background: getReliabilityBadge(source?.name).color,
+              fontWeight: 'bold',
+              fontFamily: 'sans-serif'
+            }}>
+              {getReliabilityBadge(source?.name).label}
+            </span>
+            <span>·</span>
+            <span>{getRelativeTime(publishedAt)}</span>
+          </span>
           
           {/* Voice News Reader */}
           <span className="flex items-center gap-1 shrink-0 font-sans" style={{ fontSize: '9px' }}>

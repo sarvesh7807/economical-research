@@ -1,7 +1,8 @@
+// client/src/components/ResearchLibraryPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 
 export default function ResearchLibraryPage({ setView }) {
   const { user } = useAuth();
@@ -11,6 +12,13 @@ export default function ResearchLibraryPage({ setView }) {
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'week' | 'month'
   const [selectedTag, setSelectedTag] = useState('all');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+
+  // Version History States
+  const [selectedReportForVersions, setSelectedReportForVersions] = useState(null);
+  const [reportVersions, setReportVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [compareA, setCompareA] = useState(null);
+  const [compareB, setCompareB] = useState(null);
 
   // Load reports from Firestore
   const loadReports = async () => {
@@ -45,6 +53,46 @@ export default function ResearchLibraryPage({ setView }) {
     loadReports();
   }, [user]);
 
+  // Load versions from Firestore when modal report changes
+  useEffect(() => {
+    const fetchVersions = async () => {
+      if (!selectedReportForVersions) return;
+      setVersionsLoading(true);
+      setCompareA(null);
+      setCompareB(null);
+      try {
+        const q = query(
+          collection(db, 'report_versions'),
+          where('reportId', '==', selectedReportForVersions.id)
+        );
+        const snap = await getDocs(q);
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        list.sort((a, b) => a.version - b.version);
+        
+        // If no versions exist in report_versions collection yet, seed Version 1 with original content
+        if (list.length === 0) {
+          const v1Payload = {
+            reportId: selectedReportForVersions.id,
+            userId: user?.uid || 'guest',
+            version: 1,
+            content: selectedReportForVersions.report || '',
+            savedAt: new Date(selectedReportForVersions.createdAt || Date.now()),
+            query: selectedReportForVersions.query || ''
+          };
+          await addDoc(collection(db, 'report_versions'), v1Payload);
+          setReportVersions([v1Payload]);
+        } else {
+          setReportVersions(list);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setVersionsLoading(false);
+      }
+    };
+    fetchVersions();
+  }, [selectedReportForVersions]);
+
   // Favorite toggle handler
   const handleToggleFavorite = async (e, report) => {
     e.stopPropagation();
@@ -78,6 +126,22 @@ export default function ResearchLibraryPage({ setView }) {
     // Open in ER research page
     window.dispatchEvent(new CustomEvent('er-research-load-report', { detail: report }));
     setView('er-research');
+  };
+
+  // Restore version handler
+  const handleRestoreVersion = async (v) => {
+    if (!window.confirm(`Are you sure you want to restore Version ${v.version}? This will replace the active report content with this version.`)) return;
+    try {
+      const reportRef = doc(db, 'er_research_reports', selectedReportForVersions.id);
+      await updateDoc(reportRef, {
+        report: v.content
+      });
+      alert(`Successfully restored report to Version ${v.version}!`);
+      loadReports();
+      setSelectedReportForVersions(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Extract unique tags for the filter dropdown
@@ -310,11 +374,11 @@ export default function ResearchLibraryPage({ setView }) {
                     </p>
                   </div>
 
-                  {/* Actions (FEATURE 4 Layout) */}
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
                     <button 
                       onClick={(e) => handleToggleFavorite(e, report)}
-                      className={`px-3 py-1.5 rounded text-xs font-bold uppercase transition-colors cursor-pointer border flex items-center gap-1 ${
+                      className={`px-2.5 py-1.5 rounded text-xs font-bold uppercase transition-colors cursor-pointer border flex items-center gap-1 ${
                         report.isFavorite 
                           ? 'bg-[#F4A726]/10 border-[#F4A726] text-[#F4A726]' 
                           : 'bg-transparent border-gray-650 text-gray-400 hover:text-white'
@@ -324,13 +388,22 @@ export default function ResearchLibraryPage({ setView }) {
                     </button>
                     <button 
                       onClick={() => handleOpenReport(report)}
-                      className="px-3 py-1.5 bg-[#F4A726] border border-[#F4A726] text-[#0A1628] hover:bg-[#D48E19] hover:border-[#D48E19] rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                      className="px-2.5 py-1.5 bg-[#F4A726] border border-[#F4A726] text-[#0A1628] hover:bg-[#D48E19] hover:border-[#D48E19] rounded text-xs font-bold uppercase transition-colors cursor-pointer"
                     >
                       📄 Open
                     </button>
                     <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedReportForVersions(report);
+                      }}
+                      className="px-2.5 py-1.5 bg-transparent border border-white/10 text-gray-400 hover:text-white rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                    >
+                      📜 Versions
+                    </button>
+                    <button 
                       onClick={(e) => handleDeleteReport(e, report.id)}
-                      className="px-3 py-1.5 bg-transparent border border-red-900/40 text-red-400 hover:bg-red-500/10 hover:text-white rounded text-xs font-bold uppercase transition-colors cursor-pointer"
+                      className="px-2.5 py-1.5 bg-transparent border border-red-900/40 text-red-400 hover:bg-red-500/10 hover:text-white rounded text-xs font-bold uppercase transition-colors cursor-pointer"
                     >
                       🗑️ Delete
                     </button>
@@ -342,6 +415,136 @@ export default function ResearchLibraryPage({ setView }) {
         </div>
 
       </div>
+
+      {/* Version History Modal */}
+      {selectedReportForVersions && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '24px'
+        }}>
+          <div style={{
+            background: '#0A1628',
+            border: '1px solid rgba(244,167,38,0.3)',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '900px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }} className="scrollbar-thin">
+            <div className="flex justify-between items-center border-b border-[#F4A726]/10 pb-3 mb-4">
+              <div>
+                <span className="text-[9px] font-mono text-[#F4A726] uppercase tracking-widest block">revision control dashboard</span>
+                <h3 className="font-serif text-lg font-black text-white uppercase mt-0.5">
+                  Version History: {selectedReportForVersions.title}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setSelectedReportForVersions(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
+                  fontSize: '20px'
+                }}
+                className="hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            {versionsLoading ? (
+              <div className="text-center py-12 text-xs font-mono text-gray-500 animate-pulse">
+                ⚡ Sifting version ledger history from Firestore...
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Versions List */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {reportVersions.map(v => {
+                    const isSelectedForCompare = compareA?.id === v.id || compareB?.id === v.id;
+                    return (
+                      <div key={v.id} className="flex justify-between items-center p-3 bg-[#060D17] border border-white/5 rounded hover:border-[#F4A726]/20 transition-all">
+                        <div>
+                          <span className="font-bold text-xs block text-white">Version v{v.version} {v.version === 1 ? '(original)' : '(updated)'}</span>
+                          <span className="text-[9px] text-gray-500 block mt-1">
+                            Saved: {v.savedAt?.toDate ? v.savedAt.toDate().toLocaleString() : new Date(v.savedAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleRestoreVersion(v)}
+                            className="px-2.5 py-1 bg-[#F4A726]/10 border border-[#F4A726]/20 text-[#F4A726] hover:bg-[#F4A726] hover:text-navy rounded text-[10px] font-mono uppercase transition-colors cursor-pointer"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (compareA?.id === v.id) {
+                                setCompareA(null);
+                              } else if (compareB?.id === v.id) {
+                                setCompareB(null);
+                              } else if (!compareA) {
+                                setCompareA(v);
+                              } else if (!compareB) {
+                                setCompareB(v);
+                              } else {
+                                setCompareA(v);
+                                setCompareB(null);
+                              }
+                            }}
+                            className={`px-2.5 py-1 border rounded text-[10px] font-mono uppercase cursor-pointer transition-colors ${
+                              isSelectedForCompare
+                                ? 'bg-blue-500/20 border-blue-400 text-blue-300'
+                                : 'bg-transparent border-gray-650 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            {isSelectedForCompare ? 'Selected' : 'Compare'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Compare Engine (Side-by-side) */}
+                {compareA && compareB ? (
+                  <div className="border-t border-white/10 pt-4 mt-4">
+                    <span className="text-[10px] font-mono text-gray-400 block mb-3 uppercase tracking-wider">Side-by-Side Comparison: Version v{compareA.version} vs Version v{compareB.version}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-xs font-bold text-[#F4A726] mb-2 font-mono uppercase">Version v{compareA.version} content</h4>
+                        <div className="p-3 bg-[#060D17] rounded border border-white/5 text-[11px] h-64 overflow-y-auto whitespace-pre-wrap font-serif leading-relaxed text-gray-300 scrollbar-thin">
+                          {compareA.content}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-[#F4A726] mb-2 font-mono uppercase">Version v{compareB.version} content</h4>
+                        <div className="p-3 bg-[#060D17] rounded border border-white/5 text-[11px] h-64 overflow-y-auto whitespace-pre-wrap font-serif leading-relaxed text-gray-300 scrollbar-thin">
+                          {compareB.content}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  (compareA || compareB) && (
+                    <div className="p-3 bg-[#060D17] border border-blue-500/20 rounded text-[10px] font-mono text-blue-300 text-center uppercase">
+                      Select one more version to start side-by-side comparison.
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

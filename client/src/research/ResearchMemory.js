@@ -138,8 +138,22 @@ class ResearchMemory {
           version: nextVersion,
           savedAt: Date.now(),
           ...reportPayload,
-          generatedAt: Date.now(), // Store numeric timestamp for simplicity inside versions
+          generatedAt: Date.now(),
         });
+      }
+      
+      // Save to global report_versions collection (FEATURE 6)
+      try {
+        await addDoc(collection(db, 'report_versions'), {
+          reportId: reportId,
+          userId: userId || 'guest',
+          version: nextVersion,
+          content: result.report || '',
+          savedAt: new Date(),
+          query: result.query || ''
+        });
+      } catch (err) {
+        console.error('Failed to save to report_versions collection:', err);
       }
 
       Logger.info('ResearchMemory', `Saved report version v${nextVersion} for ID ${reportId}`);
