@@ -41,6 +41,8 @@ const CompanyIntelligencePage = React.lazy(() => import('./components/CompanyInt
 const ForecastingPage = React.lazy(() => import('./components/ForecastingPage'));
 const DebatePage = React.lazy(() => import('./components/DebatePage'));
 const GlobalComparisonEngine = React.lazy(() => import('./components/GlobalComparisonEngine'));
+const InteractiveCharts = React.lazy(() => import('./components/InteractiveCharts'));
+const EconomicTimeline = React.lazy(() => import('./components/EconomicTimeline'));
 const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
 const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntelligence'));
 const EconomicCalendar = React.lazy(() => import('./components/EconomicCalendar'));
@@ -300,6 +302,10 @@ function AppContent() {
         window.history.pushState({}, '', '/forecasting');
       } else if (newView === 'debate') {
         window.history.pushState({}, '', '/debate');
+      } else if (newView === 'charts') {
+        window.history.pushState({}, '', '/charts');
+      } else if (newView === 'timeline') {
+        window.history.pushState({}, '', '/timeline');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -357,6 +363,10 @@ function AppContent() {
         setViewInternal('forecasting');
       } else if (path === '/debate') {
         setViewInternal('debate');
+      } else if (path === '/charts') {
+        setViewInternal('charts');
+      } else if (path === '/timeline') {
+        setViewInternal('timeline');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -479,6 +489,10 @@ function AppContent() {
       const id = path.split('/').pop();
       setSelectedTrackerId(id);
       setViewInternal('outcome-detail');
+    } else if (path === '/charts') {
+      setViewInternal('charts');
+    } else if (path === '/timeline') {
+      setViewInternal('timeline');
     }
   }, []);
 
@@ -834,6 +848,10 @@ function AppContent() {
             <ForecastingPage setView={setView} />
           ) : view === 'debate' ? (
             <DebatePage setView={setView} />
+          ) : view === 'charts' ? (
+            <InteractiveCharts />
+          ) : view === 'timeline' ? (
+            <EconomicTimeline />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (
