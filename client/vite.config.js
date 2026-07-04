@@ -74,7 +74,9 @@ export default defineConfig({
             if (id.includes('lucide-react')) {
               return 'lucide-vendor';
             }
-            if (id.includes('react') || id.includes('scheduler')) {
+            if (
+              /node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)
+            ) {
               return 'react-core-vendor';
             }
             return 'vendor';
