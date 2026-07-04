@@ -1031,7 +1031,7 @@ export default function Header({
           {/* Hamburger - ONLY on mobile */}
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="show-on-mobile-only"
+            className="show-on-mobile-only md:!hidden"
             style={{
               background: 'rgba(244,167,38,0.1)',
               border: '1px solid rgba(244,167,38,0.2)',
