@@ -1,0 +1,38 @@
+{
+  "name": "Economical Research",
+  "short_name": "ER News",
+  "description": "Global Economic Intelligence Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060D17",
+  "theme_color": "#F4A726",
+  "categories": ["news", "finance", "business"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Deep Research",
+      "url": "/er-research",
+      "description": "Start AI Research"
+    },
+    {
+      "name": "Markets",
+      "url": "/dashboard",
+      "description": "Live Markets"
+    }
+  ]
+}

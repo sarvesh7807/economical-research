@@ -46,6 +46,7 @@ const EconomicTimeline = React.lazy(() => import('./components/EconomicTimeline'
 const ForexIntelligence = React.lazy(() => import('./components/ForexIntelligence'));
 const CryptoIntelligence = React.lazy(() => import('./components/CryptoIntelligence'));
 const BondIntelligence = React.lazy(() => import('./components/BondIntelligence'));
+const KnowledgeGraph = React.lazy(() => import('./components/KnowledgeGraph'));
 const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
 const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntelligence'));
 const EconomicCalendar = React.lazy(() => import('./components/EconomicCalendar'));
@@ -315,6 +316,8 @@ function AppContent() {
         window.history.pushState({}, '', '/crypto');
       } else if (newView === 'bonds') {
         window.history.pushState({}, '', '/bonds');
+      } else if (newView === 'knowledge-graph') {
+        window.history.pushState({}, '', '/knowledge-graph');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -382,6 +385,8 @@ function AppContent() {
         setViewInternal('crypto');
       } else if (path === '/bonds') {
         setViewInternal('bonds');
+      } else if (path === '/knowledge-graph') {
+        setViewInternal('knowledge-graph');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -514,6 +519,8 @@ function AppContent() {
       setViewInternal('crypto');
     } else if (path === '/bonds') {
       setViewInternal('bonds');
+    } else if (path === '/knowledge-graph') {
+      setViewInternal('knowledge-graph');
     }
   }, []);
 
@@ -879,6 +886,8 @@ function AppContent() {
             <CryptoIntelligence />
           ) : view === 'bonds' ? (
             <BondIntelligence />
+          ) : view === 'knowledge-graph' ? (
+            <KnowledgeGraph />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (
