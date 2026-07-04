@@ -50,6 +50,8 @@ const KnowledgeGraph = React.lazy(() => import('./components/KnowledgeGraph'));
 const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
 const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntelligence'));
 const EconomicCalendar = React.lazy(() => import('./components/EconomicCalendar'));
+const ERTerminal = React.lazy(() => import('./components/ERTerminal'));
+const AIPodcast = React.lazy(() => import('./components/AIPodcast'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -318,6 +320,10 @@ function AppContent() {
         window.history.pushState({}, '', '/bonds');
       } else if (newView === 'knowledge-graph') {
         window.history.pushState({}, '', '/knowledge-graph');
+      } else if (newView === 'terminal') {
+        window.history.pushState({}, '', '/terminal');
+      } else if (newView === 'podcast') {
+        window.history.pushState({}, '', '/podcast');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -387,6 +393,10 @@ function AppContent() {
         setViewInternal('bonds');
       } else if (path === '/knowledge-graph') {
         setViewInternal('knowledge-graph');
+      } else if (path === '/terminal') {
+        setViewInternal('terminal');
+      } else if (path === '/podcast') {
+        setViewInternal('podcast');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -521,6 +531,10 @@ function AppContent() {
       setViewInternal('bonds');
     } else if (path === '/knowledge-graph') {
       setViewInternal('knowledge-graph');
+    } else if (path === '/terminal') {
+      setViewInternal('terminal');
+    } else if (path === '/podcast') {
+      setViewInternal('podcast');
     }
   }, []);
 
@@ -888,6 +902,10 @@ function AppContent() {
             <BondIntelligence />
           ) : view === 'knowledge-graph' ? (
             <KnowledgeGraph />
+          ) : view === 'terminal' ? (
+            <ERTerminal />
+          ) : view === 'podcast' ? (
+            <AIPodcast />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (

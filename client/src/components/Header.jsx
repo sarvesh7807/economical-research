@@ -531,6 +531,10 @@ export default function Header({
       setView('bonds');
     } else if (label === 'Knowledge Graph') {
       setView('knowledge-graph');
+    } else if (label === 'Terminal' || label === '⌨️ Terminal') {
+      setView('terminal');
+    } else if (label === 'Podcast' || label === '🎙️ Podcast') {
+      setView('podcast');
     }
   };
 
@@ -1001,7 +1005,7 @@ export default function Header({
           'Comparison', 'Watchlist', 'News Intel',
           'Company', 'Forecasting', 'Debate',
           'Charts', 'Timeline', 'Forex', 'Crypto', 'Bonds',
-          'Knowledge Graph',
+          'Knowledge Graph', '⌨️ Terminal', '🎙️ Podcast',
           '🔬 Deep Research', '📁 Library'
         ].map(item => {
           const isActive = (item === 'Markets' && activeCategory === 'business' && view === 'feed' && !searchQuery) || 
@@ -1019,6 +1023,8 @@ export default function Header({
                            (item === 'Crypto' && view === 'crypto') ||
                            (item === 'Bonds' && view === 'bonds') ||
                            (item === 'Knowledge Graph' && view === 'knowledge-graph') ||
+                           (item === '⌨️ Terminal' && view === 'terminal') ||
+                           (item === '🎙️ Podcast' && view === 'podcast') ||
                            (item === '🔬 Deep Research' && view === 'er-research') ||
                            (item === '📁 Library' && view === 'research-library');
           return (
@@ -1125,6 +1131,8 @@ export default function Header({
           { label: 'Crypto', icon: '₿' },
           { label: 'Bonds', icon: '📋' },
           { label: 'Knowledge Graph', icon: '🕸️' },
+          { label: 'Terminal', icon: '⌨️' },
+          { label: 'Podcast', icon: '🎙️' },
           { label: 'Watchlist', icon: '👁️' },
           { label: 'News Intelligence', icon: '📰' },
           { label: 'Deep Research', icon: '🔬' },
