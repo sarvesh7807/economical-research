@@ -55,6 +55,15 @@ export default function Header({
     clearAllNotifications,
     userAlerts
   } = useAuth();
+
+  const isLight = theme === 'light';
+  const headerBg = isLight ? '#FFFFFF' : 'var(--navy-darkest)';
+  const layer1Bg = isLight ? '#F5F7FA' : '#060D17';
+  const layer2Bg = isLight ? '#FFFFFF' : '#0A1628';
+  const navBg = isLight ? '#FFFFFF' : '#0A1628';
+  const textCol = isLight ? '#0A1628' : '#FFFFFF';
+  const secTextCol = isLight ? 'rgba(10,22,40,0.6)' : 'rgba(255,255,255,0.4)';
+  const borderCol = isLight ? 'rgba(10,22,40,0.1)' : 'rgba(244,167,38,0.15)';
   
   const totalBadgeCount = Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0;
   
@@ -544,7 +553,7 @@ export default function Header({
 
   return (
     <header style={{
-      background: 'var(--navy-darkest)',
+      background: headerBg,
       position: 'sticky',
       top: 0,
       zIndex: 1000,
@@ -552,8 +561,8 @@ export default function Header({
     }}>
       {/* LAYER 1 - Top Info Bar */}
       <div style={{
-        background: '#060D17',
-        borderBottom: '1px solid rgba(244,167,38,0.1)',
+        background: layer1Bg,
+        borderBottom: `1px solid ${borderCol}`,
         padding: '4px 16px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -590,12 +599,12 @@ export default function Header({
           whiteSpace: 'nowrap'
         }}
           className="hide-on-small-mobile">
-          <span style={{color: 'rgba(255,255,255,0.4)'}}>
+          <span style={{color: secTextCol}}>
             {formatDate(time)} {getLocalTimeStr()} {getTimezoneAbbr()}
           </span>
           {weather && !weather.error && (
             <span 
-              style={{color: 'rgba(255,255,255,0.4)', cursor: 'pointer'}}
+              style={{color: secTextCol, cursor: 'pointer'}}
               onClick={handleCityChangePrompt}
               title="Click to edit city"
             >
@@ -607,8 +616,8 @@ export default function Header({
 
       {/* LAYER 2 - Main Header */}
       <div style={{
-        background: '#0A1628',
-        borderBottom: '1px solid rgba(244,167,38,0.15)',
+        background: layer2Bg,
+        borderBottom: `1px solid ${borderCol}`,
         padding: '12px 16px',
         display: 'flex',
         alignItems: 'center',
@@ -646,7 +655,7 @@ export default function Header({
             fontFamily: 'Playfair Display, serif',
             fontWeight: '700',
             fontSize: '16px',
-            color: '#fff',
+            color: textCol,
             whiteSpace: 'nowrap'
           }}
             className="hide-on-mobile">
@@ -676,7 +685,7 @@ export default function Header({
           <button 
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="hide-on-mobile"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: 0, display: 'flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: secTextCol, padding: 0, display: 'flex', alignItems: 'center' }}
             title="Toggle Theme"
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
@@ -686,7 +695,7 @@ export default function Header({
           <button 
             onClick={() => setView('settings')}
             className="hide-on-mobile"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: 0, display: 'flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: secTextCol, padding: 0, display: 'flex', alignItems: 'center' }}
             title="Settings"
           >
             <SettingsIcon size={16} />
@@ -698,10 +707,10 @@ export default function Header({
               onClick={() => setIsLangOpen(!isLangOpen)}
               style={{
                 background: 'transparent',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                border: `1px solid ${borderCol}`,
                 borderRadius: '4px',
                 padding: '2px 8px',
-                color: 'rgba(255,255,255,0.6)',
+                color: secTextCol,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -991,8 +1000,8 @@ export default function Header({
 
       {/* LAYER 3 - Navigation Bar */}
       <nav style={{
-        background: '#0A1628',
-        borderBottom: '2px solid rgba(244,167,38,0.1)',
+        background: navBg,
+        borderBottom: `2px solid ${borderCol}`,
         padding: '0 16px',
         display: 'flex',
         gap: '4px',
@@ -1035,7 +1044,7 @@ export default function Header({
                 padding: '10px 14px',
                 background: 'none',
                 border: 'none',
-                color: isActive ? '#F4A726' : 'rgba(255,255,255,0.6)',
+                color: isActive ? '#F4A726' : (isLight ? 'rgba(10,22,40,0.65)' : 'rgba(255,255,255,0.6)'),
                 fontSize: '12px',
                 fontWeight: isActive ? '700' : '500',
                 cursor: 'pointer',

@@ -731,7 +731,7 @@ function AppContent() {
               fontFamily: 'Playfair Display, serif',
               fontSize: 'clamp(32px, 5vw, 56px)',
               fontWeight: '700',
-              color: '#fff',
+              color: 'var(--text-primary)',
               lineHeight: '1.15',
               marginBottom: '20px',
               maxWidth: '800px',
@@ -771,12 +771,12 @@ function AppContent() {
               }}>Start Reading Free</button>
               <button onClick={() => navigate('/pricing')} style={{
                 background: 'transparent',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 padding: '15px 32px',
                 borderRadius: '6px',
                 fontWeight: '700',
                 fontSize: '14px',
-                border: '1px solid rgba(255,255,255,0.2)',
+                border: '1px solid var(--border-subtle)',
                 cursor: 'pointer'
               }}>Explore PRO →</button>
             </div>
@@ -868,6 +868,7 @@ function AppContent() {
                 activeCategory={activeCategory}
                 searchQuery={searchQuery}
                 triggerRefresh={triggerRefresh}
+                theme={theme}
               />
             </ErrorBoundary>
           ) : view === 'assistant' ? (

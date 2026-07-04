@@ -214,7 +214,7 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
         <h3 style={{
           fontFamily: 'Playfair Display, serif',
           fontSize: '18px',
-          color: '#fff',
+          color: 'var(--text-primary)',
           margin: 0,
           fontWeight: '700',
           display: 'flex',
@@ -641,7 +641,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
           <h2 style={{
             fontFamily: 'Playfair Display, serif',
             fontSize: '22px',
-            color: '#fff',
+            color: 'var(--text-primary)',
             margin: 0
           }}>Deep Research Desk</h2>
         </div>
@@ -924,7 +924,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
         <h2 style={{
           fontFamily: 'Playfair Display, serif',
           fontSize: '24px',
-          color: '#fff',
+          color: 'var(--text-primary)',
           margin: 0,
           fontWeight: '700'
         }}>
@@ -1031,7 +1031,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
               <h2 style={{
                 fontFamily: 'Playfair Display, serif',
                 fontSize: '22px',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 marginBottom: '20px',
                 paddingBottom: '10px',
                 borderBottom: '2px solid #F4A726'
@@ -1522,7 +1522,7 @@ function TrendingWidget() {
           <h2 style={{
             fontFamily: 'Playfair Display, serif',
             fontSize: '22px',
-            color: '#fff',
+            color: 'var(--text-primary)',
             margin: 0
           }}>Trending Dispatch Wire</h2>
         </div>

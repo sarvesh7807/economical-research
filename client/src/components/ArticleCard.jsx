@@ -367,7 +367,7 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
           <h3 style={{
             fontFamily: 'Playfair Display, serif',
             fontSize: '16px',
-            color: '#fff',
+            color: 'var(--text-primary)',
             margin: '6px 0',
             lineHeight: '1.35',
             fontWeight: '700'
@@ -378,7 +378,7 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
           </h3>
           
           <p style={{
-            color: 'rgba(255,255,255,0.5)',
+            color: 'var(--text-secondary)',
             fontSize: '13px',
             lineHeight: '1.5',
             display: '-webkit-box',
@@ -454,10 +454,10 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
                 onClick={handleCopyLink}
                 style={{
                   padding: '2px 8px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--navy-light)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '3px',
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   fontSize: '10px',
                   fontWeight: '600'
@@ -474,10 +474,10 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
                 }}
                 style={{
                   padding: '2px 8px',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--navy-light)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '3px',
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   cursor: 'pointer',
                   fontSize: '10px',
                   fontWeight: '600'
@@ -586,7 +586,7 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
           <h3 style={{
             fontFamily: 'Playfair Display, serif',
             fontSize: isLead ? '21px' : '17px',
-            color: '#fff',
+            color: 'var(--text-primary)',
             margin: '0 0 10px',
             lineHeight: '1.3',
             fontWeight: '700'
@@ -675,10 +675,10 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
             onClick={handleCopyLink}
             style={{
               padding: '6px 12px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--navy-light)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '4px',
-              color: '#fff',
+              color: 'var(--text-primary)',
               cursor: 'pointer',
               fontSize: '11px',
               fontWeight: '600'
@@ -695,10 +695,10 @@ function ArticleCard({ article, isLead, layout = 'grid' }) {
             }}
             style={{
               padding: '6px 12px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--navy-light)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '4px',
-              color: '#fff',
+              color: 'var(--text-primary)',
               cursor: 'pointer',
               fontSize: '11px',
               fontWeight: '600'

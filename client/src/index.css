@@ -793,3 +793,111 @@ input, textarea, select, button {
   max-width: 100%;
   box-sizing: border-box;
 }
+
+/* =========================================
+   LIGHT MODE STYLING OVERRIDES
+   ========================================= */
+body.light-mode,
+body[data-theme="light"] {
+  --navy-darkest: #F5F7FA;
+  --navy-dark: #FFFFFF;
+  --navy-medium: #F0F4F8;
+  --navy-light: #E1E8F0;
+  --text-primary: #0A1628;
+  --text-secondary: #1A3A5C;
+  --text-tertiary: rgba(10,22,40,0.6);
+  --border-subtle: rgba(10,22,40,0.15);
+  background-color: #F5F7FA !important;
+  color: #0A1628 !important;
+}
+
+/* Specific elements when light mode is active */
+body.light-mode .article-card,
+body.light-mode .news-feed-container,
+body.light-mode [class*="news-feed-container"] {
+  background-color: #FFFFFF !important;
+  border-color: rgba(10,22,40,0.1) !important;
+  color: #0A1628 !important;
+}
+
+body.light-mode .news-feed-container h3,
+body.light-mode .news-feed-container h3 a,
+body.light-mode .news-feed-container p,
+body.light-mode .news-feed-container span,
+body.light-mode .news-feed-container strong {
+  color: #0A1628 !important;
+}
+
+body.light-mode .news-feed-container span[style*="rgba(255, 255, 255"],
+body.light-mode .news-feed-container p[style*="rgba(255, 255, 255"],
+body.light-mode .news-feed-container div[style*="rgba(255, 255, 255"] {
+  color: rgba(10, 22, 40, 0.65) !important;
+}
+
+body.light-mode .header {
+  background: #FFFFFF !important;
+  border-bottom: 1px solid rgba(10,22,40,0.1) !important;
+}
+
+body.light-mode nav a,
+body.light-mode nav button,
+body.light-mode header button,
+body.light-mode header span {
+  color: #0A1628 !important;
+}
+
+body.light-mode .section-title,
+body.light-mode .section-header,
+body.light-mode h1,
+body.light-mode h2,
+body.light-mode h3,
+body.light-mode h4,
+body.light-mode h5 {
+  color: #0A1628 !important;
+}
+
+body.light-mode .card,
+body.light-mode [class*="card"],
+body.light-mode [class*="widget"] {
+  background: #FFFFFF !important;
+  color: #0A1628 !important;
+  border-color: rgba(10,22,40,0.1) !important;
+}
+
+body.light-mode [class*="widget"] span,
+body.light-mode [class*="widget"] p,
+body.light-mode [class*="widget"] h3 {
+  color: #0A1628 !important;
+}
+
+body.light-mode input,
+body.light-mode select,
+body.light-mode textarea {
+  background-color: #FFFFFF !important;
+  color: #0A1628 !important;
+  border-color: rgba(10,22,40,0.2) !important;
+}
+
+body.light-mode [role="dialog"],
+body.light-mode .modal,
+body.light-mode [class*="modal"] {
+  background-color: #FFFFFF !important;
+  color: #0A1628 !important;
+  border-color: rgba(10,22,40,0.15) !important;
+}
+
+body.light-mode [role="dialog"] h3,
+body.light-mode [role="dialog"] p,
+body.light-mode [role="dialog"] label,
+body.light-mode [role="dialog"] span {
+  color: #0A1628 !important;
+}
+
+body.light-mode [role="dialog"] input,
+body.light-mode [role="dialog"] select,
+body.light-mode [role="dialog"] textarea {
+  background-color: #F5F7FA !important;
+  color: #0A1628 !important;
+  border-color: rgba(10,22,40,0.2) !important;
+}
+
