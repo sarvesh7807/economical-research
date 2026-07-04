@@ -73,6 +73,8 @@ export default function Header({
         { label: 'Company Intel', icon: '🏢', route: 'company' },
         { label: 'Country Intel', icon: '🌍', route: 'country-select' },
         { label: 'News Intel', icon: '📰', route: 'news-intel' },
+        { label: 'ESG Intel', icon: '🌱', route: 'esg' },
+        { label: 'Startup Intel', icon: '🚀', route: 'startup' },
       ]
     },
     {
@@ -592,6 +594,10 @@ export default function Header({
       setView('terminal');
     } else if (label === 'Podcast' || label === '🎙️ Podcast') {
       setView('podcast');
+    } else if (label === 'ESG Intel' || label === '🌱 ESG Intel') {
+      setView('esg');
+    } else if (label === 'Startups' || label === '🚀 Startups') {
+      setView('startup');
     }
   };
 
@@ -1088,7 +1094,7 @@ export default function Header({
           'Company', 'Forecasting', 'Debate',
           'Charts', 'Timeline', 'Forex', 'Crypto', 'Bonds',
           'Knowledge Graph', '⌨️ Terminal', '🎙️ Podcast',
-          '🔬 Deep Research', '📁 Library'
+          '🔬 Deep Research', '🌱 ESG Intel', '🚀 Startups', '📁 Library'
         ].map(item => {
           const isActive = (item === 'Markets' && activeCategory === 'business' && view === 'feed' && !searchQuery) || 
                            (item === 'Dashboard' && view === 'live-dashboard') ||
@@ -1108,6 +1114,8 @@ export default function Header({
                            (item === '⌨️ Terminal' && view === 'terminal') ||
                            (item === '🎙️ Podcast' && view === 'podcast') ||
                            (item === '🔬 Deep Research' && view === 'er-research') ||
+                           (item === '🌱 ESG Intel' && view === 'esg') ||
+                           (item === '🚀 Startups' && view === 'startup') ||
                            (item === '📁 Library' && view === 'research-library');
           return (
             <button 

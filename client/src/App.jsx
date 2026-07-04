@@ -52,6 +52,8 @@ const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntel
 const EconomicCalendar = React.lazy(() => import('./components/EconomicCalendar'));
 const ERTerminal = React.lazy(() => import('./components/ERTerminal'));
 const AIPodcast = React.lazy(() => import('./components/AIPodcast'));
+const ESGIntelligence = React.lazy(() => import('./components/ESGIntelligence'));
+const StartupIntelligence = React.lazy(() => import('./components/StartupIntelligence'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -324,6 +326,10 @@ function AppContent() {
         window.history.pushState({}, '', '/terminal');
       } else if (newView === 'podcast') {
         window.history.pushState({}, '', '/podcast');
+      } else if (newView === 'esg') {
+        window.history.pushState({}, '', '/esg');
+      } else if (newView === 'startup') {
+        window.history.pushState({}, '', '/startup');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -397,6 +403,10 @@ function AppContent() {
         setViewInternal('terminal');
       } else if (path === '/podcast') {
         setViewInternal('podcast');
+      } else if (path === '/esg') {
+        setViewInternal('esg');
+      } else if (path === '/startup') {
+        setViewInternal('startup');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -535,6 +545,10 @@ function AppContent() {
       setViewInternal('terminal');
     } else if (path === '/podcast') {
       setViewInternal('podcast');
+    } else if (path === '/esg') {
+      setViewInternal('esg');
+    } else if (path === '/startup') {
+      setViewInternal('startup');
     }
   }, []);
 
@@ -907,6 +921,10 @@ function AppContent() {
             <ERTerminal />
           ) : view === 'podcast' ? (
             <AIPodcast />
+          ) : view === 'esg' ? (
+            <ESGIntelligence theme={theme} />
+          ) : view === 'startup' ? (
+            <StartupIntelligence theme={theme} />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (
