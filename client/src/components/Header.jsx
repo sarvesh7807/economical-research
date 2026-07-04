@@ -65,6 +65,54 @@ export default function Header({
   const secTextCol = isLight ? 'rgba(10,22,40,0.6)' : 'rgba(255,255,255,0.4)';
   const borderCol = isLight ? 'rgba(10,22,40,0.1)' : 'rgba(244,167,38,0.15)';
   
+  const mobileMenuSections = [
+    {
+      title: 'INTELLIGENCE',
+      items: [
+        { label: 'Deep Research', icon: '🔬', route: 'deep-research', badge: 'AI', badgeColor: '#F4A726' },
+        { label: 'Company Intel', icon: '🏢', route: 'company' },
+        { label: 'Country Intel', icon: '🌍', route: 'country-select' },
+        { label: 'News Intel', icon: '📰', route: 'news-intel' },
+      ]
+    },
+    {
+      title: 'MARKETS',
+      items: [
+        { label: 'Dashboard', icon: '📊', route: 'dashboard' },
+        { label: 'Forex', icon: '💱', route: 'forex' },
+        { label: 'Crypto', icon: '₿', route: 'crypto' },
+        { label: 'Bonds', icon: '📋', route: 'bonds' },
+      ]
+    },
+    {
+      title: 'ANALYSIS',
+      items: [
+        { label: 'Forecasting', icon: '📈', route: 'forecasting' },
+        { label: 'Comparison', icon: '⚖️', route: 'comparison' },
+        { label: 'AI Debate', icon: '🗣️', route: 'debate' },
+        { label: 'Charts', icon: '📊', route: 'charts' },
+      ]
+    },
+    {
+      title: 'TOOLS',
+      items: [
+        { label: 'Terminal', icon: '⌨️', route: 'terminal' },
+        { label: 'Timeline', icon: '📅', route: 'timeline' },
+        { label: 'Knowledge Graph', icon: '🕸️', route: 'knowledge-graph' },
+        { label: 'Podcast', icon: '🎙️', route: 'podcast' },
+      ]
+    },
+    {
+      title: 'ACCOUNT',
+      items: [
+        { label: 'Profile', icon: '👤', route: 'profile' },
+        { label: 'Watchlist', icon: '👁️', route: 'watchlist' },
+        { label: 'Library', icon: '📁', route: 'library' },
+        { label: 'PRO Plans', icon: '💎', route: 'pricing', badge: 'PRO', badgeColor: '#F4A726' },
+      ]
+    }
+  ];
+
   const totalBadgeCount = Array.isArray(notifications) ? notifications.filter(n => !n.read).length : 0;
   
   const [time, setTime] = useState(new Date());
@@ -985,15 +1033,40 @@ export default function Header({
             onClick={() => setIsMenuOpen(true)}
             className="show-on-mobile-only"
             style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              fontSize: '20px',
+              background: 'rgba(244,167,38,0.1)',
+              border: '1px solid rgba(244,167,38,0.2)',
+              borderRadius: '8px',
+              padding: '8px',
               cursor: 'pointer',
-              padding: '4px'
-            }}
-          >
-            ☰
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+            <span style={{
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: '#F4A726',
+              borderRadius: '2px',
+              transition: 'all 0.3s'
+            }}/>
+            <span style={{
+              display: 'block',
+              width: '18px',
+              height: '2px',
+              background: '#F4A726',
+              borderRadius: '2px'
+            }}/>
+            <span style={{
+              display: 'block',
+              width: '12px',
+              height: '2px',
+              background: '#F4A726',
+              borderRadius: '2px',
+              alignSelf: 'flex-start'
+            }}/>
           </button>
         </div>
       </div>
@@ -1097,106 +1170,252 @@ export default function Header({
       </div>
 
       {/* STEP 2 - Mobile Menu (Full Screen Overlay) */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        background: '#0A1628',
-        zIndex: 99999,
-        display: isMenuOpen ? 'flex' : 'none',
-        flexDirection: 'column',
-        padding: '20px',
-        overflowY: 'auto',
-        overflowX: 'hidden'
-      }}>
-        {/* Close button */}
-        <button onClick={() => setIsMenuOpen(false)}
-          style={{
-            alignSelf: 'flex-end',
-            background: 'none',
-            border: 'none',
-            color: '#fff',
-            fontSize: '28px',
-            cursor: 'pointer',
-            marginBottom: '20px'
-          }}>✕</button>
-        
-        {/* All nav items as full width buttons */}
-        {[
-          { label: 'Markets', icon: '📈' },
-          { label: 'Dashboard', icon: '📊' },
-          { label: 'Calendar', icon: '📅' },
-          { label: 'Comparison', icon: '⚖️' },
-          { label: 'Company', icon: '🏢' },
-          { label: 'Forecasting', icon: '🔮' },
-          { label: 'Debate', icon: '💬' },
-          { label: 'Charts', icon: '📊' },
-          { label: 'Timeline', icon: '📅' },
-          { label: 'Forex', icon: '💱' },
-          { label: 'Crypto', icon: '₿' },
-          { label: 'Bonds', icon: '📋' },
-          { label: 'Knowledge Graph', icon: '🕸️' },
-          { label: 'Terminal', icon: '⌨️' },
-          { label: 'Podcast', icon: '🎙️' },
-          { label: 'Watchlist', icon: '👁️' },
-          { label: 'News Intelligence', icon: '📰' },
-          { label: 'Deep Research', icon: '🔬' },
-          { label: 'Library', icon: '📁' },
-          { label: 'Profile', icon: '👤' },
-          { label: 'PRO Plans', icon: '💎' }
-        ].map(item => (
-          <button key={item.label}
-            onClick={() => {
-              handleNavClick(item.label)
-              setIsMenuOpen(false)
-            }}
-            style={{
+      {isMenuOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: '#060D17',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '20px 20px 16px',
+            borderBottom: '1px solid rgba(244,167,38,0.2)'
+          }}>
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '14px',
-              padding: '16px 12px',
-              background: 'none',
-              border: 'none',
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
-              color: '#fff',
-              fontSize: '16px',
-              cursor: 'pointer',
-              textAlign: 'left',
-              width: '100%'
+              gap: '10px'
             }}>
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-        
-        {/* Social links at bottom */}
-        <div style={{
-          marginTop: 'auto',
-          display: 'flex',
-          gap: '16px',
-          paddingTop: '20px',
-          borderTop: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <a href="https://x.com/ERNewsDesk" 
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{color: 'rgba(255,255,255,0.4)',
-              fontSize: '13px'}}>
-            X (Twitter)
-          </a>
-          <a href="https://instagram.com/economical.research"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{color: 'rgba(255,255,255,0.4)',
-              fontSize: '13px'}}>
-            Instagram
-          </a>
+              <div style={{
+                width: '32px', height: '32px',
+                background: '#F4A726',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '900',
+                color: '#060D17',
+                fontSize: '14px'
+              }}>ER</div>
+              <span style={{
+                color: '#fff',
+                fontWeight: '700',
+                fontSize: '16px',
+                fontFamily: 'Playfair Display, serif'
+              }}>
+                ECONOMICAL RESEARCH
+              </span>
+            </div>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                color: '#fff',
+                fontSize: '20px',
+                cursor: 'pointer',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+              ✕
+            </button>
+          </div>
+
+          {/* User info if logged in */}
+          {user && (
+            <div style={{
+              padding: '14px 20px',
+              background: 'rgba(244,167,38,0.08)',
+              borderBottom: '1px solid rgba(244,167,38,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '40px', height: '40px',
+                borderRadius: '50%',
+                background: '#F4A726',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                color: '#060D17',
+                fontSize: '16px',
+                flexShrink: 0
+              }}>
+                {user.displayName?.[0] || 
+                  user.email?.[0] || 'U'}
+              </div>
+              <div>
+                <p style={{
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  margin: 0
+                }}>
+                  {user.displayName || 'User'}
+                </p>
+                <p style={{
+                  color: 'rgba(255,255,255,0.4)',
+                  fontSize: '11px',
+                  margin: 0
+                }}>
+                  {user.email}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Scrollable menu sections */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '8px 0'
+          }}>
+            {mobileMenuSections.map(section => (
+              <div key={section.title}>
+                <p style={{
+                  color: 'rgba(244,167,38,0.6)',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase',
+                  padding: '12px 20px 4px'
+                }}>
+                  {section.title}
+                </p>
+                {section.items.map(item => (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      if (item.route === 'pricing') {
+                        setView('billing');
+                      } else if (item.route === 'library') {
+                        setView('research-library');
+                      } else if (item.route === 'country-select') {
+                        setView('country-intel');
+                      } else if (item.route === 'deep-research') {
+                        setView('er-research');
+                      } else if (item.route === 'dashboard') {
+                        setView('live-dashboard');
+                      } else {
+                        setView(item.route);
+                      }
+                      setIsMenuOpen(false);
+                      window.scrollTo({top: 0});
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      padding: '13px 20px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s'
+                    }}
+                    onMouseEnter={e => 
+                      e.currentTarget.style.background = 
+                        'rgba(244,167,38,0.05)'}
+                    onMouseLeave={e => 
+                      e.currentTarget.style.background = 
+                        'none'}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px'
+                    }}>
+                      <span style={{
+                        fontSize: '18px',
+                        width: '24px',
+                        textAlign: 'center'
+                      }}>
+                        {item.icon}
+                      </span>
+                      <span style={{
+                        color: '#fff',
+                        fontSize: '15px',
+                        fontWeight: '400'
+                      }}>
+                        {item.label}
+                      </span>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      {item.badge && (
+                        <span style={{
+                          background: item.badgeColor,
+                          color: '#060D17',
+                          fontSize: '9px',
+                          fontWeight: '800',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {item.badge}
+                        </span>
+                      )}
+                      <span style={{
+                        color: 'rgba(255,255,255,0.2)',
+                        fontSize: '16px'
+                      }}>›</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom social links */}
+          <div style={{
+            padding: '16px 20px',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+            display: 'flex',
+            gap: '16px',
+            justifyContent: 'center'
+          }}>
+            <a href="https://x.com/ERNewsDesk"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'rgba(255,255,255,0.4)',
+                fontSize: '12px',
+                textDecoration: 'none'
+              }}>
+              X (Twitter)
+            </a>
+            <span style={{
+              color: 'rgba(255,255,255,0.2)'
+            }}>|</span>
+            <a href="https://instagram.com/economical.research"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'rgba(255,255,255,0.4)',
+                fontSize: '12px',
+                textDecoration: 'none'
+              }}>
+              Instagram
+            </a>
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
