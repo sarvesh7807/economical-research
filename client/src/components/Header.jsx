@@ -75,6 +75,9 @@ export default function Header({
         { label: 'News Intel', icon: '📰', route: 'news-intel' },
         { label: 'ESG Intel', icon: '🌱', route: 'esg' },
         { label: 'Startup Intel', icon: '🚀', route: 'startup' },
+        { label: 'Elections', icon: '🗳️', route: 'elections' },
+        { label: 'Crisis Monitor', icon: '🚨', route: 'crisis' },
+        { label: 'Supply Chain', icon: '🔗', route: 'supply-chain' },
       ]
     },
     {
@@ -598,6 +601,12 @@ export default function Header({
       setView('esg');
     } else if (label === 'Startups' || label === '🚀 Startups') {
       setView('startup');
+    } else if (label === 'Elections' || label === '🗳️ Elections') {
+      setView('elections');
+    } else if (label === 'Crisis Monitor' || label === '🚨 Crisis Monitor') {
+      setView('crisis');
+    } else if (label === 'Supply Chain' || label === '🔗 Supply Chain') {
+      setView('supply-chain');
     }
   };
 
@@ -1094,7 +1103,8 @@ export default function Header({
           'Company', 'Forecasting', 'Debate',
           'Charts', 'Timeline', 'Forex', 'Crypto', 'Bonds',
           'Knowledge Graph', '⌨️ Terminal', '🎙️ Podcast',
-          '🔬 Deep Research', '🌱 ESG Intel', '🚀 Startups', '📁 Library'
+          '🔬 Deep Research', '🌱 ESG Intel', '🚀 Startups',
+          '🗳️ Elections', '🚨 Crisis Monitor', '🔗 Supply Chain', '📁 Library'
         ].map(item => {
           const isActive = (item === 'Markets' && activeCategory === 'business' && view === 'feed' && !searchQuery) || 
                            (item === 'Dashboard' && view === 'live-dashboard') ||
@@ -1116,6 +1126,9 @@ export default function Header({
                            (item === '🔬 Deep Research' && view === 'er-research') ||
                            (item === '🌱 ESG Intel' && view === 'esg') ||
                            (item === '🚀 Startups' && view === 'startup') ||
+                           (item === '🗳️ Elections' && view === 'elections') ||
+                           (item === '🚨 Crisis Monitor' && view === 'crisis') ||
+                           (item === '🔗 Supply Chain' && view === 'supply-chain') ||
                            (item === '📁 Library' && view === 'research-library');
           return (
             <button 

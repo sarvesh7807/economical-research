@@ -54,6 +54,9 @@ const ERTerminal = React.lazy(() => import('./components/ERTerminal'));
 const AIPodcast = React.lazy(() => import('./components/AIPodcast'));
 const ESGIntelligence = React.lazy(() => import('./components/ESGIntelligence'));
 const StartupIntelligence = React.lazy(() => import('./components/StartupIntelligence'));
+const ElectionIntelligence = React.lazy(() => import('./components/ElectionIntelligence'));
+const GlobalCrisisMonitor = React.lazy(() => import('./components/GlobalCrisisMonitor'));
+const SupplyChainIntelligence = React.lazy(() => import('./components/SupplyChainIntelligence'));
 
 function AppContent() {
   const { settings, updateSettings, incrementTimeSpent, loading, userPreferences } = useAuth();
@@ -330,6 +333,12 @@ function AppContent() {
         window.history.pushState({}, '', '/esg');
       } else if (newView === 'startup') {
         window.history.pushState({}, '', '/startup');
+      } else if (newView === 'elections') {
+        window.history.pushState({}, '', '/elections');
+      } else if (newView === 'crisis') {
+        window.history.pushState({}, '', '/crisis');
+      } else if (newView === 'supply-chain') {
+        window.history.pushState({}, '', '/supply-chain');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -407,6 +416,12 @@ function AppContent() {
         setViewInternal('esg');
       } else if (path === '/startup') {
         setViewInternal('startup');
+      } else if (path === '/elections') {
+        setViewInternal('elections');
+      } else if (path === '/crisis') {
+        setViewInternal('crisis');
+      } else if (path === '/supply-chain') {
+        setViewInternal('supply-chain');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -549,6 +564,12 @@ function AppContent() {
       setViewInternal('esg');
     } else if (path === '/startup') {
       setViewInternal('startup');
+    } else if (path === '/elections') {
+      setViewInternal('elections');
+    } else if (path === '/crisis') {
+      setViewInternal('crisis');
+    } else if (path === '/supply-chain') {
+      setViewInternal('supply-chain');
     }
   }, []);
 
@@ -925,6 +946,12 @@ function AppContent() {
             <ESGIntelligence theme={theme} />
           ) : view === 'startup' ? (
             <StartupIntelligence theme={theme} />
+          ) : view === 'elections' ? (
+            <ElectionIntelligence theme={theme} />
+          ) : view === 'crisis' ? (
+            <GlobalCrisisMonitor theme={theme} />
+          ) : view === 'supply-chain' ? (
+            <SupplyChainIntelligence theme={theme} />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (
