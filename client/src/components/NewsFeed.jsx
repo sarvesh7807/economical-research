@@ -261,7 +261,7 @@ function NewsSection({ title, fetchUrl, category, autoScroll = false }) {
 }
 
 export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }) {
-  const { user, subscription, guestId, userPreferences, addNotification } = useAuth();
+  const { user, subscription, guestId, userPreferences, addNotification, alertsMatchNews } = useAuth();
 
   const [watchlistItems, setWatchlistItems] = useState([]);
   
@@ -527,6 +527,28 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
     setVisibleCount(10);
     setTimeLeft(120);
   }, [activeCategory, searchQuery, triggerRefresh]);
+
+  // Topic alerts notification trigger (FEATURE 8)
+  useEffect(() => {
+    if (!feedArticles || feedArticles.length === 0 || !user || !alertsMatchNews) return;
+    feedArticles.forEach(article => {
+      const matchedAlerts = alertsMatchNews(article.title || '', article.description || '');
+      if (matchedAlerts && matchedAlerts.length > 0) {
+        matchedAlerts.forEach(alert => {
+          const storageKey = `alert_notified_${user.uid}_${alert.id}_${article.url}`;
+          if (!localStorage.getItem(storageKey)) {
+            localStorage.setItem(storageKey, 'true');
+            addNotification(
+              'alert',
+              `🔔 Alert Match: ${alert.topic}`,
+              article.title,
+              article.url
+            );
+          }
+        });
+      }
+    });
+  }, [feedArticles, user, alertsMatchNews]);
 
   // 120 Seconds Auto-Refresh Timer
   useEffect(() => {
@@ -1257,7 +1279,7 @@ export default function NewsFeed({ activeCategory, searchQuery, triggerRefresh }
                   );
                 })}
               </div>
-            )}}
+            )}
 
             {/* Loader Element for Infinite Scroll or Load More button */}
             {hasMore && feedArticles.length > 0 && (
