@@ -43,6 +43,9 @@ const DebatePage = React.lazy(() => import('./components/DebatePage'));
 const GlobalComparisonEngine = React.lazy(() => import('./components/GlobalComparisonEngine'));
 const InteractiveCharts = React.lazy(() => import('./components/InteractiveCharts'));
 const EconomicTimeline = React.lazy(() => import('./components/EconomicTimeline'));
+const ForexIntelligence = React.lazy(() => import('./components/ForexIntelligence'));
+const CryptoIntelligence = React.lazy(() => import('./components/CryptoIntelligence'));
+const BondIntelligence = React.lazy(() => import('./components/BondIntelligence'));
 const WatchlistManager = React.lazy(() => import('./components/WatchlistManager'));
 const LiveNewsIntelligence = React.lazy(() => import('./components/LiveNewsIntelligence'));
 const EconomicCalendar = React.lazy(() => import('./components/EconomicCalendar'));
@@ -306,6 +309,12 @@ function AppContent() {
         window.history.pushState({}, '', '/charts');
       } else if (newView === 'timeline') {
         window.history.pushState({}, '', '/timeline');
+      } else if (newView === 'forex') {
+        window.history.pushState({}, '', '/forex');
+      } else if (newView === 'crypto') {
+        window.history.pushState({}, '', '/crypto');
+      } else if (newView === 'bonds') {
+        window.history.pushState({}, '', '/bonds');
       } else {
         window.history.pushState({}, '', `?view=${newView}`);
       }
@@ -367,6 +376,12 @@ function AppContent() {
         setViewInternal('charts');
       } else if (path === '/timeline') {
         setViewInternal('timeline');
+      } else if (path === '/forex') {
+        setViewInternal('forex');
+      } else if (path === '/crypto') {
+        setViewInternal('crypto');
+      } else if (path === '/bonds') {
+        setViewInternal('bonds');
       } else if (path.startsWith('/country/')) {
         const code = path.split('/').pop().toUpperCase();
         setSelectedCountryCode(code);
@@ -493,6 +508,12 @@ function AppContent() {
       setViewInternal('charts');
     } else if (path === '/timeline') {
       setViewInternal('timeline');
+    } else if (path === '/forex') {
+      setViewInternal('forex');
+    } else if (path === '/crypto') {
+      setViewInternal('crypto');
+    } else if (path === '/bonds') {
+      setViewInternal('bonds');
     }
   }, []);
 
@@ -852,6 +873,12 @@ function AppContent() {
             <InteractiveCharts />
           ) : view === 'timeline' ? (
             <EconomicTimeline />
+          ) : view === 'forex' ? (
+            <ForexIntelligence />
+          ) : view === 'crypto' ? (
+            <CryptoIntelligence />
+          ) : view === 'bonds' ? (
+            <BondIntelligence />
           ) : view === 'comparison' ? (
             <GlobalComparisonEngine setView={setView} defaultA={comparisonA} defaultB={comparisonB} />
           ) : view === 'watchlist' ? (

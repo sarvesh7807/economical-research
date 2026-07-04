@@ -523,6 +523,12 @@ export default function Header({
       setView('charts');
     } else if (label === 'Timeline') {
       setView('timeline');
+    } else if (label === 'Forex') {
+      setView('forex');
+    } else if (label === 'Crypto') {
+      setView('crypto');
+    } else if (label === 'Bonds') {
+      setView('bonds');
     }
   };
 
@@ -992,7 +998,7 @@ export default function Header({
           'Markets', 'Dashboard', 'Calendar', 
           'Comparison', 'Watchlist', 'News Intel',
           'Company', 'Forecasting', 'Debate',
-          'Charts', 'Timeline',
+          'Charts', 'Timeline', 'Forex', 'Crypto', 'Bonds',
           '🔬 Deep Research', '📁 Library'
         ].map(item => {
           const isActive = (item === 'Markets' && activeCategory === 'business' && view === 'feed' && !searchQuery) || 
@@ -1006,6 +1012,9 @@ export default function Header({
                            (item === 'Debate' && view === 'debate') ||
                            (item === 'Charts' && view === 'charts') ||
                            (item === 'Timeline' && view === 'timeline') ||
+                           (item === 'Forex' && view === 'forex') ||
+                           (item === 'Crypto' && view === 'crypto') ||
+                           (item === 'Bonds' && view === 'bonds') ||
                            (item === '🔬 Deep Research' && view === 'er-research') ||
                            (item === '📁 Library' && view === 'research-library');
           return (
@@ -1108,6 +1117,9 @@ export default function Header({
           { label: 'Debate', icon: '💬' },
           { label: 'Charts', icon: '📊' },
           { label: 'Timeline', icon: '📅' },
+          { label: 'Forex', icon: '💱' },
+          { label: 'Crypto', icon: '₿' },
+          { label: 'Bonds', icon: '📋' },
           { label: 'Watchlist', icon: '👁️' },
           { label: 'News Intelligence', icon: '📰' },
           { label: 'Deep Research', icon: '🔬' },
