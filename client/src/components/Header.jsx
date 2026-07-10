@@ -203,11 +203,17 @@ export default function Header({
   useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     };
   }, [isMenuOpen]);
 
@@ -1192,15 +1198,38 @@ export default function Header({
 
       {/* STEP 2 - Mobile Menu (Full Screen Overlay) */}
       {isMenuOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: '#060D17',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
+        <>
+          {/* Backdrop — closes menu on tap */}
+          <div
+            onClick={() => setIsMenuOpen(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 999998,
+            }}
+          />
+          {/* Full-screen menu panel */}
+          <div
+            className="mobile-menu-overlay"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              background: '#060D17',
+              zIndex: 999999,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              isolation: 'isolate'
+            }}>
           {/* Header */}
           <div style={{
             display: 'flex',
@@ -1435,7 +1464,8 @@ export default function Header({
               Instagram
             </a>
           </div>
-        </div>
+          </div>
+        </>
       )}
     </header>
   );

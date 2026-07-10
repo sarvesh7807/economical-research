@@ -901,3 +901,15 @@ body.light-mode [role="dialog"] textarea {
   border-color: rgba(10,22,40,0.2) !important;
 }
 
+/* =========================================
+   MOBILE MENU OVERLAY — always on top
+   ========================================= */
+.mobile-menu-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 999999 !important;
+  isolation: isolate !important;
+}
