@@ -1,6 +1,6 @@
 // client/src/components/ForecastingPage.jsx
 import React, { useState, useEffect } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 import { useAuth } from '../contexts/AuthContext';
 import { trackUserResearch } from '../utils/LearningTracker';
 
@@ -92,7 +92,7 @@ export default function ForecastingPage({ setView }) {
     `;
 
     try {
-      const response = await callGeminiWithRotation(prompt);
+      const response = await callGemini(prompt, 2000);
       setForecastText(response);
       
       // Attempt to parse JSON block
@@ -157,7 +157,7 @@ export default function ForecastingPage({ setView }) {
     `;
 
     try {
-      const response = await callGeminiWithRotation(prompt);
+      const response = await callGemini(prompt, 2500);
       setRecessionRaw(response);
 
       const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);

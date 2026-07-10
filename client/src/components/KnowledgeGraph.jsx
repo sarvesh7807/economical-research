@@ -1,55 +1,53 @@
 // client/src/components/KnowledgeGraph.jsx
 import React, { useState } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini, parseGeminiJSON } from '../utils/geminiCaller';
 
 export default function KnowledgeGraph() {
   const [topic, setTopic] = useState('');
   const [graphData, setGraphData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [error, setError] = useState('');
 
   const generateGraph = async () => {
     if (!topic.trim()) return;
     setLoading(true);
     setSelectedNode(null);
+    setError('');
     try {
-      const prompt = `
-      Generate a knowledge graph for: ${topic}
+      const result = await callGemini(`
+      Generate knowledge graph for: "${topic}"
       
-      Return ONLY valid JSON:
+      Return ONLY this exact JSON format:
       {
         "center": "${topic}",
         "nodes": [
           {
-            "id": "node1",
+            "id": "1",
             "label": "Related concept",
-            "type": "country/company/person/event/policy/market/indicator",
-            "description": "Brief description",
-            "connection": "How it relates to ${topic}"
+            "type": "country",
+            "description": "2 sentence description",
+            "connection": "How it connects to ${topic}"
           }
         ]
       }
       
-      Include 8-12 nodes.
-      Types must be one of: country, company, person, event, policy, market, indicator
-      No text outside JSON. No markdown wraps. Write as Economical Research AI.
-      `;
-
-      const response = await callGeminiWithRotation(prompt);
+      Include exactly 10 nodes.
+      Types must be one of:
+      country, company, person, event,
+      policy, market, indicator
+      Return ONLY JSON, nothing else.
+      `, 1500);
       
-      const cleaned = response
-        .replace(/```json/gi, '')
-        .replace(/```/g, '')
-        .trim();
-      
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      if (match) {
-        setGraphData(JSON.parse(match[0]));
+      const parsed = parseGeminiJSON(result);
+      if (parsed) {
+        setGraphData(parsed);
       } else {
-        console.error('Could not find JSON object in response:', response);
+        setError('Could not generate graph. Try again.');
       }
     } catch (e) {
       console.error('Graph generation error:', e);
+      setError('Error generating graph.');
     } finally {
       setLoading(false);
     }
@@ -228,6 +226,11 @@ export default function KnowledgeGraph() {
               <p className="text-xs font-mono text-[#F4A726] uppercase tracking-widest animate-pulse">
                 Sieving concept networks via AI...
               </p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <span className="text-3xl block mb-3">⚠️</span>
+              <p className="text-xs font-mono text-red-400 uppercase tracking-widest">{error}</p>
             </div>
           ) : graphData ? (
             renderSVGGraph()

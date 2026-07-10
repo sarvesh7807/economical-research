@@ -1,6 +1,6 @@
 // client/src/components/DebatePage.jsx
 import React, { useState, useEffect } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 
 const EXAMPLE_TOPICS = [
   "Will India overtake China by 2030?",
@@ -68,7 +68,7 @@ export default function DebatePage({ setView }) {
     `;
 
     try {
-      const response = await callGeminiWithRotation(prompt);
+      const response = await callGemini(prompt, 2000);
       setDebateText(response);
 
       const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);

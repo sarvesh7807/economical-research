@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function ESGIntelligence({ theme }) {
   const [company, setCompany] = useState('');
@@ -22,111 +23,86 @@ export default function ESGIntelligence({ theme }) {
   const generateESGReport = async () => {
     if (!company.trim()) return;
     setLoading(true);
+    setEsgReport('');
+    setScores(null);
     
-    // Rotate keys if needed
-    const key = import.meta.env.VITE_GEMINI_API_KEY || 
-                import.meta.env.VITE_GEMINI_API_KEY_2 || 
-                import.meta.env.VITE_GEMINI_API_KEY_3 || 
-                import.meta.env.VITE_GEMINI_API_KEY_4 || '';
-                
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Generate ESG Intelligence Report for: ${company}
-      
-      ## ESG Overview
-      [Brief company ESG standing]
-      
-      ## Environmental Score
-      Score: [0-100]/100
-      Key factors: [3 points]
-      Carbon footprint: [assessment]
-      Renewable energy: [% or assessment]
-      
-      ## Social Score  
-      Score: [0-100]/100
-      Employee practices: [assessment]
-      Community impact: [assessment]
-      Diversity: [assessment]
-      
-      ## Governance Score
-      Score: [0-100]/100
-      Board structure: [assessment]
-      Transparency: [assessment]
-      Ethics: [assessment]
-      
-      ## Overall ESG Rating
-      Total Score: [0-100]/100
-      Rating: [AAA/AA/A/BBB/BB/B/CCC]
-      ER ESG Grade: [Excellent/Good/Average/Poor]
-      
-      ## Key ESG Risks
-      [3 main ESG risks]
-      
-      ## ESG Improvement Areas
-      [3 areas for improvement]
-      
-      Max 400 words. Professional tone.
-      Never mention Gemini.
-      `;
-      const scorePrompt = `
-      Generate ESG scores for ${company} as JSON only:
-      {
-        "environmental": [0-100],
-        "social": [0-100],
-        "governance": [0-100],
-        "overall": [0-100],
-        "rating": "AAA/AA/A/BBB/BB/B/CCC"
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate COMPREHENSIVE ESG Intelligence 
+  Report for: ${company}
+  
+  ## ESG Executive Summary
+  [3-4 paragraphs overview]
+  
+  ## Environmental Performance (Score: X/100)
+  Carbon emissions: [detailed assessment]
+  Renewable energy: [detailed]
+  Waste management: [detailed]
+  Water usage: [detailed]
+  Climate strategy: [detailed]
+  [3-4 paragraphs]
+  
+  ## Social Performance (Score: X/100)  
+  Employee welfare: [detailed]
+  Diversity & inclusion: [detailed]
+  Community impact: [detailed]
+  Supply chain ethics: [detailed]
+  Customer satisfaction: [detailed]
+  [3-4 paragraphs]
+  
+  ## Governance Performance (Score: X/100)
+  Board structure: [detailed]
+  Executive compensation: [detailed]
+  Shareholder rights: [detailed]
+  Transparency: [detailed]
+  Anti-corruption: [detailed]
+  [3-4 paragraphs]
+  
+  ## ESG Risks & Controversies
+  [Detailed assessment of ESG risks]
+  [2-3 paragraphs]
+  
+  ## ESG Improvement Roadmap
+  [Specific recommendations]
+  [2-3 paragraphs]
+  
+  ## ER ESG Verdict
+  Overall Score: [0-100]/100
+  Rating: [AAA/AA/A/BBB/BB/B/CCC]
+  Grade: [Excellent/Good/Average/Poor]
+  
+  [2-3 paragraphs final assessment]
+  
+  Also include at the END this JSON block:
+  ===SCORES===
+  {"environmental": 75, "social": 80, 
+   "governance": 70, "overall": 75, 
+   "rating": "A"}
+  ===END===
+  
+  Write 800-1000 words minimum.
+  Never mention Gemini.
+  `, 3000);
+    
+    if (result) {
+      const scoreMatch = result.match(
+        /===SCORES===([\s\S]*?)===END===/
+      );
+      if (scoreMatch) {
+        try {
+          const scoreData = JSON.parse(scoreMatch[1].trim());
+          setScores(scoreData);
+        } catch(e) {
+          console.error('Score parse error:', e);
+        }
       }
-      Only JSON, no text.
-      `;
-      
-      const [reportRes, scoreRes] = await Promise.all([
-        fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { maxOutputTokens: 600 }
-            })
-          }
-        ),
-        fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ 
-                parts: [{ text: scorePrompt }] 
-              }],
-              generationConfig: { maxOutputTokens: 200 }
-            })
-          }
-        )
-      ]);
-      
-      const reportData = await reportRes.json();
-      const scoreData = await scoreRes.json();
-      
-      setEsgReport(reportData.candidates?.[0]?.content?.parts?.[0]?.text || '');
-      
-      const scoreText = scoreData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      try {
-        const match = scoreText.match(/\{[\s\S]*\}/);
-        if (match) setScores(JSON.parse(match[0]));
-      } catch(e) {
-        console.error('Score parsing error:', e);
-      }
-      
-    } catch(e) {
-      console.error('ESG error:', e);
-    } finally {
-      setLoading(false);
+      setEsgReport(result.replace(/===SCORES===[\s\S]*?===END===/g, '').trim());
+    } else {
+      setEsgReport('Report generation failed. Please try again.');
     }
+    setLoading(false);
   };
+
 
   const ScoreBar = ({ label, score, color }) => (
     <div style={{marginBottom: '16px'}}>

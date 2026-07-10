@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { callGemini, parseGeminiJSON } from '../utils/geminiCaller';
 
 export default function GlobalCrisisMonitor({ theme }) {
   const [crises, setCrises] = useState([]);
@@ -21,14 +22,7 @@ export default function GlobalCrisisMonitor({ theme }) {
   const loadCurrentCrises = async () => {
     setLoadingList(true);
     
-    // Rotate keys if needed
-    const key = import.meta.env.VITE_GEMINI_API_KEY || 
-                import.meta.env.VITE_GEMINI_API_KEY_2 || 
-                import.meta.env.VITE_GEMINI_API_KEY_3 || 
-                import.meta.env.VITE_GEMINI_API_KEY_4 || '';
-                
-    try {
-      const prompt = `
+    const result = await callGemini(`
       List current global economic and geopolitical crises as of 2025-2026.
       
       Return ONLY JSON:
@@ -45,27 +39,13 @@ export default function GlobalCrisisMonitor({ theme }) {
       
       Include 8-10 current crises.
       Only JSON, no text outside.
-      `;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 600 }
-          })
-        }
-      );
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const match = text.match(/\[[\s\S]*\]/);
-      if (match) setCrises(JSON.parse(match[0]));
-    } catch(e) {
-      console.error('Crisis list error:', e);
-    } finally {
-      setLoadingList(false);
+      `, 800);
+    
+    const parsed = parseGeminiJSON(result);
+    if (parsed && Array.isArray(parsed)) {
+      setCrises(parsed);
     }
+    setLoadingList(false);
   };
 
   useEffect(() => {
@@ -77,59 +57,64 @@ export default function GlobalCrisisMonitor({ theme }) {
     setAnalysis('');
     setLoading(true);
     
-    // Rotate keys if needed
-    const key = import.meta.env.VITE_GEMINI_API_KEY || 
-                import.meta.env.VITE_GEMINI_API_KEY_2 || 
-                import.meta.env.VITE_GEMINI_API_KEY_3 || 
-                import.meta.env.VITE_GEMINI_API_KEY_4 || '';
-                
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Deep analysis of global crisis: ${crisis.name}
-      
-      ## Crisis Overview
-      [Current situation, background]
-      
-      ## Economic Impact
-      [Effect on global/regional economy]
-      
-      ## Market Implications
-      [Impact on stocks, bonds, currency, commodities]
-      
-      ## Affected Countries
-      [Which countries most impacted]
-      
-      ## Resolution Outlook
-      [How and when crisis might resolve]
-      Timeline: [Short/Medium/Long term]
-      
-      ## ER Crisis Rating
-      Severity: ${crisis.severity}
-      [Investment implications]
-      
-      Max 300 words. Professional tone.
-      Never mention Gemini.
-      `;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 500 }
-          })
-        }
-      );
-      const data = await res.json();
-      setAnalysis(data.candidates?.[0]?.content?.parts?.[0]?.text || '');
-    } catch(e) {
-      console.error('Crisis analysis error:', e);
-    } finally {
-      setLoading(false);
-    }
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate COMPREHENSIVE crisis analysis for:
+  Crisis: ${crisis.name}
+  Region: ${crisis.region}
+  Type: ${crisis.type}
+  Severity: ${crisis.severity}
+  
+  ## Crisis Background & Timeline
+  [Detailed history and how crisis developed]
+  [3-4 paragraphs]
+  
+  ## Current Situation (2025-2026)
+  [Current state of the crisis]
+  [3 paragraphs]
+  
+  ## Economic Impact Analysis
+  [Detailed economic consequences]
+  [3-4 paragraphs]
+  
+  ## Market & Investment Implications
+  [Stock markets, bonds, currencies, commodities]
+  [3 paragraphs]
+  
+  ## Affected Countries & Regions
+  [Detailed analysis of who is most impacted]
+  [2-3 paragraphs]
+  
+  ## International Response
+  [What world leaders, UN, IMF are doing]
+  [2 paragraphs]
+  
+  ## Humanitarian Impact
+  [Human cost and social consequences]
+  [2 paragraphs]
+  
+  ## Resolution Scenarios
+  Best case: [detailed]
+  Most likely: [detailed]
+  Worst case: [detailed]
+  Timeline: [assessment]
+  [3-4 paragraphs]
+  
+  ## ER Crisis Assessment
+  Severity: ${crisis.severity}
+  Economic Impact Score: [0-100]
+  Resolution Probability (12mo): [0-100]%
+  [3-4 paragraph comprehensive verdict]
+  
+  Write 900-1100 words minimum.
+  Never mention Gemini.
+  `, 3500);
+    
+    if (result) setAnalysis(result);
+    else setAnalysis('Analysis failed. Please try again.');
+    setLoading(false);
   };
+
 
   const getSeverityColor = (severity) => {
     if (severity === 'Critical') return '#FF5252';

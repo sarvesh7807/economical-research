@@ -1,6 +1,6 @@
 // client/src/components/BondIntelligence.jsx
 import React, { useState } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function BondIntelligence() {
   const [country, setCountry] = useState('India');
@@ -14,41 +14,69 @@ export default function BondIntelligence() {
 
   const generateBondReport = async () => {
     setLoading(true);
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Generate bond market intelligence for: ${country} in 2025-2026.
-      
-      ## Government Bond Overview
-      [10-year yield estimate, credit rating]
-      
-      ## Bond Market Status
-      [Market size, liquidity, key metrics]
-      
-      ## Yield Curve Analysis
-      [Short/medium/long term yields, shape]
-      
-      ## Interest Rate Outlook
-      [Central bank policy direction]
-      
-      ## Investment Considerations
-      [For foreign and domestic investors]
-      
-      ## ER Bond Rating
-      Rating: [Strong Buy/Buy/Hold/Avoid]
-      Risk: [Low/Medium/High]
-      
-      Max 300 words. Professional tone. Write as Economical Research AI.
-      Never mention Gemini.
-      `;
-      const response = await callGeminiWithRotation(prompt);
-      setBondReport(response);
-    } catch(e) {
-      console.error('Bond report error:', e);
-    } finally {
-      setLoading(false);
-    }
+    setBondReport('');
+    
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate COMPREHENSIVE bond market 
+  intelligence for: ${country}
+  
+  ## Bond Market Overview
+  [Detailed overview of bond market size,
+   structure and importance]
+  [3-4 paragraphs]
+  
+  ## Government Bonds Analysis
+  Current 10-year yield: [estimate]
+  Credit rating: [rating + explanation]
+  Historical yield trend: [analysis]
+  [3-4 paragraphs]
+  
+  ## Yield Curve Analysis
+  [Detailed shape and implications]
+  [2-3 paragraphs]
+  
+  ## Central Bank Policy Impact
+  [How monetary policy affects bonds]
+  [3 paragraphs]
+  
+  ## Inflation & Bond Relationship
+  [Real yields and inflation expectations]
+  [2-3 paragraphs]
+  
+  ## Foreign Investment in Bonds
+  [FPI flows, currency risk for foreign investors]
+  [2 paragraphs]
+  
+  ## Corporate Bond Market
+  [Overview of corporate bond landscape]
+  [2-3 paragraphs]
+  
+  ## Risk Factors
+  Interest rate risk: [detailed]
+  Credit risk: [detailed]
+  Currency risk: [detailed]
+  [3 paragraphs]
+  
+  ## ER Bond Intelligence Verdict
+  Government Bond Rating: [AAA to CCC]
+  Investment Grade: [Yes/No]
+  Yield Attractiveness: [High/Medium/Low]
+  [3-4 paragraph comprehensive verdict]
+  
+  ## 12-Month Yield Outlook
+  [Detailed interest rate forecast]
+  [2-3 paragraphs]
+  
+  Write 800-1000 words minimum.
+  Never mention Gemini.
+  `, 3000);
+    
+    if (result) setBondReport(result);
+    else setBondReport('Report failed. Try again.');
+    setLoading(false);
   };
+
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)]">

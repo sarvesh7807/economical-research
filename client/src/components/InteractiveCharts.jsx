@@ -6,7 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 
 const CHART_COLORS = [
   '#F4A726', // Gold
@@ -74,7 +74,7 @@ export default function InteractiveCharts() {
       No explanation or text outside of the JSON array.
       `;
 
-      const response = await callGeminiWithRotation(prompt);
+      const response = await callGemini(prompt, 2000);
       
       // Extract array from markdown codeblock if present
       const cleaned = response

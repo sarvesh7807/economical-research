@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { runOrchestrator } from '../ai/agents/Orchestrator';
+import { callGemini } from '../utils/geminiCaller';
 import researchMemory from '../research/ResearchMemory';
 import libraryManager from '../research/LibraryManager';
 import ThinkingProcessPanel from './research/ThinkingProcessPanel';
@@ -315,11 +316,6 @@ export default function ERResearchPage() {
     }
   };
 
-  // callGeminiAgent Wrapper (FEATURE 2)
-  const callGeminiAgent = async (prompt, taskType) => {
-    return await AIRouter.route(prompt, taskType);
-  };
-
   // Follow-up handler with report context (FEATURE 2)
   const handleFollowUp = async (question) => {
     if (!question.trim()) return;
@@ -338,15 +334,9 @@ export default function ERResearchPage() {
     Never mention Gemini or any AI provider.
     `;
 
-    try {
-      const answer = await callGeminiAgent(contextPrompt, 'followup');
-      setFollowUpAnswer(answer);
-    } catch (err) {
-      console.error('Follow-up call failed:', err);
-      setFollowUpAnswer('Sorry, I encountered an issue retrieving the response.');
-    } finally {
-      setFollowUpLoading(false);
-    }
+    const answer = await callGemini(contextPrompt, 1000);
+    setFollowUpAnswer(answer || 'Sorry, I encountered an issue retrieving the response.');
+    setFollowUpLoading(false);
   };
 
   return (

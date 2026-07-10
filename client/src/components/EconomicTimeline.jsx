@@ -1,6 +1,6 @@
 // client/src/components/EconomicTimeline.jsx
 import React, { useState } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function EconomicTimeline() {
   const [topic, setTopic] = useState('');
@@ -33,7 +33,7 @@ export default function EconomicTimeline() {
       No explanation or text outside of the JSON array.
       `;
 
-      const response = await callGeminiWithRotation(prompt);
+      const response = await callGemini(prompt, 2000);
       
       const cleaned = response
         .replace(/```json/gi, '')

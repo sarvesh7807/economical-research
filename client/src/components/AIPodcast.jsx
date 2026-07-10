@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function AIPodcast() {
   const [topic, setTopic] = useState('');
@@ -46,7 +46,7 @@ export default function AIPodcast() {
       Never mention Gemini or Google AI.
       `;
 
-      const result = await callGeminiWithRotation(prompt);
+      const result = await callGemini(prompt, 2000);
       setScript(result);
     } catch (e) {
       console.error('Podcast error:', e);

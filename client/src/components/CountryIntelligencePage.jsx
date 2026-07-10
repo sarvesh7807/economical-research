@@ -1,6 +1,6 @@
 // client/src/components/CountryIntelligencePage.jsx
 import React, { useState, useEffect } from 'react';
-import AIRouter from '../ai/AIRouter';
+import { callGemini } from '../utils/geminiCaller';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 
@@ -19,45 +19,104 @@ export default function CountryIntelligencePage({ setView, defaultCountry }) {
   const [loading, setLoading] = useState(false);
   const [isWatched, setIsWatched] = useState(false);
   const [watchlistLoading, setWatchlistLoading] = useState(false);
+  const [customCountry, setCustomCountry] = useState('');
 
   // Compile Live AI Country Report
   const generateCountryReport = async (country) => {
+    const countryName = typeof country === 'string' ? country : country?.name;
+    if (!countryName?.trim()) return;
     setLoading(true);
     setReportText('');
-    try {
-      const prompt = `You are a Senior Sovereignty Risk Analyst. Compile a comprehensive, mock-free Country Intelligence Report for "${country.name}".
-      Provide detailed sections covering:
-      1. Economy Overview & GDP Trends
-      2. Political Risk & Regulatory Framework
-      3. Inflation Curve & Labor Markets
-      4. Demographics & Currency Outlook
-      5. Trade Alliances & Foreign Investment Climate
-      6. 12-Month Macroeconomic Future Outlook
-      Include real historical context and verified data sources. Avoid placeholders. Do not mention Gemini or AI.`;
+    
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate a COMPREHENSIVE and DETAILED 
+  country intelligence report for: ${countryName}
+  
+  Write a LONG, DETAILED report covering:
+  
+  ## Executive Summary
+  [3-4 paragraphs overview]
+  
+  ## Economic Overview
+  GDP: [estimate with year]
+  GDP Growth Rate: [%]
+  GDP Per Capita: [estimate]
+  Inflation Rate: [%]
+  Unemployment: [%]
+  Currency: [name and recent performance]
+  
+  [3-4 paragraphs of economic analysis]
+  
+  ## Political Landscape
+  Government type: [type]
+  Current leadership: [leader, party]
+  Political stability: [assessment]
+  [2-3 paragraphs]
+  
+  ## Trade & Investment
+  Major exports: [list top 5]
+  Major imports: [list top 5]
+  Top trading partners: [list top 5]
+  FDI inflows: [estimate]
+  [2-3 paragraphs]
+  
+  ## Key Industries & Sectors
+  [Top 5 industries with detailed analysis]
+  [3-4 paragraphs]
+  
+  ## Demographics & Social
+  Population: [number]
+  Median age: [age]
+  Urbanization: [%]
+  Literacy rate: [%]
+  [2 paragraphs]
+  
+  ## Infrastructure & Technology
+  [Assessment of key infrastructure]
+  [2 paragraphs]
+  
+  ## Investment Climate
+  Ease of doing business: [rank/assessment]
+  Key investment opportunities: [list]
+  Key risks: [list]
+  [2-3 paragraphs]
+  
+  ## ER Country Rating
+  Economic Score: [0-100]/100
+  Political Risk: [Low/Medium/High]
+  Investment Rating: [AAA to CCC]
+  Overall Assessment: [2-3 paragraphs]
+  
+  ## 12-Month Outlook
+  [Detailed 3-4 paragraph forecast]
+  
+  Write at least 800-1000 words.
+  Be specific with data and analysis.
+  Professional tone like The Economist.
+  Never mention Gemini or AI provider.
+  `, 3000);
 
-      const response = await AIRouter.route(prompt, 'research');
-      setReportText(response);
-
-      // Auto-save to Research Memory (FEATURE 4)
+    if (result) {
+      setReportText(result);
+      // Auto-save to Research Memory
       try {
         await addDoc(collection(db, 'er_research_reports'), {
           userId: 'guest',
-          query: `${country.name} Country Report`,
-          title: `${country.name} Sovereignty Briefing`,
-          report: response,
+          query: `${countryName} Country Report`,
+          title: `${countryName} Sovereignty Briefing`,
+          report: result,
           createdAt: new Date().toISOString(),
           isFavorite: false,
-          tags: ['country', country.code.toLowerCase(), 'sovereign']
+          tags: ['country', 'sovereign']
         });
       } catch (fsErr) {
         console.error('Failed to auto-save to research library:', fsErr);
       }
-    } catch (err) {
-      console.error(err);
+    } else {
       setReportText('Sovereignty data retrieval failed. Live data temporarily unavailable.');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -126,6 +185,48 @@ export default function CountryIntelligencePage({ setView, defaultCountry }) {
           <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
             Consolidated macroeconomic indicators, regulatory policies, trade portfolios, and political risk evaluations.
           </p>
+        </div>
+      </div>
+
+      {/* Custom Country Search */}
+      <div style={{marginBottom: '24px'}}>
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          marginBottom: '16px',
+          flexWrap: 'wrap'
+        }}>
+          <input
+            value={customCountry}
+            onChange={e => setCustomCountry(e.target.value)}
+            onKeyPress={e => e.key === 'Enter' && generateCountryReport(customCountry)}
+            placeholder="Search any country or state... e.g. Maharashtra, California, Scotland"
+            style={{
+              flex: 1,
+              minWidth: '250px',
+              padding: '12px 16px',
+              background: 'rgba(26,58,92,0.8)',
+              border: '1px solid rgba(244,167,38,0.2)',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            onClick={() => generateCountryReport(customCountry)}
+            disabled={loading || !customCountry.trim()}
+            style={{
+              padding: '12px 24px',
+              background: '#F4A726',
+              color: '#0A1628',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '700',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: !customCountry.trim() ? 0.6 : 1
+            }}>
+            🔍 Research
+          </button>
         </div>
       </div>
 

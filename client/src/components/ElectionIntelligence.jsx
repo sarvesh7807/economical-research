@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function ElectionIntelligence({ theme }) {
   const [country, setCountry] = useState('');
@@ -33,61 +34,64 @@ export default function ElectionIntelligence({ theme }) {
     setLoading(true);
     setReport('');
     
-    // Rotate keys if needed
-    const key = import.meta.env.VITE_GEMINI_API_KEY || 
-                import.meta.env.VITE_GEMINI_API_KEY_2 || 
-                import.meta.env.VITE_GEMINI_API_KEY_3 || 
-                import.meta.env.VITE_GEMINI_API_KEY_4 || '';
-                
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Generate election intelligence report for: ${target}
-      
-      ## Political Overview
-      [Current government, political landscape]
-      
-      ## Upcoming Elections
-      [Next major election, date, type]
-      
-      ## Key Political Parties
-      [Major parties and their economic policies]
-      
-      ## Economic Policy Comparison
-      [How different parties approach economy]
-      
-      ## Market Impact Analysis
-      [How election outcomes could affect markets]
-      
-      ## Political Risk Assessment
-      Risk Level: [Low/Medium/High/Very High]
-      [Key political risks for investors]
-      
-      ## ER Political Outlook
-      [6-12 month political stability forecast]
-      
-      Max 350 words. Professional tone.
-      Never mention Gemini.
-      `;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 600 }
-          })
-        }
-      );
-      const data = await res.json();
-      setReport(data.candidates?.[0]?.content?.parts?.[0]?.text || '');
-    } catch(e) {
-      console.error('Election error:', e);
-    } finally {
-      setLoading(false);
-    }
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate COMPREHENSIVE election intelligence 
+  report for: ${target}
+  
+  ## Political System Overview
+  [Detailed description of political system]
+  [3-4 paragraphs]
+  
+  ## Current Government
+  [Current leadership, policies, performance]
+  [3 paragraphs]
+  
+  ## Major Political Parties
+  [Detailed analysis of top 4-5 parties]
+  [4-5 paragraphs]
+  
+  ## Upcoming Elections
+  Date: [when]
+  Type: [what kind]
+  Key issues: [list of main issues]
+  [3 paragraphs]
+  
+  ## Economic Policy Comparison
+  [How different parties approach economy]
+  [3-4 paragraphs]
+  
+  ## Election Outlook & Polling
+  [Current polling trends and analysis]
+  [3 paragraphs]
+  
+  ## Market & Investment Impact
+  [How different outcomes affect markets]
+  [3-4 paragraphs]
+  
+  ## Political Risk Assessment
+  Risk Level: [Low/Medium/High/Critical]
+  Key risk factors: [detailed list]
+  [2-3 paragraphs]
+  
+  ## Historical Context
+  [Recent election history and patterns]
+  [2-3 paragraphs]
+  
+  ## ER Political Intelligence Verdict
+  Stability Score: [0-100]/100
+  Investment Climate: [assessment]
+  [3-4 paragraph comprehensive conclusion]
+  
+  Write 900-1100 words minimum.
+  Never mention Gemini.
+  `, 3500);
+    
+    if (result) setReport(result);
+    else setReport('Report failed. Please try again.');
+    setLoading(false);
   };
+
 
   return (
     <div style={{

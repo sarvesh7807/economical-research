@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { callGemini } from '../utils/geminiCaller';
 
 const COMPARISON_PRESETS = [
   { label: 'India vs China (Sovereign)', type: 'country', a: 'India', b: 'China' },
@@ -81,22 +82,7 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
       `;
       
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 1000 }
-          })
-        }
-      );
-      
-      if (!res.ok) throw new Error('API failed');
-      
-      const data = await res.json();
-      const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const result = await callGemini(prompt, 1500);
       
       setComparisonResult(result);
       
@@ -146,22 +132,8 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
     `;
     
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 400 }
-          })
-        }
-      );
-      const data = await res.json();
-      setArbitrageCommentary(
-        data.candidates?.[0]?.content?.parts?.[0]?.text
-      );
+      const commentary = await callGemini(prompt, 500);
+      setArbitrageCommentary(commentary);
     } catch (err) {
       console.error('Arbitrage commentary error:', err);
     }

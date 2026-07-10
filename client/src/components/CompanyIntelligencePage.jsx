@@ -1,7 +1,7 @@
 // client/src/components/CompanyIntelligencePage.jsx
 import React, { useState, useEffect } from 'react';
 import DataRouter from '../providers/DataRouter';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 import { db } from '../lib/firebase';
 import { collection, addDoc, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -98,7 +98,7 @@ export default function CompanyIntelligencePage({ setView, defaultCompany }) {
       Write as Economical Research AI.
       `;
 
-      const response = await callGeminiWithRotation(prompt);
+      const response = await callGemini(prompt, 2000);
       setAiReport(response);
 
       // Auto-save to er_research_reports

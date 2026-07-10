@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function StartupIntelligence({ theme }) {
   const [startup, setStartup] = useState('');
@@ -27,74 +28,90 @@ export default function StartupIntelligence({ theme }) {
 
   const generateStartupReport = async (name) => {
     const target = name || startup;
-    if (!target.trim()) return;
+    if (!target?.trim()) return;
     setLoading(true);
     setReport('');
     
-    // Rotate keys if needed
-    const key = import.meta.env.VITE_GEMINI_API_KEY || 
-                import.meta.env.VITE_GEMINI_API_KEY_2 || 
-                import.meta.env.VITE_GEMINI_API_KEY_3 || 
-                import.meta.env.VITE_GEMINI_API_KEY_4 || '';
-                
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Generate startup intelligence report for: ${target}
-      
-      ## Startup Overview
-      Founded: [year] | HQ: [location]
-      Sector: [industry]
-      Stage: [Series A/B/C/Unicorn/Public]
-      
-      ## Business Model
-      [How they make money, key revenue streams]
-      
-      ## Funding History
-      Total Raised: [estimate]
-      Key investors: [major backers]
-      Last valuation: [if known]
-      
-      ## Growth Metrics
-      [Users, revenue growth, market share]
-      
-      ## Competitive Landscape
-      [Top 3 competitors with comparison]
-      
-      ## SWOT Analysis
-      Strengths: [2-3 points]
-      Weaknesses: [2-3 points]
-      Opportunities: [2-3 points]
-      Threats: [2-3 points]
-      
-      ## ER Startup Rating
-      Viability: [Strong/Good/Moderate/Weak]
-      Growth Potential: [High/Medium/Low]
-      Risk Level: [Low/Medium/High]
-      
-      Max 400 words. Professional tone.
-      Never mention Gemini.
-      `;
-      
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 700 }
-          })
-        }
-      );
-      const data = await res.json();
-      setReport(data.candidates?.[0]?.content?.parts?.[0]?.text || '');
-    } catch(e) {
-      console.error('Startup error:', e);
-    } finally {
-      setLoading(false);
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate COMPREHENSIVE startup intelligence 
+  report for: ${target}
+  
+  ## Company Overview
+  Founded: [year] | HQ: [location]
+  Founders: [names]
+  CEO: [name]
+  Sector: [industry]
+  Stage: [funding stage]
+  
+  [3-4 paragraphs detailed overview]
+  
+  ## Business Model & Revenue
+  [Detailed analysis of how they make money]
+  [3 paragraphs]
+  
+  ## Funding History & Investors
+  Total raised: [estimate]
+  Key funding rounds: [list with amounts]
+  Major investors: [list with details]
+  Last valuation: [estimate]
+  [2-3 paragraphs]
+  
+  ## Product & Technology
+  [Detailed product analysis]
+  [2-3 paragraphs]
+  
+  ## Market Opportunity
+  Total addressable market: [estimate]
+  Market position: [assessment]
+  [2-3 paragraphs]
+  
+  ## Growth Metrics & Performance
+  [Revenue, users, growth rate estimates]
+  [2-3 paragraphs]
+  
+  ## Competitive Analysis
+  [Detailed competitor comparison]
+  Top 5 competitors with analysis
+  [3 paragraphs]
+  
+  ## SWOT Analysis
+  Strengths: [5 detailed points]
+  Weaknesses: [5 detailed points]
+  Opportunities: [5 detailed points]
+  Threats: [5 detailed points]
+  
+  ## Management Team
+  [Key executives and their backgrounds]
+  [2 paragraphs]
+  
+  ## Risks & Challenges
+  [Detailed risk assessment]
+  [2-3 paragraphs]
+  
+  ## ER Startup Rating
+  Viability Score: [0-100]/100
+  Growth Potential: [High/Medium/Low]
+  Investment Appeal: [Strong/Moderate/Weak]
+  
+  [3-4 paragraph final verdict]
+  
+  ## 12-Month Outlook
+  [Detailed forecast]
+  [2-3 paragraphs]
+  
+  Write 900-1200 words minimum.
+  Never mention Gemini.
+  `, 3500);
+    
+    if (result) {
+      setReport(result);
+    } else {
+      setReport('Report failed. Please try again.');
     }
+    setLoading(false);
   };
+
 
   return (
     <div style={{

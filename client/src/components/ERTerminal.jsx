@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { callGeminiWithRotation } from '../utils/GeminiRotator';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function ERTerminal() {
   const [query, setQuery] = useState('');
@@ -91,7 +91,7 @@ export default function ERTerminal() {
         return;
       }
 
-      const result = await callGeminiWithRotation(prompt);
+      const result = await callGemini(prompt, 2000);
       addOutput('result', result);
     } catch (e) {
       addOutput('error', 'Command failed. Try again.');

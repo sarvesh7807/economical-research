@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { callGemini } from '../utils/geminiCaller';
 
 export default function SupplyChainIntelligence({ theme }) {
   const [industry, setIndustry] = useState('');
@@ -35,62 +36,63 @@ export default function SupplyChainIntelligence({ theme }) {
     setLoading(true);
     setReport('');
     
-    // Rotate keys if needed
-    const key = import.meta.env.VITE_GEMINI_API_KEY || 
-                import.meta.env.VITE_GEMINI_API_KEY_2 || 
-                import.meta.env.VITE_GEMINI_API_KEY_3 || 
-                import.meta.env.VITE_GEMINI_API_KEY_4 || '';
-                
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Generate supply chain intelligence report for: ${target} industry
-      
-      ## Supply Chain Overview
-      [Key players, flow, dependencies]
-      
-      ## Critical Vulnerabilities
-      [3-4 main supply chain risks]
-      
-      ## Geographic Concentration
-      [Where production is concentrated, risks]
-      
-      ## Current Disruptions (2025-2026)
-      [Active supply chain issues]
-      
-      ## Resilience Assessment
-      Score: [0-100]/100
-      [How resilient is this supply chain]
-      
-      ## AI Supply Chain Outlook
-      6-month outlook: [assessment]
-      Key risks to monitor: [2-3 factors]
-      
-      ## ER Recommendation
-      [What companies/investors should know]
-      
-      Max 350 words. Professional tone.
-      Never mention Gemini.
-      `;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 600 }
-          })
-        }
-      );
-      const data = await res.json();
-      setReport(data.candidates?.[0]?.content?.parts?.[0]?.text || '');
-    } catch(e) {
-      console.error('Supply chain error:', e);
-    } finally {
-      setLoading(false);
-    }
+    const result = await callGemini(`
+  You are Economical Research AI.
+  Generate COMPREHENSIVE supply chain 
+  intelligence for: ${target} industry
+  
+  ## Supply Chain Overview
+  [Detailed global supply chain structure]
+  [3-4 paragraphs]
+  
+  ## Key Players & Stakeholders
+  [Major companies in this supply chain]
+  [3 paragraphs]
+  
+  ## Geographic Analysis
+  Production hubs: [detailed]
+  Concentration risks: [detailed]
+  [3 paragraphs]
+  
+  ## Current Disruptions (2025-2026)
+  [Active supply chain issues and causes]
+  [3-4 paragraphs]
+  
+  ## Vulnerability Assessment
+  Critical vulnerabilities: [detailed list]
+  Single points of failure: [detailed]
+  [3 paragraphs]
+  
+  ## Technology & Innovation Impact
+  [How tech is changing this supply chain]
+  [2-3 paragraphs]
+  
+  ## Sustainability & ESG Factors
+  [Environmental and social supply chain issues]
+  [2 paragraphs]
+  
+  ## Risk Mitigation Strategies
+  [Detailed recommendations for companies]
+  [3 paragraphs]
+  
+  ## ER Supply Chain Resilience Score
+  Resilience Score: [0-100]/100
+  Risk Level: [Low/Medium/High/Critical]
+  [3-4 paragraph comprehensive verdict]
+  
+  ## 12-Month Outlook
+  [Detailed supply chain forecast]
+  [3 paragraphs]
+  
+  Write 900-1100 words minimum.
+  Never mention Gemini.
+  `, 3500);
+    
+    if (result) setReport(result);
+    else setReport('Report failed. Please try again.');
+    setLoading(false);
   };
+
 
   return (
     <div style={{

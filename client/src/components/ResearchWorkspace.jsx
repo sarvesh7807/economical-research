@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import { formatAPA } from '../utils/CitationsFormatter.js';
+import { callGemini } from '../utils/geminiCaller';
 import ReportViewer from './research/ReportViewer';
 import ChartRenderer from './research/ChartRenderer';
 import ConfidenceDashboard from './research/ConfidenceDashboard';
@@ -412,22 +413,8 @@ ${citations.map((c, i) => `[${i+1}] ${c.text}`).join('\n')}
     `;
     
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 400 }
-          })
-        }
-      );
-      const data = await res.json();
-      setKeyFindings(
-        data.candidates?.[0]?.content?.parts?.[0]?.text
-      );
+      const text = await callGemini(prompt, 600);
+      setKeyFindings(text || '❌ Failed to generate key findings. Please try again.');
     } catch (err) {
       console.error('Key findings generation failed:', err);
       setKeyFindings('❌ Failed to generate key findings. Please try again.');
