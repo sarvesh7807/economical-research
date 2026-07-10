@@ -10,48 +10,52 @@ export default function KnowledgeGraph() {
   const [error, setError] = useState('');
 
   const generateGraph = async () => {
-    if (!topic.trim()) return;
-    setLoading(true);
-    setSelectedNode(null);
-    setError('');
-    try {
-      const result = await callGemini(`
-      Generate knowledge graph for: "${topic}"
-      
-      Return ONLY this exact JSON format:
-      {
-        "center": "${topic}",
-        "nodes": [
-          {
-            "id": "1",
-            "label": "Related concept",
-            "type": "country",
-            "description": "2 sentence description",
-            "connection": "How it connects to ${topic}"
-          }
-        ]
-      }
-      
-      Include exactly 10 nodes.
-      Types must be one of:
-      country, company, person, event,
-      policy, market, indicator
-      Return ONLY JSON, nothing else.
-      `, 1500);
-      
-      const parsed = parseGeminiJSON(result);
-      if (parsed) {
-        setGraphData(parsed);
-      } else {
-        setError('Could not generate graph. Try again.');
-      }
-    } catch (e) {
-      console.error('Graph generation error:', e);
-      setError('Error generating graph.');
-    } finally {
-      setLoading(false);
+    if (!topic.trim()) return
+    setLoading(true)
+    setGraphData(null)
+    setSelectedNode(null)
+    setError('')
+
+    const result = await callGemini(
+      `Generate a knowledge graph for the topic: "${topic}"
+    
+    Return ONLY this JSON, no other text:
+    {
+      "center": "${topic}",
+      "nodes": [
+        {"id": "1", "label": "Example Node", 
+         "type": "company", 
+         "description": "Description here",
+         "connection": "How it relates"},
+        {"id": "2", "label": "Node 2",
+         "type": "country",
+         "description": "Description",
+         "connection": "Relation"}
+      ]
     }
-  };
+    
+    Create 10 relevant nodes.
+    Each node type must be exactly one of:
+    country, company, person, event, 
+    policy, market, indicator
+    
+    Return ONLY valid JSON starting with {`,
+      1000
+    )
+
+    if (result) {
+      const parsed = parseGeminiJSON(result)
+      if (parsed && parsed.nodes) {
+        setGraphData(parsed)
+      } else {
+        setError('Could not parse graph. Try again - click Generate Graph')
+      }
+    } else {
+      setError('Please wait 30 seconds and try again')
+    }
+    setLoading(false)
+  }
+
 
   const getNodeColor = (type) => {
     const colors = {
