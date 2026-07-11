@@ -1,6 +1,3 @@
-// client/src/utils/geminiCaller.js
-// Shared Gemini caller with key rotation + retry logic
-
 const GEMINI_KEYS = [
   import.meta.env.VITE_GEMINI_API_KEY,
   import.meta.env.VITE_GEMINI_API_KEY_2,
@@ -8,71 +5,74 @@ const GEMINI_KEYS = [
   import.meta.env.VITE_GEMINI_API_KEY_4
 ].filter(Boolean)
 
-console.log('Gemini keys available:', GEMINI_KEYS.length)
+console.log('Gemini keys available:', 
+  GEMINI_KEYS.length)
 
 let keyIndex = 0
 
-export const callGemini = async (prompt, maxTokens = 2000) => {
-
+export const callGemini = async (
+  prompt, maxTokens = 2000) => {
+  
   if (GEMINI_KEYS.length === 0) {
     console.error('No Gemini API keys found!')
     return null
   }
-
+  
   const totalKeys = GEMINI_KEYS.length
-
+  
   for (let i = 0; i < totalKeys; i++) {
-    const key = GEMINI_KEYS[(keyIndex + i) % totalKeys]
-
+    const key = GEMINI_KEYS[
+      (keyIndex + i) % totalKeys]
+    
     try {
       console.log(`Trying Gemini key ${i + 1}...`)
-
+      
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+          headers: { 
+            'Content-Type': 'application/json' 
           },
           body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
+            contents: [{ 
+              parts: [{ text: prompt }] 
             }],
-            generationConfig: {
+            generationConfig: { 
               maxOutputTokens: maxTokens,
               temperature: 0.7
             }
           })
         }
       )
-
+      
       if (res.status === 429) {
         console.log('Key rate limited, trying next...')
         await new Promise(r => setTimeout(r, 3000))
         continue
       }
-
+      
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.error('Gemini error:', err?.error?.message || res.status)
+        const err = await res.json()
+        console.error('Gemini error:', err)
         continue
       }
-
+      
       const data = await res.json()
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-
+      const text = data.candidates?.[0]
+        ?.content?.parts?.[0]?.text
+      
       if (text) {
         keyIndex = (keyIndex + i + 1) % totalKeys
         return text
       }
-
-    } catch (e) {
+      
+    } catch(e) {
       console.error('Fetch failed:', e.message)
       continue
     }
   }
-
-  console.error('All Gemini keys exhausted or failed.')
+  
   return null
 }
 
@@ -88,7 +88,7 @@ export const parseGeminiJSON = (text) => {
     const obj = cleaned.match(/\{[\s\S]*\}/)
     if (obj) return JSON.parse(obj[0])
     return null
-  } catch (e) {
+  } catch(e) {
     return null
   }
 }

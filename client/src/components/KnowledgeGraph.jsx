@@ -14,44 +14,44 @@ export default function KnowledgeGraph() {
     setLoading(true)
     setGraphData(null)
     setSelectedNode(null)
-    setError('')
-
+    
     const result = await callGemini(
-      `Generate a knowledge graph for the topic: "${topic}"
-    
-    Return ONLY this JSON, no other text:
-    {
-      "center": "${topic}",
-      "nodes": [
-        {"id": "1", "label": "Example Node", 
-         "type": "company", 
-         "description": "Description here",
-         "connection": "How it relates"},
-        {"id": "2", "label": "Node 2",
-         "type": "country",
-         "description": "Description",
-         "connection": "Relation"}
-      ]
-    }
-    
-    Create 10 relevant nodes.
-    Each node type must be exactly one of:
-    country, company, person, event, 
-    policy, market, indicator
-    
-    Return ONLY valid JSON starting with {`,
+      `Generate a knowledge graph for the 
+      topic: "${topic}"
+      
+      Return ONLY this JSON, no other text:
+      {
+        "center": "${topic}",
+        "nodes": [
+          {"id": "1", "label": "Example Node", 
+           "type": "company", 
+           "description": "Description here",
+           "connection": "How it relates"},
+          {"id": "2", "label": "Node 2",
+           "type": "country",
+           "description": "Description",
+           "connection": "Relation"}
+        ]
+      }
+      
+      Create 10 relevant nodes.
+      Each node type must be exactly one of:
+      country, company, person, event, 
+      policy, market, indicator
+      
+      Return ONLY valid JSON starting with {`,
       1000
     )
-
+    
     if (result) {
       const parsed = parseGeminiJSON(result)
       if (parsed && parsed.nodes) {
         setGraphData(parsed)
       } else {
-        setError('Could not parse graph. Try again - click Generate Graph')
+        alert('Try again - click Generate Graph')
       }
     } else {
-      setError('Please wait 30 seconds and try again')
+      alert('Please wait 30 seconds and try again')
     }
     setLoading(false)
   }
