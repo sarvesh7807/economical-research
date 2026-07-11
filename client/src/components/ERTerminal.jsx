@@ -45,56 +45,68 @@ export default function ERTerminal() {
       let prompt = '';
       
       if (command === 'GDP') {
-        prompt = `GDP analysis for ${args}. 
-          Include current value, trend, forecast.
-          Format: terminal style, concise.
-          Max 150 words. Never mention Gemini or Google AI.`;
+        prompt = `GDP analysis for ${args || 'India'}.
+        Current GDP, growth rate 2024-2026, 
+        trend analysis, 3 key drivers.
+        Terminal format, concise, max 150 words.
+        Never mention Gemini.`;
       } else if (command === 'INFLATION') {
-        prompt = `Inflation analysis for ${args}.
-          Current rate, trend, central bank response.
-          Terminal style, max 150 words. Never mention Gemini or Google AI.`;
-      } else if (command === 'FOREX') {
-        prompt = `Forex analysis for ${args}.
-          Recent performance, major drivers, outlook.
-          Terminal style, max 150 words. Never mention Gemini or Google AI.`;
-      } else if (command === 'CRYPTO') {
-        prompt = `Crypto analysis for ${args}.
-          Spot trend, key catalysts, technical level.
-          Terminal style, max 150 words. Never mention Gemini or Google AI.`;
+        prompt = `Inflation analysis for ${args || 'India'}.
+        Current CPI, trend, central bank response,
+        impact on markets.
+        Terminal format, max 150 words.
+        Never mention Gemini.`;
       } else if (command === 'RESEARCH') {
-        prompt = `Brief intelligence report on: ${args}
-          Key facts, current situation, outlook.
-          Terminal style, max 200 words.
-          Never mention Gemini or Google AI.`;
+        prompt = `Intelligence brief on: ${args}
+        Overview, current status, key facts, 
+        market implications, outlook.
+        Terminal style, max 200 words.
+        Never mention Gemini.`;
       } else if (command === 'COMPANY') {
         prompt = `Company brief for: ${args}
-          Overview, financials, rating.
-          Terminal style, max 150 words.
-          Never mention Gemini or Google AI.`;
-      } else if (command === 'FORECAST') {
-        prompt = `Economic forecast: ${args}
-          3, 6, 12 month outlook.
-          Bull/Base/Bear scenarios.
-          Terminal style, max 150 words. Never mention Gemini or Google AI.`;
-      } else if (command === 'COMPARE') {
-        prompt = `Compare: ${args}
-          Key differences, winner by category.
-          Terminal style, max 150 words. Never mention Gemini or Google AI.`;
+        Overview, revenue estimate, strengths,
+        risks, ER rating.
+        Terminal style, max 150 words.
+        Never mention Gemini.`;
+      } else if (command === 'FOREX') {
+        prompt = `Forex analysis: ${args || 'USD/INR'}
+        Current rate, trend, outlook.
+        Terminal format, max 100 words.
+        Never mention Gemini.`;
+      } else if (command === 'CRYPTO') {
+        prompt = `Crypto analysis: ${args || 'Bitcoin'}
+        Price context, trend, key factors, 
+        risk assessment.
+        Terminal format, max 120 words.
+        Never mention Gemini.`;
       } else if (command === 'NEWS') {
-        prompt = `Latest news summary on: ${args}
-          Top 5 developments.
-          Terminal style, max 150 words.
-          Never mention Gemini or Google AI.`;
+        prompt = `Latest intelligence on: ${args}
+        Top 5 developments as bullet points.
+        Terminal format, max 150 words.
+        Never mention Gemini.`;
+      } else if (command === 'FORECAST') {
+        prompt = `Economic forecast: ${args || 'India GDP'}
+        3M, 6M, 12M outlook.
+        Bull, Base, Bear scenarios.
+        Max 150 words.
+        Never mention Gemini.`;
+      } else if (command === 'COMPARE') {
+        prompt = `Compare: ${args || 'India vs China'}
+        Key metrics table format.
+        Winner by category.
+        Max 200 words.
+        Never mention Gemini.`;
       } else {
         addOutput('error', `Unknown command: ${command}. Type HELP.`);
         setLoading(false);
         return;
       }
 
-      const result = await callGemini(prompt, 2000);
-      addOutput('result', result);
+      const result = await callGemini(prompt, 400);
+      if (result) addOutput('result', result);
+      else addOutput('error', 'Command failed. Retry.');
     } catch (e) {
-      addOutput('error', 'Command failed. Try again.');
+      addOutput('error', 'Command failed. Retry.');
     } finally {
       setLoading(false);
     }

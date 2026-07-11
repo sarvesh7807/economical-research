@@ -1,319 +1,341 @@
-// client/src/components/KnowledgeGraph.jsx
-import React, { useState } from 'react';
-import { callGemini, parseGeminiJSON } from '../utils/geminiCaller';
+import { useState } from 'react'
+import { callGemini, parseGeminiJSON } 
+  from '../utils/geminiCaller'
 
 export default function KnowledgeGraph() {
-  const [topic, setTopic] = useState('');
-  const [graphData, setGraphData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [error, setError] = useState('');
+  const [topic, setTopic] = useState('')
+  const [graphData, setGraphData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [selectedNode, setSelectedNode] = useState(null)
+  const [error, setError] = useState('')
+
+  const getNodeColor = (type) => {
+    const colors = {
+      country: '#F4A726',
+      company: '#00C896',
+      person: '#4FC3F7',
+      event: '#FF5252',
+      policy: '#CE93D8',
+      market: '#80CBC4',
+      indicator: '#FFD54F'
+    }
+    return colors[type] || '#F4A726'
+  }
 
   const generateGraph = async () => {
     if (!topic.trim()) return
     setLoading(true)
     setGraphData(null)
     setSelectedNode(null)
+    setError('')
     
     const result = await callGemini(
-      `Generate a knowledge graph for the 
-      topic: "${topic}"
+      `Create a knowledge graph for: "${topic}"
       
-      Return ONLY this JSON, no other text:
+      Return ONLY this JSON structure:
       {
         "center": "${topic}",
         "nodes": [
-          {"id": "1", "label": "Example Node", 
-           "type": "company", 
-           "description": "Description here",
-           "connection": "How it relates"},
-          {"id": "2", "label": "Node 2",
-           "type": "country",
-           "description": "Description",
-           "connection": "Relation"}
+          {
+            "id": "1",
+            "label": "Node Name",
+            "type": "country",
+            "description": "2-3 sentence description",
+            "connection": "How this connects to ${topic}"
+          }
         ]
       }
       
-      Create 10 relevant nodes.
-      Each node type must be exactly one of:
-      country, company, person, event, 
-      policy, market, indicator
-      
-      Return ONLY valid JSON starting with {`,
-      1000
+      Rules:
+      - Include exactly 10 nodes
+      - Types must be: country, company, person, 
+        event, policy, market, or indicator
+      - Make nodes highly relevant to "${topic}"
+      - Return ONLY valid JSON, no other text
+      - Start response with {`,
+      800
     )
     
     if (result) {
       const parsed = parseGeminiJSON(result)
-      if (parsed && parsed.nodes) {
+      if (parsed?.nodes?.length > 0) {
         setGraphData(parsed)
       } else {
-        alert('Try again - click Generate Graph')
+        setError('Could not parse graph. Try again.')
       }
     } else {
-      alert('Please wait 30 seconds and try again')
+      setError('Please try again in a moment.')
     }
     setLoading(false)
   }
 
-
-  const getNodeColor = (type) => {
-    const colors = {
-      country: '#F4A726',    // Gold
-      company: '#00C896',    // Emerald
-      person: '#4FC3F7',     // Sky Blue
-      event: '#FF5252',      // Coral/Red
-      policy: '#CE93D8',     // Purple
-      market: '#80CBC4',     // Teal
-      indicator: '#FFD54F'   // Yellow
-    };
-    return colors[type] || '#F4A726';
-  };
-
-  const handleResearchNode = (nodeLabel) => {
-    setTopic(nodeLabel);
-    // Automatically trigger graph generation for new node
-    setTimeout(() => {
-      const btn = document.getElementById('er-graph-trigger-btn');
-      if (btn) btn.click();
-    }, 100);
-  };
-
-  // Coordinates for orbiting nodes in SVG
-  const getOrbitalCoordinates = (index, total, radius = 160, centerX = 250, centerY = 200) => {
-    const angle = (index * 2 * Math.PI) / total;
-    return {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle)
-    };
-  };
-
-  const renderSVGGraph = () => {
-    if (!graphData || !graphData.nodes || graphData.nodes.length === 0) return null;
-
-    const centerX = 250;
-    const centerY = 200;
-    const totalNodes = graphData.nodes.length;
-
-    return (
-      <div className="w-full overflow-x-auto flex justify-center py-4">
-        <svg viewBox="0 0 500 400" className="w-full max-w-[650px] aspect-[5/4] select-none">
-          {/* Connector Lines */}
-          {graphData.nodes.map((node, i) => {
-            const coords = getOrbitalCoordinates(i, totalNodes);
-            const nodeColor = getNodeColor(node.type);
-            return (
-              <line
-                key={`line-${node.id}`}
-                x1={centerX}
-                y1={centerY}
-                x2={coords.x}
-                y2={coords.y}
-                stroke={selectedNode?.id === node.id ? nodeColor : 'rgba(255,255,255,0.1)'}
-                strokeWidth={selectedNode?.id === node.id ? 2 : 1}
-                strokeDasharray={selectedNode?.id === node.id ? 'none' : '4 4'}
-                className="transition-all duration-300"
-              />
-            );
-          })}
-
-          {/* Central Hub Node */}
-          <circle
-            cx={centerX}
-            cy={centerY}
-            r={30}
-            fill="#F4A726"
-            className="cursor-pointer filter drop-shadow-[0_0_12px_rgba(244,167,38,0.4)]"
-          />
-          <text
-            x={centerX}
-            y={centerY + 4}
-            textAnchor="middle"
-            fill="#0A1628"
-            fontSize="10"
-            fontFamily="Inter, sans-serif"
-            fontWeight="bold"
-            className="pointer-events-none"
-          >
-            {graphData.center.length > 8 ? `${graphData.center.substring(0, 7)}...` : graphData.center}
-          </text>
-
-          {/* Satellite Orbiting Nodes */}
-          {graphData.nodes.map((node, i) => {
-            const coords = getOrbitalCoordinates(i, totalNodes);
-            const nodeColor = getNodeColor(node.type);
-            const isSelected = selectedNode?.id === node.id;
-            return (
-              <g
-                key={`node-${node.id}`}
-                onClick={() => setSelectedNode(isSelected ? null : node)}
-                className="cursor-pointer group"
-              >
-                {/* Node Circle */}
-                <circle
-                  cx={coords.x}
-                  cy={coords.y}
-                  r={isSelected ? 18 : 14}
-                  fill={isSelected ? nodeColor : '#060D17'}
-                  stroke={nodeColor}
-                  strokeWidth={2}
-                  className="transition-all duration-300 hover:scale-110"
-                  style={{
-                    filter: isSelected ? `drop-shadow(0 0 8px ${nodeColor}80)` : 'none'
-                  }}
-                />
-                
-                {/* Text Label */}
-                <text
-                  x={coords.x}
-                  y={coords.y + 24}
-                  textAnchor="middle"
-                  fill={isSelected ? '#F4A726' : 'rgba(255,255,255,0.7)'}
-                  fontSize="8"
-                  fontFamily="IBM Plex Mono, monospace"
-                  fontWeight={isSelected ? 'bold' : 'normal'}
-                  className="transition-colors duration-300 group-hover:fill-white"
-                >
-                  {node.label.length > 12 ? `${node.label.substring(0, 10)}...` : node.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    );
-  };
+  const suggestions = [
+    'India Economy', 'Tesla', 'Bitcoin',
+    'US Federal Reserve', 'Silicon Valley',
+    'Climate Change', 'AI Industry'
+  ]
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)]">
-      {/* Title Header */}
-      <div className="border-b border-[#F4A726]/10 pb-5">
-        <span className="text-[10px] font-mono font-bold text-[#F4A726] uppercase tracking-widest block mb-1">
-          conceptual map index
-        </span>
-        <h1 className="font-serif text-3xl font-black uppercase tracking-tight text-white">
-          🕸️ Knowledge Graph
-        </h1>
-        <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
-          Map connections between economic indices, sovereign policies, corporate structures, and geopolitical events.
-        </p>
-      </div>
+    <div style={{
+      padding: '24px',
+      maxWidth: '1200px',
+      margin: '0 auto',
+      minHeight: '100vh'
+    }}>
+      <h1 style={{
+        fontFamily: 'Playfair Display, serif',
+        color: '#fff',
+        fontSize: '28px',
+        marginBottom: '8px'
+      }}>
+        🕸️ Knowledge Graph
+      </h1>
+      <p style={{
+        color: 'rgba(255,255,255,0.5)',
+        marginBottom: '20px',
+        fontSize: '14px'
+      }}>
+        Visualize connections between economic 
+        concepts, companies and countries
+      </p>
 
-      {/* Control Console */}
-      <div className="bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-5 shadow-lg space-y-3">
-        <label className="text-[10px] font-mono text-gray-400 uppercase tracking-widest block">Core Topic</label>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            onKeyPress={e => e.key === 'Enter' && generateGraph()}
-            placeholder="e.g. India Economy, Federal Reserve, Inflation, Semiconductor Industry..."
-            className="flex-grow bg-[#060D17] border border-white/10 rounded px-4 py-3 text-xs text-white focus:outline-none focus:border-[#F4A726]/40 transition-colors placeholder:text-gray-500"
-          />
-          <button
-            id="er-graph-trigger-btn"
-            onClick={generateGraph}
-            disabled={loading}
-            className="bg-[#F4A726] hover:bg-[#D48E19] disabled:bg-gray-700 text-[#0A1628] disabled:text-gray-400 font-mono font-bold px-6 py-3 rounded text-xs uppercase tracking-wide transition-all shadow shrink-0 cursor-pointer disabled:cursor-not-allowed"
-          >
-            {loading ? '⏳ Generating Map...' : '🕸️ Generate Graph'}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '8px',
+        marginBottom: '16px'
+      }}>
+        {suggestions.map(s => (
+          <button key={s}
+            onClick={() => setTopic(s)}
+            style={{
+              padding: '6px 14px',
+              background: topic === s
+                ? 'rgba(244,167,38,0.3)'
+                : 'rgba(244,167,38,0.08)',
+              border: '1px solid rgba(244,167,38,0.2)',
+              borderRadius: '20px',
+              color: '#fff',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}>
+            {s}
           </button>
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left/Middle: SVG Visual Workspace */}
-        <div className="lg:col-span-2 bg-[#0A1628]/40 border border-white/5 rounded-lg p-6 min-h-[460px] flex flex-col justify-center relative overflow-hidden">
-          {loading ? (
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#F4A726] mx-auto mb-4"></div>
-              <p className="text-xs font-mono text-[#F4A726] uppercase tracking-widest animate-pulse">
-                Sieving concept networks via AI...
-              </p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-20">
-              <span className="text-3xl block mb-3">⚠️</span>
-              <p className="text-xs font-mono text-red-400 uppercase tracking-widest">{error}</p>
-            </div>
-          ) : graphData ? (
-            renderSVGGraph()
-          ) : (
-            <div className="text-center py-20">
-              <span className="text-3xl block mb-3">🕸️</span>
-              <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-widest mb-1">
-                Visualizer Workspace Vacant
-              </h3>
-              <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                Generate a graph to explore the relational pathways.
-              </p>
-            </div>
-          )}
-        </div>
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '32px',
+        flexWrap: 'wrap'
+      }}>
+        <input
+          value={topic}
+          onChange={e => setTopic(e.target.value)}
+          onKeyPress={e => 
+            e.key === 'Enter' && generateGraph()}
+          placeholder="Enter any topic..."
+          style={{
+            flex: 1,
+            minWidth: '200px',
+            padding: '12px 16px',
+            background: 'rgba(26,58,92,0.8)',
+            border: '1px solid rgba(244,167,38,0.2)',
+            borderRadius: '8px',
+            color: '#fff',
+            fontSize: '14px'
+          }}
+        />
+        <button
+          onClick={generateGraph}
+          disabled={loading || !topic.trim()}
+          style={{
+            padding: '12px 28px',
+            background: loading 
+              ? 'rgba(244,167,38,0.4)' : '#F4A726',
+            color: '#0A1628',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '700',
+            fontSize: '14px',
+            cursor: loading ? 'not-allowed' : 'pointer'
+          }}>
+          {loading ? '⏳ Mapping...' : 
+            '🕸️ Generate Graph'}
+        </button>
+      </div>
 
-        {/* Right Panel: Node Details & Recursive Research */}
-        <div className="space-y-4">
-          {graphData && (
-            <div className="bg-[#0A1628] border border-white/5 rounded-lg p-5 space-y-4">
-              <h3 className="text-xs font-mono font-bold text-[#F4A726] uppercase tracking-widest border-b border-[#F4A726]/10 pb-2">
-                Legend
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys({
-                  country: 1, company: 1, person: 1, event: 1, policy: 1, market: 1, indicator: 1
-                }).map(type => (
-                  <span
-                    key={type}
-                    style={{ borderColor: getNodeColor(type), color: getNodeColor(type) }}
-                    className="px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase border"
-                  >
-                    {type}
-                  </span>
-                ))}
+      {error && (
+        <p style={{
+          color: '#FF5252',
+          textAlign: 'center',
+          marginBottom: '16px'
+        }}>{error}</p>
+      )}
+
+      {graphData && (
+        <div>
+          <div style={{
+            background: 'rgba(26,58,92,0.3)',
+            border: '1px solid rgba(244,167,38,0.15)',
+            borderRadius: '16px',
+            padding: '32px 24px',
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '32px'
+            }}>
+              <div style={{
+                display: 'inline-block',
+                padding: '14px 28px',
+                background: '#F4A726',
+                color: '#0A1628',
+                borderRadius: '30px',
+                fontFamily: 'Playfair Display',
+                fontSize: '18px',
+                fontWeight: '700',
+                boxShadow: '0 0 40px rgba(244,167,38,0.3)'
+              }}>
+                ⭐ {graphData.center}
               </div>
             </div>
-          )}
 
-          {selectedNode ? (
-            <div
-              style={{ borderColor: `${getNodeColor(selectedNode.type)}30` }}
-              className="bg-[#0A1628] border rounded-lg p-5 space-y-4"
-            >
-              <div className="flex justify-between items-start gap-4">
-                <h3
-                  style={{ color: getNodeColor(selectedNode.type) }}
-                  className="font-serif text-base font-bold"
-                >
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              justifyContent: 'center'
+            }}>
+              {graphData.nodes?.map(node => (
+                <div key={node.id}
+                  onClick={() => setSelectedNode(
+                    selectedNode?.id === node.id 
+                      ? null : node
+                  )}
+                  style={{
+                    padding: '10px 18px',
+                    background: selectedNode?.id === node.id
+                      ? getNodeColor(node.type)
+                      : `${getNodeColor(node.type)}20`,
+                    border: `2px solid ${
+                      getNodeColor(node.type)}`,
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    color: selectedNode?.id === node.id
+                      ? '#0A1628' : '#fff',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                  {node.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selectedNode && (
+            <div style={{
+              background: 'rgba(26,58,92,0.5)',
+              border: `2px solid ${
+                getNodeColor(selectedNode.type)}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '16px'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '12px',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <h3 style={{
+                  color: getNodeColor(selectedNode.type),
+                  margin: 0,
+                  fontSize: '18px'
+                }}>
                   {selectedNode.label}
                 </h3>
-                <span
-                  style={{ background: `${getNodeColor(selectedNode.type)}15`, color: getNodeColor(selectedNode.type) }}
-                  className="px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase border border-current"
-                >
+                <span style={{
+                  background: `${getNodeColor(selectedNode.type)}20`,
+                  color: getNodeColor(selectedNode.type),
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  textTransform: 'uppercase'
+                }}>
                   {selectedNode.type}
                 </span>
               </div>
-              <p className="text-xs text-gray-300 leading-relaxed font-serif">
+              <p style={{
+                color: '#fff',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                marginBottom: '10px'
+              }}>
                 {selectedNode.description}
               </p>
-              <div className="bg-white/5 rounded p-3 text-[11px] text-gray-400 font-mono">
-                <span className="text-[#F4A726] font-bold">Relational Link: </span>
-                {selectedNode.connection}
-              </div>
+              <p style={{
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: '13px',
+                marginBottom: '14px'
+              }}>
+                🔗 {selectedNode.connection}
+              </p>
               <button
-                onClick={() => handleResearchNode(selectedNode.label)}
-                className="w-full bg-[#F4A726]/10 hover:bg-[#F4A726]/20 text-[#F4A726] border border-[#F4A726]/30 py-2.5 rounded text-xs font-mono uppercase tracking-wide cursor-pointer transition-colors"
-              >
-                🕸️ Research Node
+                onClick={() => {
+                  setTopic(selectedNode.label)
+                  setGraphData(null)
+                  setSelectedNode(null)
+                }}
+                style={{
+                  padding: '8px 18px',
+                  background: 'rgba(244,167,38,0.15)',
+                  color: '#F4A726',
+                  border: '1px solid rgba(244,167,38,0.4)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '600'
+                }}>
+                🔍 Research this →
               </button>
             </div>
-          ) : graphData && (
-            <div className="bg-[#0A1628]/20 border border-white/5 rounded-lg p-6 text-center text-xs text-gray-500">
-              Select any orbiting satellite node in the graph viewer to inspect its details and trace relationships.
-            </div>
           )}
+
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            justifyContent: 'center'
+          }}>
+            {['country', 'company', 'person',
+              'event', 'policy', 'market', 
+              'indicator'].map(type => (
+              <span key={type} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '11px',
+                color: 'rgba(255,255,255,0.5)'
+              }}>
+                <span style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: getNodeColor(type),
+                  display: 'inline-block'
+                }}/>
+                {type}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
-  );
+  )
 }
