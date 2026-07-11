@@ -393,59 +393,49 @@ ${citations.map((c, i) => `[${i+1}] ${c.text}`).join('\n')}
     }
   };
 
+  const [keyFindingsLoading, setKeyFindingsLoading] = useState(false);
+
   // FIX 4 - Key Findings button (active)
   const generateKeyFindings = async () => {
-    const reportText = report?.report || '';
+    const reportText = report?.report || (typeof report === 'string' ? report : '');
     if (!reportText) return;
     setShowKeyFindings(true);
     setKeyFindings('');
+    setKeyFindingsLoading(true);
+    const result = await callGemini(`
+    Extract exactly 7 key findings from:
+    ${reportText.slice(0, 2000)}
     
-    const prompt = `
-    Extract 5 key findings from this research:
-    ${reportText.slice(0, 1000)}
+    Format as numbered list:
+    1. [Key finding with specific data]
+    2. [Key finding with specific data]
+    ... (7 total)
     
-    Format as:
-    🔑 Finding 1: [concise point]
-    🔑 Finding 2: [concise point]
-    🔑 Finding 3: [concise point]
-    🔑 Finding 4: [concise point]
-    🔑 Finding 5: [concise point]
-    `;
-    
-    try {
-      const text = await callGemini(prompt, 600);
-      setKeyFindings(text || '❌ Failed to generate key findings. Please try again.');
-    } catch (err) {
-      console.error('Key findings generation failed:', err);
-      setKeyFindings('❌ Failed to generate key findings. Please try again.');
-    }
+    Be specific and data-driven.
+    `, 600);
+    if (result) setKeyFindings(result);
+    setKeyFindingsLoading(false);
   };
 
   // FIX 5 - Save button (active)
   const saveReport = async () => {
-    if (!report) return;
-    
+    if (!report || !db) return;
     try {
+      const { addDoc, collection } = await import('firebase/firestore');
       await addDoc(
         collection(db, 'er_research_reports'),
         {
           userId: user?.uid || 'guest',
-          query: currentReportQuery,
-          report: report.report || '',
-          charts: report.charts || [],
-          plan: report.plan || null,
-          citation: report.citation || null,
-          factCheck: report.factCheck || null,
-          finance: report.finance || null,
-          research: report.research || null,
-          reportJson: report.reportJson || null,
+          query: currentReportQuery || 'Research',
+          report: report.report || report,
           savedAt: new Date(),
           isFavorite: false
         }
       );
       setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(''), 2000);
-    } catch (err) {
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch(e) {
+      console.error('Save error:', e);
       setSaveStatus('error');
     }
   };

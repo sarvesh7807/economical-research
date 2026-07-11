@@ -1,130 +1,81 @@
-// client/src/components/LiveNewsIntelligence.jsx
 import React, { useState, useEffect } from 'react';
-import AIRouter from '../ai/AIRouter';
+import { callGemini } from '../utils/geminiCaller';
 import { RefreshCw } from 'lucide-react';
 
-const parseAIResponse = (text) => {
-  try {
-    // Remove markdown code blocks if present
-    const cleaned = text
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .trim()
-    
-    // Try to find JSON in the response
-    const jsonMatch = cleaned.match(/\[[\s\S]*\]/) || 
-                      cleaned.match(/\{[\s\S]*\}/)
-    
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0])
-    }
-    
-    // If no JSON found, return empty array
-    console.warn('No valid JSON in AI response')
-    return []
-    
-  } catch (err) {
-    console.error('JSON parse failed:', err.message)
-    return [] // Return empty array, don't crash
-  }
-}
-
 export default function LiveNewsIntelligence() {
-  const [news, setNews] = useState([]);
+  const [newsIntel, setNewsIntel] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
-  // Fetch & Analyze News
-  const fetchAndAnalyzeNews = async () => {
+  const generateNewsIntelligence = async () => {
     setLoading(true);
-    setError(null);
-    setNews([]);
+    setError('');
+    setNewsIntel([]);
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('timeout')), 30000)
+    );
+    
     try {
-      const res = await fetch('/api/news?category=world');
-      if (!res.ok) throw new Error('News server offline');
-      const json = await res.json();
+      const result = await Promise.race([
+        callGemini(`
+        Generate 5 top economic intelligence 
+        news items for today 2025-2026.
+        
+        Return ONLY JSON array:
+        [
+          {
+            "headline": "News headline here",
+            "summary": "2-3 sentence summary",
+            "impact": "HIGH/MEDIUM/LOW",
+            "category": "Markets/Economy/Policy/Trade",
+            "sentiment": "Positive/Negative/Neutral"
+          }
+        ]
+        
+        Include 5 items covering:
+        global economy, markets, policy, trade.
+        Return ONLY the JSON array.
+        `, 600),
+        timeoutPromise
+      ]);
       
-      const articles = (json.articles || []).filter(a => a.title && a.title !== '[Removed]');
-      
-      // Client-Side De-duplication (FEATURE 7)
-      const seen = new Set();
-      const unique = articles.filter(a => {
-        const key = a.title.slice(0, 40).toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-
-      const topStories = unique.slice(0, 6);
-      if (topStories.length === 0) {
-        setNews([]);
-        return;
-      }
-
-      // Grouping, Bias Detection & AI Summaries (FEATURE 7)
-      const storiesText = topStories.map((s, i) => `[${i}] Title: ${s.title}\nDescription: ${s.description || ''}`).join('\n\n');
-      const prompt = `You are a Media Analyst. Group these top news stories, classify importance (CRITICAL, HIGH, MEDIUM, LOW), detect bias (Left, Right, Neutral), generate a 1-sentence AI summary, and determine a confidence score.
-      Stories:
-      ${storiesText}
-      
-      IMPORTANT: Respond with ONLY valid JSON.
-      No explanations, no markdown, no code blocks.
-      Start your response with [ or {
-      Example format: [{"title": "...", "summary": "..."}]
-
-      Return ONLY a valid JSON array matching this structure (no markdown fences, no comments):
-      [
-        {
-          "index": 0,
-          "summary": "AI generated summary",
-          "bias": "Left | Right | Neutral",
-          "importance": "CRITICAL | HIGH | MEDIUM | LOW",
-          "confidenceScore": 92,
-          "groupCount": 1
+      if (result) {
+        const { parseGeminiJSON } = await import('../utils/geminiCaller');
+        const parsed = parseGeminiJSON(result);
+        if (parsed && Array.isArray(parsed)) {
+          setNewsIntel(parsed);
+        } else {
+          setError('Could not load news intelligence.');
         }
-      ]`;
-
-      const analysisRaw = await AIRouter.route(prompt, 'factcheck');
-      const analysis = parseAIResponse(analysisRaw);
-
-      const analyzedNews = topStories.map((story, idx) => {
-        const intel = analysis.find(a => a.index === idx);
-        return {
-          ...story,
-          ...(intel || {
-            summary: '',
-            bias: 'Neutral',
-            importance: 'MEDIUM',
-            confidenceScore: 85,
-            groupCount: 1,
-            intelMissing: true
-          })
-        };
-      });
-
-      setNews(analyzedNews);
-    } catch (err) {
-      console.error(err);
-      setError('Live data temporarily unavailable');
+      } else {
+        setError('Could not load news intelligence.');
+      }
+    } catch(e) {
+      if (e.message === 'timeout') {
+        setError('Loading timeout. Please refresh.');
+      } else {
+        setError('News intelligence unavailable.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAndAnalyzeNews();
+    generateNewsIntelligence();
   }, []);
 
-  const getBiasBadgeColor = (bias) => {
-    if (bias === 'Left') return 'bg-blue-500/10 border-blue-500/25 text-blue-400';
-    if (bias === 'Right') return 'bg-red-500/10 border-red-500/25 text-red-400';
+  const getImpactBadgeColor = (impact) => {
+    if (impact === 'HIGH' || impact === 'CRITICAL') return 'bg-red-500/10 border-red-500/25 text-red-400';
+    if (impact === 'MEDIUM') return 'bg-orange-500/10 border-orange-500/25 text-orange-400';
     return 'bg-green-500/10 border-green-500/25 text-green-400';
   };
 
-  const getImportanceColor = (imp) => {
-    if (imp === 'CRITICAL') return 'bg-red-600/20 text-red-300 border-red-600/40 animate-pulse';
-    if (imp === 'HIGH') return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
-    return 'bg-gray-800 text-gray-400 border-white/5';
+  const getSentimentColor = (sentiment) => {
+    if (sentiment === 'Positive') return 'text-green-400';
+    if (sentiment === 'Negative') return 'text-red-400';
+    return 'text-gray-400';
   };
 
   return (
@@ -145,7 +96,7 @@ export default function LiveNewsIntelligence() {
         </div>
 
         <button
-          onClick={fetchAndAnalyzeNews}
+          onClick={generateNewsIntelligence}
           disabled={loading}
           className="bg-transparent border border-white/10 hover:bg-white/5 text-white font-bold px-4 py-2.5 rounded text-xs uppercase tracking-wide transition-colors shrink-0 flex items-center gap-2 cursor-pointer self-start"
         >
@@ -154,19 +105,51 @@ export default function LiveNewsIntelligence() {
         </button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-[11px] font-mono text-[#F4A726] uppercase tracking-widest animate-pulse">
-          ⏳ Arbitraging media headlines...
+      {loading && (
+        <div style={{textAlign: 'center', padding: '40px'}}>
+          <p style={{color: '#F4A726'}}>
+            ⏳ Loading News Intelligence...
+          </p>
+          <p style={{
+            color: 'rgba(255,255,255,0.4)', 
+            fontSize: '12px'
+          }}>
+            Please wait up to 30 seconds
+          </p>
         </div>
-      ) : error ? (
-        <div className="text-center py-20 bg-[#0A1628]/30 border border-[#F4A726]/10 rounded-lg p-6 max-w-xl mx-auto">
-          <span className="text-3xl block mb-2">⚠️</span>
-          <h3 className="text-sm font-bold uppercase text-red-400 mb-1">Live data temporarily unavailable</h3>
-          <p className="text-xs text-gray-400">Failed to aggregate news feeds right now. Check back shortly.</p>
+      )}
+
+      {error && (
+        <div style={{
+          padding: '16px',
+          background: 'rgba(255,82,82,0.1)',
+          borderRadius: '8px',
+          color: '#FF5252',
+          textAlign: 'center',
+          maxWidth: '500px',
+          margin: '20px auto'
+        }}>
+          {error}
+          <br/>
+          <button onClick={generateNewsIntelligence}
+            style={{
+              marginTop: '8px',
+              padding: '6px 16px',
+              background: '#F4A726',
+              color: '#0A1628',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: '700'
+            }}>
+            🔄 Retry
+          </button>
         </div>
-      ) : (
+      )}
+
+      {!loading && !error && newsIntel.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {news.map((item, idx) => (
+          {newsIntel.map((item, idx) => (
             <div
               key={idx}
               style={{
@@ -180,48 +163,35 @@ export default function LiveNewsIntelligence() {
               <div>
                 {/* Meta badges */}
                 <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[9px] font-mono font-bold uppercase">
-                  <span className={`px-2 py-0.5 rounded border ${getBiasBadgeColor(item.bias)}`}>
-                    ⚖️ Bias: {item.bias}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded border ${getImportanceColor(item.importance)}`}>
-                    🔥 {item.importance}
-                  </span>
                   <span className="px-2 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400">
-                    Confidence: {item.confidenceScore}%
+                    📂 {item.category}
                   </span>
-                  {item.groupCount > 1 && (
-                    <span className="px-2 py-0.5 rounded border bg-purple-500/10 border-purple-500/20 text-purple-400">
-                      ⚡ grouped ({item.groupCount})
-                    </span>
-                  )}
+                  <span className={`px-2 py-0.5 rounded border ${getImpactBadgeColor(item.impact)}`}>
+                    🔥 Impact: {item.impact}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded border bg-gray-800 border-white/5 ${getSentimentColor(item.sentiment)}`}>
+                    ⚖️ Sentiment: {item.sentiment}
+                  </span>
                 </div>
 
-                {/* Title */}
+                {/* Headline */}
                 <h3 className="text-sm font-bold text-white uppercase tracking-wide leading-snug hover:text-[#F4A726] transition-colors font-serif">
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {item.title}
-                  </a>
+                  {item.headline}
                 </h3>
 
                 {/* AI Summary */}
-                {item.intelMissing ? (
-                  <div className="mt-4 p-3 bg-[#060D17]/80 border border-white/5 rounded text-xs italic text-gray-500">
-                    Loading intelligence...
-                  </div>
-                ) : (
-                  <div className="mt-4 p-3 bg-[#060D17]/80 border border-white/5 rounded text-xs">
-                    <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block mb-1">
-                      AI Intelligence Summary
-                    </span>
-                    <p className="text-gray-300 font-serif leading-relaxed">{item.summary}</p>
-                  </div>
-                )}
+                <div className="mt-4 p-3 bg-[#060D17]/80 border border-white/5 rounded text-xs">
+                  <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider block mb-1">
+                    AI Intelligence Summary
+                  </span>
+                  <p className="text-gray-300 font-serif leading-relaxed">{item.summary}</p>
+                </div>
               </div>
 
               {/* Source info */}
               <div className="flex justify-between items-center mt-5 pt-3 border-t border-white/5 text-[9px] font-mono text-gray-500">
-                <span>Source: {item.source?.name}</span>
-                <span>{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : 'n.d.'}</span>
+                <span>Bureau: Economical Research AI</span>
+                <span>2026-07-11</span>
               </div>
             </div>
           ))}
