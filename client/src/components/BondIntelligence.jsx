@@ -13,69 +13,69 @@ export default function BondIntelligence() {
   ];
 
   const generateBondReport = async () => {
-    setLoading(true);
-    setBondReport('');
+    if (!country) return
+    setLoading(true)
+    setBondReport('')
     
     const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE bond market 
-  intelligence for: ${country}
-  
-  ## Bond Market Overview
-  [Detailed overview of bond market size,
-   structure and importance]
-  [3-4 paragraphs]
-  
-  ## Government Bonds Analysis
-  Current 10-year yield: [estimate]
-  Credit rating: [rating + explanation]
-  Historical yield trend: [analysis]
-  [3-4 paragraphs]
-  
-  ## Yield Curve Analysis
-  [Detailed shape and implications]
-  [2-3 paragraphs]
-  
-  ## Central Bank Policy Impact
-  [How monetary policy affects bonds]
-  [3 paragraphs]
-  
-  ## Inflation & Bond Relationship
-  [Real yields and inflation expectations]
-  [2-3 paragraphs]
-  
-  ## Foreign Investment in Bonds
-  [FPI flows, currency risk for foreign investors]
-  [2 paragraphs]
-  
-  ## Corporate Bond Market
-  [Overview of corporate bond landscape]
-  [2-3 paragraphs]
-  
-  ## Risk Factors
-  Interest rate risk: [detailed]
-  Credit risk: [detailed]
-  Currency risk: [detailed]
-  [3 paragraphs]
-  
-  ## ER Bond Intelligence Verdict
-  Government Bond Rating: [AAA to CCC]
-  Investment Grade: [Yes/No]
-  Yield Attractiveness: [High/Medium/Low]
-  [3-4 paragraph comprehensive verdict]
-  
-  ## 12-Month Yield Outlook
-  [Detailed interest rate forecast]
-  [2-3 paragraphs]
-  
-  Write 800-1000 words minimum.
-  Never mention Gemini.
-  `, 3000);
+    You are Economical Research AI.
+    Comprehensive bond market intelligence: ${country}
     
-    if (result) setBondReport(result);
-    else setBondReport('Report failed. Try again.');
-    setLoading(false);
-  };
+    ## Government Bond Market Overview
+    Market size, liquidity, key participants.
+    [3-4 paragraphs]
+    
+    ## Current Yields & Rates
+    10-year yield: [estimate]
+    5-year yield: [estimate]
+    2-year yield: [estimate]
+    Yield curve shape: [normal/inverted/flat]
+    [2-3 paragraphs analysis]
+    
+    ## Credit Rating Analysis
+    Rating: [S&P/Moody's/Fitch estimates]
+    Rationale: [why this rating]
+    Outlook: [stable/positive/negative]
+    [2-3 paragraphs]
+    
+    ## Monetary Policy Impact
+    Central bank rate: [current estimate]
+    Policy direction: [tightening/easing/neutral]
+    [2-3 paragraphs]
+    
+    ## Foreign Investment
+    FPI flows in bonds
+    Currency risk for foreign investors
+    [2 paragraphs]
+    
+    ## Bond Types Available
+    [Government, corporate, municipal overview]
+    [2 paragraphs]
+    
+    ## Risk Factors
+    Interest rate risk: [detailed]
+    Default risk: [detailed]
+    Currency risk: [detailed]
+    Inflation risk: [detailed]
+    [3 paragraphs]
+    
+    ## ER Bond Intelligence Verdict
+    Attractiveness: [High/Medium/Low]
+    For Indian investors: [advice]
+    For foreign investors: [advice]
+    Rating: [AAA to CCC estimate]
+    [3 paragraph conclusion]
+    
+    ## 12-Month Yield Outlook
+    [Forecast with bull/base/bear scenarios]
+    
+    Write 800-1000 words. Never mention Gemini.
+    `, 3000)
+    
+    if (result) setBondReport(result)
+    else setBondReport('Report failed. Please try again.')
+    setLoading(false)
+  }
 
 
   return (

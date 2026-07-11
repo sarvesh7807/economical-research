@@ -913,3 +913,19 @@ body.light-mode [role="dialog"] textarea {
   z-index: 999999 !important;
   isolation: isolate !important;
 }
+
+@media (max-width: 768px) {
+  .recharts-wrapper,
+  .recharts-surface {
+    max-width: 100% !important;
+  }
+  
+  .charts-page {
+    padding: 16px !important;
+  }
+  
+  .chart-container {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+}

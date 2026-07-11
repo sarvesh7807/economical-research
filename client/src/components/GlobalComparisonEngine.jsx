@@ -1,157 +1,130 @@
-// client/src/components/GlobalComparisonEngine.jsx
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
 import { callGemini } from '../utils/geminiCaller';
 
-const COMPARISON_PRESETS = [
-  { label: 'India vs China (Sovereign)', type: 'country', a: 'India', b: 'China' },
-  { label: 'Tesla vs BYD (Corporate)', type: 'company', a: 'Tesla', b: 'BYD' },
-  { label: 'Tech vs Finance (Sectors)', type: 'sector', a: 'Tech Sector', b: 'Financial Sector' }
-];
+export default function GlobalComparisonEngine() {
+  const [comparisonType, setComparisonType] = useState('Country vs Country');
+  const [item1, setItem1] = useState('');
+  const [item2, setItem2] = useState('');
+  const [result, setResult] = useState('');
+  const [arbitrage, setArbitrage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('compare');
 
-export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) {
-  const { user } = useAuth();
-  
-  const [comparisonType, setComparisonType] = useState('country');
-  const [item1, setItem1] = useState(defaultA || 'India');
-  const [item2, setItem2] = useState(defaultB || 'China');
-  const [isComparing, setIsComparing] = useState(false);
-  const [comparisonResult, setComparisonResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [arbitrageCommentary, setArbitrageCommentary] = useState(null);
+  const comparisonTypes = [
+    { label: 'Country vs Country', icon: '🌍' },
+    { label: 'Company vs Company', icon: '🏢' },
+    { label: 'Sector vs Sector', icon: '📊' },
+    { label: 'Crypto vs Crypto', icon: '₿' },
+    { label: 'Currency vs Currency', icon: '💱' },
+    { label: 'Market vs Market', icon: '📈' }
+  ];
 
-  const handlePresetSelect = (preset) => {
-    setComparisonType(preset.type);
-    setItem1(preset.a);
-    setItem2(preset.b);
-    handleCompare(preset.type, preset.a, preset.b);
+  const getPlaceholders = () => {
+    const map = {
+      'Country vs Country': ['India', 'China'],
+      'Company vs Company': ['Apple', 'Microsoft'],
+      'Sector vs Sector': ['Technology', 'Finance'],
+      'Crypto vs Crypto': ['Bitcoin', 'Ethereum'],
+      'Currency vs Currency': ['USD', 'EUR'],
+      'Market vs Market': ['NYSE', 'BSE']
+    };
+    return map[comparisonType] || ['Item 1', 'Item 2'];
   };
 
-  const handleCompare = async (overrideType, overrideItem1, overrideItem2) => {
-    const type = overrideType || comparisonType;
-    const i1 = overrideItem1 || item1;
-    const i2 = overrideItem2 || item2;
-
-    if (!i1.trim() || !i2.trim()) {
-      setError('Please enter both items to compare');
-      return;
-    }
+  const handleCompare = async () => {
+    if (!item1.trim() || !item2.trim()) return;
+    setLoading(true);
+    setResult('');
+    setArbitrage('');
     
-    setIsComparing(true);
-    setComparisonResult(null);
-    setError(null);
-    setArbitrageCommentary(null);
-    
-    try {
-      const prompt = `
-      You are Economical Research AI.
-      Create a professional comparison report.
-      
-      Comparison Type: ${type}
-      Item 1: ${i1}
-      Item 2: ${i2}
-      
-      Provide detailed comparison:
-      
-      OVERVIEW:
-      Brief description of both items.
-      
-      KEY METRICS COMPARISON:
-      | Metric | ${i1} | ${i2} |
-      List 8-10 key metrics in table format.
-      
-      STRENGTHS:
-      ${i1}: List 3 strengths
-      ${i2}: List 3 strengths
-      
-      WEAKNESSES:
-      ${i1}: List 3 weaknesses
-      ${i2}: List 3 weaknesses
-      
-      WINNER BY CATEGORY:
-      List which item wins in each category.
-      
-      ER VERDICT:
-      Which is better overall and why?
-      
-      Write professionally. Never mention 
-      Gemini or any AI provider.
-      Use "Economical Research AI" only.
-      `;
-      
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      const result = await callGemini(prompt, 1500);
-      
-      setComparisonResult(result);
-      
-      // Save to Firebase
-      if (db && user) {
-        await addDoc(
-          collection(db, 'comparison_history'),
-          {
-            userId: user.uid,
-            type: type,
-            item1: i1,
-            item2: i2,
-            result,
-            createdAt: new Date()
-          }
-        );
-      }
-      
-    } catch (err) {
-      setError('Comparison failed. Please try again.');
-      console.error('Comparison error:', err);
-    } finally {
-      setIsComparing(false);
-    }
-  };
-
-  const generateArbitrageCommentary = async () => {
-    if (!comparisonResult) return;
-    
-    const prompt = `
+    const resultText = await callGemini(`
     You are Economical Research AI.
-    Based on this comparison between 
-    ${item1} and ${item2}:
+    Create comprehensive comparison report:
     
-    ${comparisonResult}
+    Type: ${comparisonType}
+    ${item1} vs ${item2}
     
-    Generate "AI Arbitrage Commentary":
+    ## Executive Summary
+    [2-3 paragraph overview of both]
     
-    1. OPPORTUNITY: What arbitrage or 
-       investment opportunity exists?
-    2. RISK DIFFERENTIAL: Key risk differences
-    3. TIMING: When to act on this comparison
-    4. ER RECOMMENDATION: 
-       Buy/Hold/Avoid for each item
+    ## Head-to-Head Comparison Table
+    | Metric | ${item1} | ${item2} | Winner |
+    |--------|---------|---------|--------|
+    [Include 10+ relevant metrics]
     
-    Keep under 200 words. Professional tone.
-    `;
+    ## ${item1} Deep Analysis
+    [3-4 paragraphs strengths and position]
     
-    try {
-      const commentary = await callGemini(prompt, 500);
-      setArbitrageCommentary(commentary);
-    } catch (err) {
-      console.error('Arbitrage commentary error:', err);
+    ## ${item2} Deep Analysis
+    [3-4 paragraphs strengths and position]
+    
+    ## Category Winners
+    [Who wins in each key category]
+    
+    ## Risk Comparison
+    ${item1} risks: [3 points]
+    ${item2} risks: [3 points]
+    
+    ## Historical Performance
+    [How both have performed historically]
+    
+    ## ER Verdict
+    Overall winner: [clear recommendation]
+    [3-4 paragraph comprehensive conclusion]
+    
+    Write 600-800 words minimum.
+    Never mention Gemini.
+    `, 3000);
+    
+    if (resultText) {
+      setResult(resultText);
+      generateArbitrage(resultText);
+    } else {
+      setResult('Comparison failed. Please try again.');
     }
+    setLoading(false);
   };
 
-  useEffect(() => {
-    const initialItem1 = defaultA || 'India';
-    const initialItem2 = defaultB || 'China';
-    setItem1(initialItem1);
-    setItem2(initialItem2);
-    handleCompare(comparisonType, initialItem1, initialItem2);
-  }, [defaultA, defaultB]);
+  const generateArbitrage = async (compResult) => {
+    const arb = await callGemini(`
+    Based on comparison of ${item1} vs ${item2}:
+    ${compResult?.slice(0, 500)}
+    
+    Generate AI Arbitrage Commentary:
+    
+    ## Opportunity
+    [What opportunity exists from this comparison]
+    
+    ## Risk-Reward
+    [Risk/reward profile of each option]
+    
+    ## Timing
+    [When to act based on this comparison]
+    
+    ## ER Recommendation
+    Choose ${item1} if: [specific conditions]
+    Choose ${item2} if: [specific conditions]
+    
+    Max 200 words. Never mention Gemini.
+    `, 500);
+    
+    if (arb) setArbitrage(arb);
+  };
 
-  useEffect(() => {
-    if (comparisonResult) {
-      generateArbitrageCommentary();
-    }
-  }, [comparisonResult]);
+  const quickCompares = [
+    { type: 'Country vs Country', a: 'India', b: 'China', label: 'Country: India vs China' },
+    { type: 'Company vs Company', a: 'Apple', b: 'Samsung', label: 'Company: Apple vs Samsung' },
+    { type: 'Crypto vs Crypto', a: 'Bitcoin', b: 'Ethereum', label: 'Crypto: BTC vs ETH' },
+    { type: 'Market vs Market', a: 'US Markets', b: 'India Markets', label: 'Market: US vs India' }
+  ];
+
+  const handleQuickCompare = (qc) => {
+    setComparisonType(qc.type);
+    setItem1(qc.a);
+    setItem2(qc.b);
+  };
+
+  const placeholders = getPlaceholders();
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)]">
@@ -171,73 +144,54 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
         </div>
       </div>
 
-      {/* Presets Bar */}
-      <div className="flex flex-wrap gap-2 items-center border-b border-white/5 pb-4">
-        <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest mr-2">Presets:</span>
-        {COMPARISON_PRESETS.map((p, idx) => (
-          <button
-            key={idx}
-            onClick={() => handlePresetSelect(p)}
-            className="px-3.5 py-1.5 bg-[#0A1628] hover:bg-[#F4A726]/10 border border-white/5 hover:border-[#F4A726]/20 rounded text-[10px] uppercase font-mono font-bold tracking-wide transition-all cursor-pointer"
-          >
-            {p.label}
-          </button>
-        ))}
+      {/* Suggested Quick Compares */}
+      <div className="space-y-2">
+        <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest block">Quick Compare Suggestions</span>
+        <div className="flex flex-wrap gap-2">
+          {quickCompares.map((qc, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleQuickCompare(qc)}
+              className="px-3.5 py-1.5 bg-[#0A1628] hover:bg-[#F4A726]/10 border border-white/5 hover:border-[#F4A726]/20 rounded text-[10px] uppercase font-mono font-bold tracking-wide transition-all cursor-pointer"
+            >
+              {qc.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Inputs bar */}
+      {/* Main Form container */}
       <div className="comparison-container bg-[#0A1628] border border-[#F4A726]/15 rounded-lg p-5 flex flex-col gap-6 shadow-lg">
-        {/* Comparison Type */}
-        <div style={{
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          overflowX: 'hidden'
-        }} className="comparison-types">
-          <p style={{
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: '13px',
-            marginBottom: '12px'
-          }}>
+        {/* Selector */}
+        <div style={{ width: '100%', boxSizing: 'border-box' }}>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginBottom: '12px' }}>
             Select Comparison Type:
           </p>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '8px',
-            width: '100%'
-          }}>
-            {[
-              { label: 'Country vs Country', icon: '🌍', value: 'country' },
-              { label: 'Company vs Company', icon: '🏢', value: 'company' },
-              { label: 'Sector vs Sector', icon: '📊', value: 'sector' },
-              { label: 'Market vs Market', icon: '📈', value: 'market' }
-            ].map(type => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', width: '100%' }}>
+            {comparisonTypes.map(type => (
               <button key={type.label}
-                onClick={() => setComparisonType(type.value)}
+                onClick={() => setComparisonType(type.label)}
                 type="button"
                 style={{
                   padding: '12px 8px',
-                  background: comparisonType === type.value
+                  background: comparisonType === type.label
                     ? 'rgba(244,167,38,0.2)'
                     : 'rgba(26,58,92,0.5)',
                   border: `1px solid ${
-                    comparisonType === type.value
+                    comparisonType === type.label
                       ? '#F4A726'
                       : 'rgba(244,167,38,0.15)'
                   }`,
                   borderRadius: '8px',
-                  color: comparisonType === type.value
+                  color: comparisonType === type.label
                     ? '#F4A726' : '#fff',
                   fontSize: '12px',
                   cursor: 'pointer',
                   textAlign: 'center',
-                  width: '100%',
                   boxSizing: 'border-box'
                 }}>
                 <div>{type.icon}</div>
-                <div style={{marginTop: '4px'}}>
+                <div style={{ marginTop: '4px', fontWeight: '600' }}>
                   {type.label}
                 </div>
               </button>
@@ -247,17 +201,15 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
 
         {/* Inputs */}
         <div className="comparison-inputs flex flex-col sm:flex-row gap-4 items-center w-full">
-          {/* Input A */}
           <div className="flex flex-col gap-1 w-full sm:flex-grow">
             <label className="text-[9px] font-mono text-gray-500 uppercase">Asset A</label>
             <input 
               type="text"
-              placeholder="India..."
+              placeholder={`e.g. ${placeholders[0]}`}
               value={item1}
               onChange={e => setItem1(e.target.value)}
               style={{
                 width: '100%',
-                maxWidth: '100%',
                 padding: '12px 16px',
                 boxSizing: 'border-box',
                 background: 'rgba(26,58,92,0.5)',
@@ -272,17 +224,15 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
           
           <span className="text-[#F4A726] font-mono text-xs pt-4 font-bold select-none hidden sm:inline">VS</span>
 
-          {/* Input B */}
           <div className="flex flex-col gap-1 w-full sm:flex-grow">
             <label className="text-[9px] font-mono text-gray-500 uppercase">Asset B</label>
             <input 
               type="text"
-              placeholder="China..."
+              placeholder={`e.g. ${placeholders[1]}`}
               value={item2}
               onChange={e => setItem2(e.target.value)}
               style={{
                 width: '100%',
-                maxWidth: '100%',
                 padding: '12px 16px',
                 boxSizing: 'border-box',
                 background: 'rgba(26,58,92,0.5)',
@@ -297,9 +247,8 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
         </div>
 
         <button
-          onClick={() => handleCompare()}
-          disabled={isComparing || !item1.trim() || !item2.trim()}
-          className="comparison-button"
+          onClick={handleCompare}
+          disabled={loading || !item1.trim() || !item2.trim()}
           style={{
             width: '100%',
             padding: '14px',
@@ -313,18 +262,18 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
             boxSizing: 'border-box'
           }}
         >
-          {isComparing ? '⚖️ Comparing...' : 'Compare Now'}
+          {loading ? '⏳ Comparing...' : 'Compare Now'}
         </button>
       </div>
 
-      {/* Results view */}
-      {isComparing ? (
+      {/* Tabs / Results */}
+      {loading ? (
         <div className="text-center py-20 text-[11px] font-mono text-[#F4A726] uppercase tracking-widest animate-pulse">
-          ⏳ Arbitraging sovereign records...
+          ⏳ Arbitraging comparative profiles...
         </div>
       ) : (
         <div className="space-y-6">
-          {comparisonResult && (
+          {result && (
             <div style={{
               marginTop: '24px',
               padding: '24px',
@@ -332,61 +281,82 @@ export default function GlobalComparisonEngine({ setView, defaultA, defaultB }) 
               border: '1px solid rgba(244,167,38,0.2)',
               borderRadius: '12px'
             }}>
-              <h3 style={{
-                color: '#F4A726',
-                fontFamily: 'Playfair Display, serif',
-                fontSize: '18px',
-                marginBottom: '16px'
-              }}>
-                {item1} vs {item2} — ER Analysis
-              </h3>
-              <div style={{
-                color: '#fff',
-                fontSize: '14px',
-                lineHeight: '1.8',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {comparisonResult}
+              {/* Tab selector */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
+                <button
+                  onClick={() => setActiveTab('compare')}
+                  style={{
+                    padding: '8px 16px',
+                    background: activeTab === 'compare' ? 'rgba(244,167,38,0.15)' : 'transparent',
+                    border: 'none',
+                    color: activeTab === 'compare' ? '#F4A726' : '#fff',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '700'
+                  }}
+                >
+                  ⚖️ Comparison Report
+                </button>
+                {arbitrage && (
+                  <button
+                    onClick={() => setActiveTab('arbitrage')}
+                    style={{
+                      padding: '8px 16px',
+                      background: activeTab === 'arbitrage' ? 'rgba(244,167,38,0.15)' : 'transparent',
+                      border: 'none',
+                      color: activeTab === 'arbitrage' ? '#F4A726' : '#fff',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '700'
+                    }}
+                  >
+                    ⚡ AI Arbitrage
+                  </button>
+                )}
               </div>
 
-              {/* Show Arbitrage Commentary */}
-              {arbitrageCommentary && (
-                <div style={{
-                  marginTop: '16px',
-                  padding: '20px',
-                  background: 'linear-gradient(135deg, rgba(244,167,38,0.1), rgba(244,167,38,0.05))',
-                  border: '1px solid rgba(244,167,38,0.3)',
-                  borderRadius: '12px'
-                }}>
-                  <h4 style={{
+              {activeTab === 'compare' ? (
+                <div>
+                  <h3 style={{
                     color: '#F4A726',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    marginBottom: '12px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px'
+                    fontFamily: 'Playfair Display, serif',
+                    fontSize: '18px',
+                    marginBottom: '16px'
                   }}>
-                    ⚡ AI Arbitrage Commentary
-                  </h4>
-                  <p style={{
+                    {item1} vs {item2} — ER Analysis
+                  </h3>
+                  <div style={{
                     color: '#fff',
-                    fontSize: '13px',
-                    lineHeight: '1.7',
+                    fontSize: '14px',
+                    lineHeight: '1.8',
                     whiteSpace: 'pre-wrap'
                   }}>
-                    {arbitrageCommentary}
-                  </p>
+                    {result}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h3 style={{
+                    color: '#F4A726',
+                    fontFamily: 'Playfair Display, serif',
+                    fontSize: '18px',
+                    marginBottom: '16px'
+                  }}>
+                    ⚡ AI Arbitrage Commentary
+                  </h3>
+                  <div style={{
+                    color: '#fff',
+                    fontSize: '14px',
+                    lineHeight: '1.8',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {arbitrage}
+                  </div>
                 </div>
               )}
             </div>
-          )}
-
-          {error && (
-            <p style={{
-              color: '#FF5252',
-              marginTop: '12px',
-              fontSize: '13px'
-            }}>{error}</p>
           )}
         </div>
       )}

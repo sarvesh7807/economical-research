@@ -1,5 +1,6 @@
 // client/src/components/EconomicCalendar.jsx
 import React, { useState } from 'react';
+import { callGemini } from '../utils/geminiCaller';
 
 // Generates dynamic dates relative to today
 const getOffsetDate = (days) => {
@@ -23,6 +24,9 @@ const CALENDAR_EVENTS = [
 export default function EconomicCalendar() {
   const [selectedCountry, setSelectedCountry] = useState('All');
   const [selectedImpact, setSelectedImpact] = useState('All');
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [impactAnalysis, setImpactAnalysis] = useState('');
+  const [impactLoading, setImpactLoading] = useState(false);
 
   const countries = ['All', 'India', 'United States', 'United Kingdom', 'Eurozone', 'Japan', 'Germany'];
 
@@ -32,6 +36,43 @@ export default function EconomicCalendar() {
     if (selectedImpact !== 'All' && e.impact !== selectedImpact) return false;
     return true;
   });
+
+  const analyzeEventImpact = async (event) => {
+    setSelectedEvent(event);
+    setImpactLoading(true);
+    setImpactAnalysis('');
+    
+    const result = await callGemini(`
+    You are Economical Research AI.
+    Analyze economic calendar event impact:
+    
+    Event: ${event.title || event.event}
+    Date: ${event.date}
+    Country: ${event.country}
+    
+    ## What Is This Event?
+    [Explain what this economic event means]
+    
+    ## Expected Market Impact
+    Stocks: [impact assessment]
+    Bonds: [impact assessment]
+    Currency: [impact assessment]
+    Commodities: [impact assessment]
+    
+    ## Historical Context
+    [How this event has moved markets historically]
+    
+    ## ER Event Intelligence
+    Impact Level: [HIGH/MEDIUM/LOW]
+    Direction bias: [Bullish/Bearish/Neutral]
+    [2-3 paragraph comprehensive analysis]
+    
+    Write 300-400 words. Never mention Gemini.
+    `, 800);
+    
+    if (result) setImpactAnalysis(result);
+    setImpactLoading(false);
+  };
 
   const getImpactBadgeColor = (impact) => {
     if (impact === 'CRITICAL') return 'bg-red-500/10 border-red-500/30 text-red-400 animate-pulse';
@@ -95,6 +136,49 @@ export default function EconomicCalendar() {
         </span>
       </div>
 
+      {/* Impact Analysis Area */}
+      {selectedEvent && (
+        <div style={{
+          marginTop: '20px',
+          padding: '20px',
+          background: 'rgba(26,58,92,0.5)',
+          border: '1px solid rgba(244,167,38,0.2)',
+          borderRadius: '12px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ color: '#F4A726', margin: 0 }}>
+              📊 Event Impact Analysis: {selectedEvent.title}
+            </h3>
+            <button
+              onClick={() => setSelectedEvent(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255,255,255,0.4)',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          {impactLoading ? (
+            <p style={{ color: '#F4A726' }}>
+              ⏳ Analyzing impact...
+            </p>
+          ) : (
+            <p style={{
+              color: '#fff',
+              fontSize: '14px',
+              lineHeight: '1.8',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {impactAnalysis}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Calendar List */}
       <div className="space-y-4">
         {filteredEvents.length === 0 ? (
@@ -106,11 +190,13 @@ export default function EconomicCalendar() {
           filteredEvents.map(e => (
             <div
               key={e.id}
+              onClick={() => analyzeEventImpact(e)}
               style={{
                 background: 'linear-gradient(135deg, #0A1628 0%, #060D17 100%)',
-                border: '1px solid rgba(244,167,38,0.15)',
+                border: selectedEvent?.id === e.id ? '1px solid #F4A726' : '1px solid rgba(244,167,38,0.15)',
                 borderRadius: '8px',
-                padding: '16px 20px'
+                padding: '16px 20px',
+                cursor: 'pointer'
               }}
               className="hover:border-[#F4A726]/45 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow"
             >

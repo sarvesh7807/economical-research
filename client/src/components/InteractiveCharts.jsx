@@ -113,118 +113,129 @@ export default function InteractiveCharts() {
     }
 
     const dataKeys = selectedCountries;
+    const chartHeight = window.innerWidth < 768 ? 250 : 400;
+    let chartElement = null;
 
     switch (chartType) {
       case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="year" stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dy={10} />
-              <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dx={-5} />
-              <Tooltip
-                contentStyle={{
-                  background: '#0A1628',
-                  border: '1px solid rgba(244,167,38,0.3)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontFamily: 'Inter, sans-serif'
-                }}
+        chartElement = (
+          <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="year" stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dy={10} />
+            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dx={-5} />
+            <Tooltip
+              contentStyle={{
+                background: '#0A1628',
+                border: '1px solid rgba(244,167,38,0.3)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '12px',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            />
+            <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+            {dataKeys.map((key, i) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                strokeWidth={2.5}
+                dot={{ r: 4, strokeWidth: 1 }}
+                activeDot={{ r: 6 }}
               />
-              <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
-              {dataKeys.map((key, i) => (
-                <Line
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                  strokeWidth={2.5}
-                  dot={{ r: 4, strokeWidth: 1 }}
-                  activeDot={{ r: 6 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+            ))}
+          </LineChart>
         );
+        break;
 
       case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="year" stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dy={10} />
-              <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dx={-5} />
-              <Tooltip
-                contentStyle={{
-                  background: '#0A1628',
-                  border: '1px solid rgba(244,167,38,0.3)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontFamily: 'Inter, sans-serif'
-                }}
+        chartElement = (
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="year" stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dy={10} />
+            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dx={-5} />
+            <Tooltip
+              contentStyle={{
+                background: '#0A1628',
+                border: '1px solid rgba(244,167,38,0.3)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '12px',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            />
+            <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+            {dataKeys.map((key, i) => (
+              <Bar
+                key={key}
+                dataKey={key}
+                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                radius={[4, 4, 0, 0]}
               />
-              <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
-              {dataKeys.map((key, i) => (
-                <Bar
-                  key={key}
-                  dataKey={key}
-                  fill={CHART_COLORS[i % CHART_COLORS.length]}
-                  radius={[4, 4, 0, 0]}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+            ))}
+          </BarChart>
         );
+        break;
 
       case 'area':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <defs>
-                {dataKeys.map((key, i) => (
-                  <linearGradient key={key} id={`gradient${i}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0} />
-                  </linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="year" stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dy={10} />
-              <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dx={-5} />
-              <Tooltip
-                contentStyle={{
-                  background: '#0A1628',
-                  border: '1px solid rgba(244,167,38,0.3)',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '12px',
-                  fontFamily: 'Inter, sans-serif'
-                }}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+        chartElement = (
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <defs>
               {dataKeys.map((key, i) => (
-                <Area
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                  fill={`url(#gradient${i})`}
-                  strokeWidth={2.5}
-                />
+                <linearGradient key={key} id={`gradient${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0} />
+                </linearGradient>
               ))}
-            </AreaChart>
-          </ResponsiveContainer>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="year" stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dy={10} />
+            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} fontFamily="IBM Plex Mono, monospace" dx={-5} />
+            <Tooltip
+              contentStyle={{
+                background: '#0A1628',
+                border: '1px solid rgba(244,167,38,0.3)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '12px',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            />
+            <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontFamily: 'Inter, sans-serif' }} />
+            {dataKeys.map((key, i) => (
+              <Area
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                fill={`url(#gradient${i})`}
+                strokeWidth={2.5}
+              />
+            ))}
+          </AreaChart>
         );
+        break;
 
       default:
         return null;
     }
+
+    return (
+      <div style={{
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden'
+      }}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          {chartElement}
+        </ResponsiveContainer>
+      </div>
+    );
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)]">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 text-white font-sans min-h-[calc(100vh-140px)] charts-page">
       {/* Title Header */}
       <div className="border-b border-[#F4A726]/10 pb-5">
         <span className="text-[10px] font-mono font-bold text-[#F4A726] uppercase tracking-widest block mb-1">
@@ -265,18 +276,30 @@ export default function InteractiveCharts() {
             {/* Select Chart Type */}
             <div className="space-y-2">
               <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wide block">Chart Type</label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+                marginBottom: '16px'
+              }}>
                 {['line', 'bar', 'area'].map(type => (
                   <button
                     key={type}
                     onClick={() => setChartType(type)}
-                    className={`py-2 text-[10px] font-mono font-bold uppercase border rounded transition-all cursor-pointer ${
-                      chartType === type
-                        ? 'bg-[#F4A726] border-[#F4A726] text-[#0A1628]'
-                        : 'bg-[#060D17] border-white/5 text-gray-400 hover:text-white hover:border-white/15'
-                    }`}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      background: chartType === type
+                        ? '#F4A726'
+                        : 'rgba(26,58,92,0.5)',
+                      border: `1px solid ${chartType === type ? '#F4A726' : 'rgba(244,167,38,0.2)'}`,
+                      color: chartType === type ? '#0A1628' : '#fff',
+                      fontWeight: '700'
+                    }}
                   >
-                    {type}
+                    {type.toUpperCase()}
                   </button>
                 ))}
               </div>
@@ -285,20 +308,32 @@ export default function InteractiveCharts() {
             {/* Countries check group */}
             <div className="space-y-2">
               <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wide block">Regions (Select 1+)</label>
-              <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-1">
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginBottom: '16px'
+              }}>
                 {AVAILABLE_COUNTRIES.map(country => {
                   const isChecked = selectedCountries.includes(country);
                   return (
                     <button
                       key={country}
                       onClick={() => handleCountryToggle(country)}
-                      className={`px-2 py-1.5 rounded text-[10px] font-semibold border text-left truncate transition-colors cursor-pointer ${
-                        isChecked
-                          ? 'bg-[#F4A726]/10 border-[#F4A726] text-[#F4A726]'
-                          : 'bg-[#060D17] border-white/5 text-gray-400 hover:border-white/15 hover:text-white'
-                      }`}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        background: isChecked
+                          ? 'rgba(244,167,38,0.2)'
+                          : 'rgba(26,58,92,0.5)',
+                        border: `1px solid ${isChecked ? '#F4A726' : 'rgba(244,167,38,0.15)'}`,
+                        color: isChecked ? '#F4A726' : '#fff',
+                        fontWeight: '600'
+                      }}
                     >
-                      {isChecked ? '⭐ ' : ''}{country}
+                      {country}
                     </button>
                   );
                 })}
@@ -318,7 +353,7 @@ export default function InteractiveCharts() {
 
         {/* Right Side: Recharts Plot Display */}
         <div className="lg:col-span-3">
-          <div className="bg-[#0A1628]/40 border border-white/5 rounded-lg p-6 min-h-[460px] flex flex-col justify-center items-center relative overflow-hidden">
+          <div className="bg-[#0A1628]/40 border border-white/5 rounded-lg p-6 min-h-[460px] flex flex-col justify-center items-center relative overflow-hidden chart-container">
             {/* Background elements */}
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#F4A726]/5 rounded-full blur-3xl pointer-events-none"></div>
             
