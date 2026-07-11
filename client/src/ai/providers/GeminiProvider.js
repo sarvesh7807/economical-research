@@ -1,6 +1,6 @@
 import BaseProvider from './BaseProvider.js';
 
-const GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export default class GeminiProvider extends BaseProvider {
