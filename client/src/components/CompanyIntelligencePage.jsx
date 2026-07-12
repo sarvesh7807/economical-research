@@ -18,72 +18,14 @@ export default function CompanyIntelligence() {
     if (!target?.trim()) return
     setLoading(true)
     setReport('')
-    setError('')
     
-    try {
-      const result = await callGemini(`
-      You are Economical Research AI.
-      Write comprehensive company intelligence 
-      report for: ${target}
-      
-      ## Company Overview
-      Full name, founded year, headquarters, 
-      CEO, number of employees.
-      [3 detailed paragraphs]
-      
-      ## Financial Performance
-      Revenue estimate, profit margin, 
-      market cap, recent growth trends.
-      [3 paragraphs with specific numbers]
-      
-      ## Business Model & Revenue Streams
-      How company makes money, key products/services.
-      [3 paragraphs]
-      
-      ## Competitive Position
-      Market share, competitive advantages, 
-      top 5 competitors with comparison.
-      [3 paragraphs]
-      
-      ## SWOT Analysis
-      Strengths: [5 specific points]
-      Weaknesses: [5 specific points]
-      Opportunities: [5 specific points]
-      Threats: [5 specific points]
-      
-      ## Recent Developments (2024-2026)
-      [5 major recent news/developments]
-      
-      ## Risk Assessment
-      Key risks for investors and stakeholders.
-      Risk Level: [Low/Medium/High]
-      [2-3 paragraphs]
-      
-      ## ER Investment Intelligence
-      Rating: [Strong Buy/Buy/Hold/Avoid]
-      Target sentiment: [Bullish/Neutral/Bearish]
-      [3 paragraph comprehensive verdict]
-      
-      ## 12-Month Outlook
-      [Detailed forward-looking analysis]
-      [2-3 paragraphs]
-      
-      Write minimum 800 words.
-      Be specific with data and estimates.
-      Never mention Gemini or AI provider.
-      `, 3000)
-      
-      if (result) {
-        setReport(result)
-      } else {
-        setError('Report generation failed. Please try again.')
-      }
-    } catch(e) {
-      setError('Error generating report.')
-      console.error('Company report error:', e)
-    } finally {
-      setLoading(false)
-    }
+    const result = await callGemini(
+      'Write comprehensive company intelligence report for: ' + target + '\n\nInclude: Overview, Financials, Business Model, Competition, SWOT, Risks, ER Rating, Outlook.\nWrite minimum 500 words. Never mention Gemini.',
+      2500
+    )
+    
+    setReport(result || 'Report generation failed. Please try again.')
+    setLoading(false)
   }
 
   return (
@@ -94,12 +36,7 @@ export default function CompanyIntelligence() {
       minHeight: '100vh',
       background: '#060D17'
     }}>
-      <h1 style={{
-        fontFamily: 'Playfair Display, serif',
-        color: '#fff',
-        fontSize: '28px',
-        marginBottom: '8px'
-      }}>
+      <h1 style={{color: '#fff', fontFamily: 'Playfair Display, serif'}}>
         🏢 Company Intelligence
       </h1>
       <p style={{

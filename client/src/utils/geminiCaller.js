@@ -1,94 +1,75 @@
-const GEMINI_KEYS = [
+const KEYS = [
   import.meta.env.VITE_GEMINI_API_KEY,
   import.meta.env.VITE_GEMINI_API_KEY_2,
   import.meta.env.VITE_GEMINI_API_KEY_3,
   import.meta.env.VITE_GEMINI_API_KEY_4
-].filter(Boolean)
+].filter(k => k && k.length > 10)
 
-console.log('Gemini keys available:', 
-  GEMINI_KEYS.length)
+let idx = 0
 
-let keyIndex = 0
-
-export const callGemini = async (
-  prompt, maxTokens = 2000) => {
-  
-  if (GEMINI_KEYS.length === 0) {
-    console.error('No Gemini API keys found!')
+export async function callGemini(prompt, tokens = 2000) {
+  if (!KEYS.length) {
+    console.error('NO GEMINI KEYS FOUND')
     return null
   }
   
-  const totalKeys = GEMINI_KEYS.length
-  
-  for (let i = 0; i < totalKeys; i++) {
-    const key = GEMINI_KEYS[
-      (keyIndex + i) % totalKeys]
+  for (let attempt = 0; attempt < KEYS.length * 2; attempt++) {
+    const key = KEYS[idx % KEYS.length]
+    idx++
     
-    try {
-      console.log(`Trying Gemini key ${i + 1}...`)
-      
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({
-            contents: [{ 
-              parts: [{ text: prompt }] 
-            }],
-            generationConfig: { 
-              maxOutputTokens: maxTokens,
-              temperature: 0.7
-            }
-          })
+    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+          {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              contents: [{parts: [{text: prompt}]}],
+              generationConfig: {maxOutputTokens: tokens}
+            })
+          }
+        )
+        
+        if (r.status === 429) {
+          await new Promise(res => setTimeout(res, 5000))
+          break
         }
-      )
-      
-      if (res.status === 429) {
-        console.log('Key rate limited, trying next...')
-        await new Promise(r => setTimeout(r, 3000))
-        continue
+        
+        if (r.status === 404) continue
+        
+        if (!r.ok) {
+          const e = await r.json()
+          console.error('API error:', e?.error?.message)
+          continue
+        }
+        
+        const d = await r.json()
+        const text = d?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (text?.length > 5) return text
+        
+      } catch(e) {
+        console.error('Fetch error:', e.message)
       }
-      
-      if (!res.ok) {
-        const err = await res.json()
-        console.error('Gemini error:', err)
-        continue
-      }
-      
-      const data = await res.json()
-      const text = data.candidates?.[0]
-        ?.content?.parts?.[0]?.text
-      
-      if (text) {
-        keyIndex = (keyIndex + i + 1) % totalKeys
-        return text
-      }
-      
-    } catch(e) {
-      console.error('Fetch failed:', e.message)
-      continue
     }
+    
+    await new Promise(res => setTimeout(res, 2000))
   }
   
+  console.error('All Gemini attempts failed')
   return null
 }
 
-export const parseGeminiJSON = (text) => {
+export function parseGeminiJSON(text) {
   if (!text) return null
   try {
-    const cleaned = text
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .trim()
-    const arr = cleaned.match(/\[[\s\S]*\]/)
-    if (arr) return JSON.parse(arr[0])
-    const obj = cleaned.match(/\{[\s\S]*\}/)
-    if (obj) return JSON.parse(obj[0])
-    return null
+    const c = text.replace(/```json/gi,'').replace(/```/g,'').trim()
+    const a = c.match(/\[[\s\S]*\]/)
+    if (a) return JSON.parse(a[0])
+    const o = c.match(/\{[\s\S]*\}/)
+    if (o) return JSON.parse(o[0])
   } catch(e) {
-    return null
+    console.error('JSON parse error:', e.message)
   }
+  return null
 }

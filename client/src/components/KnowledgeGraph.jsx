@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { callGemini, parseGeminiJSON } 
-  from '../utils/geminiCaller'
+import { callGemini, parseGeminiJSON } from '../utils/geminiCaller'
 
 export default function KnowledgeGraph() {
   const [topic, setTopic] = useState('')
@@ -26,45 +25,18 @@ export default function KnowledgeGraph() {
     if (!topic.trim()) return
     setLoading(true)
     setGraphData(null)
-    setSelectedNode(null)
     setError('')
     
-    const result = await callGemini(
-      `Create a knowledge graph for: "${topic}"
-      
-      Return ONLY this JSON structure:
-      {
-        "center": "${topic}",
-        "nodes": [
-          {
-            "id": "1",
-            "label": "Node Name",
-            "type": "country",
-            "description": "2-3 sentence description",
-            "connection": "How this connects to ${topic}"
-          }
-        ]
-      }
-      
-      Rules:
-      - Include exactly 10 nodes
-      - Types must be: country, company, person, 
-        event, policy, market, or indicator
-      - Make nodes highly relevant to "${topic}"
-      - Return ONLY valid JSON, no other text
-      - Start response with {`,
+    const text = await callGemini(
+      'Create knowledge graph for: "' + topic + '"\n\nReturn ONLY this JSON:\n{"center":"' + topic + '","nodes":[{"id":"1","label":"Example","type":"country","description":"Brief description","connection":"How it relates to ' + topic + '"}]}\n\nCreate 10 nodes. Types: country/company/person/event/policy/market/indicator\nReturn ONLY valid JSON.',
       800
     )
     
-    if (result) {
-      const parsed = parseGeminiJSON(result)
-      if (parsed?.nodes?.length > 0) {
-        setGraphData(parsed)
-      } else {
-        setError('Could not parse graph. Try again.')
-      }
+    const parsed = parseGeminiJSON(text)
+    if (parsed?.nodes?.length) {
+      setGraphData(parsed)
     } else {
-      setError('Please try again in a moment.')
+      setError('Try again with a different topic')
     }
     setLoading(false)
   }
