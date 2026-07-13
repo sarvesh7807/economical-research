@@ -41,63 +41,72 @@ export default function CryptoIntelligence() {
   const generateCryptoAnalysis = async (coin) => {
     setLoading(true);
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE crypto intelligence 
-  report for: ${coin}
-  
-  ## Overview & History
-  [Detailed background, creation, purpose]
-  [3-4 paragraphs]
-  
-  ## Technology & Innovation
-  [Blockchain technology, consensus mechanism,
-   scalability, unique features]
-  [3-4 paragraphs]
-  
-  ## Market Analysis
-  [Market cap, trading volume, price history]
-  [3 paragraphs]
-  
-  ## Adoption & Use Cases
-  [Real world usage, institutional adoption]
-  [3 paragraphs]
-  
-  ## Competitive Landscape
-  [Comparison with top 5 competitors]
-  [3 paragraphs]
-  
-  ## Regulatory Environment
-  [How regulations affect this crypto globally]
-  [2-3 paragraphs]
-  
-  ## Risk Assessment
-  Volatility Risk: [High/Very High/Extreme]
-  Regulatory Risk: [assessment]
-  Technical Risk: [assessment]
-  [3 paragraphs]
-  
-  ## ER Crypto Intelligence Verdict
-  Technology Score: [0-100]/100
-  Adoption Score: [0-100]/100
-  Risk Score: [0-100]/100 (lower=safer)
-  
-  Investment Note: [Detailed disclaimer + 
-  balanced assessment]
-  
-  [3-4 paragraph comprehensive verdict]
-  
-  DISCLAIMER at end: This is for educational 
-  purposes only. Crypto is extremely volatile.
-  Not financial advice.
-  
-  Write 700-900 words minimum.
-  Never mention Gemini.
-  `, 3000);
-    
-    if (result) setAnalysis(result);
-    else setAnalysis('Analysis temporarily unavailable. Try again.');
-    setLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE crypto intelligence 
+      report for: ${coin}
+      
+      ## Overview & History
+      [Detailed background, creation, purpose]
+      [3-4 paragraphs]
+      
+      ## Technology & Innovation
+      [Blockchain technology, consensus mechanism,
+       scalability, unique features]
+      [3-4 paragraphs]
+      
+      ## Market Analysis
+      [Market cap, trading volume, price history]
+      [3 paragraphs]
+      
+      ## Adoption & Use Cases
+      [Real world usage, institutional adoption]
+      [3 paragraphs]
+      
+      ## Competitive Landscape
+      [Comparison with top 5 competitors]
+      [3 paragraphs]
+      
+      ## Regulatory Environment
+      [How regulations affect this crypto globally]
+      [2-3 paragraphs]
+      
+      ## Risk Assessment
+      Volatility Risk: [High/Very High/Extreme]
+      Regulatory Risk: [assessment]
+      Technical Risk: [assessment]
+      [3 paragraphs]
+      
+      ## ER Crypto Intelligence Verdict
+      Technology Score: [0-100]/100
+      Adoption Score: [0-100]/100
+      Risk Score: [0-100]/100 (lower=safer)
+      
+      Investment Note: [Detailed disclaimer + 
+      balanced assessment]
+      
+      [3-4 paragraph comprehensive verdict]
+      
+      DISCLAIMER at end: This is for educational 
+      purposes only. Crypto is extremely volatile.
+      Not financial advice.
+      
+      Write 700-900 words minimum.
+      Never mention Gemini.
+      `, 3000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setAnalysis(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setAnalysis('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
 

@@ -102,9 +102,14 @@ export default function ERTerminal() {
         return;
       }
 
-      const result = await callGemini(prompt, 400);
+      const result = await Promise.race([
+        callGemini(prompt, 400),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
       if (result) addOutput('result', result);
-      else addOutput('error', 'Command failed. Retry.');
+      else addOutput('error', 'Service busy. Please try again in 2 minutes.');
     } catch (e) {
       addOutput('error', 'Command failed. Retry.');
     } finally {

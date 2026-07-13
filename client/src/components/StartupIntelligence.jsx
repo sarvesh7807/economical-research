@@ -32,84 +32,90 @@ export default function StartupIntelligence({ theme }) {
     setLoading(true);
     setReport('');
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE startup intelligence 
-  report for: ${target}
-  
-  ## Company Overview
-  Founded: [year] | HQ: [location]
-  Founders: [names]
-  CEO: [name]
-  Sector: [industry]
-  Stage: [funding stage]
-  
-  [3-4 paragraphs detailed overview]
-  
-  ## Business Model & Revenue
-  [Detailed analysis of how they make money]
-  [3 paragraphs]
-  
-  ## Funding History & Investors
-  Total raised: [estimate]
-  Key funding rounds: [list with amounts]
-  Major investors: [list with details]
-  Last valuation: [estimate]
-  [2-3 paragraphs]
-  
-  ## Product & Technology
-  [Detailed product analysis]
-  [2-3 paragraphs]
-  
-  ## Market Opportunity
-  Total addressable market: [estimate]
-  Market position: [assessment]
-  [2-3 paragraphs]
-  
-  ## Growth Metrics & Performance
-  [Revenue, users, growth rate estimates]
-  [2-3 paragraphs]
-  
-  ## Competitive Analysis
-  [Detailed competitor comparison]
-  Top 5 competitors with analysis
-  [3 paragraphs]
-  
-  ## SWOT Analysis
-  Strengths: [5 detailed points]
-  Weaknesses: [5 detailed points]
-  Opportunities: [5 detailed points]
-  Threats: [5 detailed points]
-  
-  ## Management Team
-  [Key executives and their backgrounds]
-  [2 paragraphs]
-  
-  ## Risks & Challenges
-  [Detailed risk assessment]
-  [2-3 paragraphs]
-  
-  ## ER Startup Rating
-  Viability Score: [0-100]/100
-  Growth Potential: [High/Medium/Low]
-  Investment Appeal: [Strong/Moderate/Weak]
-  
-  [3-4 paragraph final verdict]
-  
-  ## 12-Month Outlook
-  [Detailed forecast]
-  [2-3 paragraphs]
-  
-  Write 900-1200 words minimum.
-  Never mention Gemini.
-  `, 3500);
-    
-    if (result) {
-      setReport(result);
-    } else {
-      setReport('Report failed. Please try again.');
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE startup intelligence 
+      report for: ${target}
+      
+      ## Company Overview
+      Founded: [year] | HQ: [location]
+      Founders: [names]
+      CEO: [name]
+      Sector: [industry]
+      Stage: [funding stage]
+      
+      [3-4 paragraphs detailed overview]
+      
+      ## Business Model & Revenue
+      [Detailed analysis of how they make money]
+      [3 paragraphs]
+      
+      ## Funding History & Investors
+      Total raised: [estimate]
+      Key funding rounds: [list with amounts]
+      Major investors: [list with details]
+      Last valuation: [estimate]
+      [2-3 paragraphs]
+      
+      ## Product & Technology
+      [Detailed product analysis]
+      [2-3 paragraphs]
+      
+      ## Market Opportunity
+      Total addressable market: [estimate]
+      Market position: [assessment]
+      [2-3 paragraphs]
+      
+      ## Growth Metrics & Performance
+      [Revenue, users, growth rate estimates]
+      [2-3 paragraphs]
+      
+      ## Competitive Analysis
+      [Detailed competitor comparison]
+      Top 5 competitors with analysis
+      [3 paragraphs]
+      
+      ## SWOT Analysis
+      Strengths: [5 detailed points]
+      Weaknesses: [5 detailed points]
+      Opportunities: [5 detailed points]
+      Threats: [5 detailed points]
+      
+      ## Management Team
+      [Key executives and their backgrounds]
+      [2 paragraphs]
+      
+      ## Risks & Challenges
+      [Detailed risk assessment]
+      [2-3 paragraphs]
+      
+      ## ER Startup Rating
+      Viability Score: [0-100]/100
+      Growth Potential: [High/Medium/Low]
+      Investment Appeal: [Strong/Moderate/Weak]
+      
+      [3-4 paragraph final verdict]
+      
+      ## 12-Month Outlook
+      [Detailed forecast]
+      [2-3 paragraphs]
+      
+      Write 900-1200 words minimum.
+      Never mention Gemini.
+      `, 3500),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setReport(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setReport('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
 

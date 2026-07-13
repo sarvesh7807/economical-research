@@ -74,7 +74,16 @@ export default function InteractiveCharts() {
       No explanation or text outside of the JSON array.
       `;
 
-      const response = await callGemini(prompt, 2000);
+      const response = await Promise.race([
+        callGemini(prompt, 2000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      if (!response) {
+        throw new Error('Service busy or timed out');
+      }
       
       // Extract array from markdown codeblock if present
       const cleaned = response

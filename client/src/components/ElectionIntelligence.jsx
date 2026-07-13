@@ -34,62 +34,71 @@ export default function ElectionIntelligence({ theme }) {
     setLoading(true);
     setReport('');
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE election intelligence 
-  report for: ${target}
-  
-  ## Political System Overview
-  [Detailed description of political system]
-  [3-4 paragraphs]
-  
-  ## Current Government
-  [Current leadership, policies, performance]
-  [3 paragraphs]
-  
-  ## Major Political Parties
-  [Detailed analysis of top 4-5 parties]
-  [4-5 paragraphs]
-  
-  ## Upcoming Elections
-  Date: [when]
-  Type: [what kind]
-  Key issues: [list of main issues]
-  [3 paragraphs]
-  
-  ## Economic Policy Comparison
-  [How different parties approach economy]
-  [3-4 paragraphs]
-  
-  ## Election Outlook & Polling
-  [Current polling trends and analysis]
-  [3 paragraphs]
-  
-  ## Market & Investment Impact
-  [How different outcomes affect markets]
-  [3-4 paragraphs]
-  
-  ## Political Risk Assessment
-  Risk Level: [Low/Medium/High/Critical]
-  Key risk factors: [detailed list]
-  [2-3 paragraphs]
-  
-  ## Historical Context
-  [Recent election history and patterns]
-  [2-3 paragraphs]
-  
-  ## ER Political Intelligence Verdict
-  Stability Score: [0-100]/100
-  Investment Climate: [assessment]
-  [3-4 paragraph comprehensive conclusion]
-  
-  Write 900-1100 words minimum.
-  Never mention Gemini.
-  `, 3500);
-    
-    if (result) setReport(result);
-    else setReport('Report failed. Please try again.');
-    setLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE election intelligence 
+      report for: ${target}
+      
+      ## Political System Overview
+      [Detailed description of political system]
+      [3-4 paragraphs]
+      
+      ## Current Government
+      [Current leadership, policies, performance]
+      [3 paragraphs]
+      
+      ## Major Political Parties
+      [Detailed analysis of top 4-5 parties]
+      [4-5 paragraphs]
+      
+      ## Upcoming Elections
+      Date: [when]
+      Type: [what kind]
+      Key issues: [list of main issues]
+      [3 paragraphs]
+      
+      ## Economic Policy Comparison
+      [How different parties approach economy]
+      [3-4 paragraphs]
+      
+      ## Election Outlook & Polling
+      [Current polling trends and analysis]
+      [3 paragraphs]
+      
+      ## Market & Investment Impact
+      [How different outcomes affect markets]
+      [3-4 paragraphs]
+      
+      ## Political Risk Assessment
+      Risk Level: [Low/Medium/High/Critical]
+      Key risk factors: [detailed list]
+      [2-3 paragraphs]
+      
+      ## Historical Context
+      [Recent election history and patterns]
+      [2-3 paragraphs]
+      
+      ## ER Political Intelligence Verdict
+      Stability Score: [0-100]/100
+      Investment Climate: [assessment]
+      [3-4 paragraph comprehensive conclusion]
+      
+      Write 900-1100 words minimum.
+      Never mention Gemini.
+      `, 3500),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setReport(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setReport('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
 

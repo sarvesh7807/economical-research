@@ -28,95 +28,106 @@ export default function CountryIntelligencePage({ setView, defaultCountry }) {
     setLoading(true);
     setReportText('');
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate a COMPREHENSIVE and DETAILED 
-  country intelligence report for: ${countryName}
-  
-  Write a LONG, DETAILED report covering:
-  
-  ## Executive Summary
-  [3-4 paragraphs overview]
-  
-  ## Economic Overview
-  GDP: [estimate with year]
-  GDP Growth Rate: [%]
-  GDP Per Capita: [estimate]
-  Inflation Rate: [%]
-  Unemployment: [%]
-  Currency: [name and recent performance]
-  
-  [3-4 paragraphs of economic analysis]
-  
-  ## Political Landscape
-  Government type: [type]
-  Current leadership: [leader, party]
-  Political stability: [assessment]
-  [2-3 paragraphs]
-  
-  ## Trade & Investment
-  Major exports: [list top 5]
-  Major imports: [list top 5]
-  Top trading partners: [list top 5]
-  FDI inflows: [estimate]
-  [2-3 paragraphs]
-  
-  ## Key Industries & Sectors
-  [Top 5 industries with detailed analysis]
-  [3-4 paragraphs]
-  
-  ## Demographics & Social
-  Population: [number]
-  Median age: [age]
-  Urbanization: [%]
-  Literacy rate: [%]
-  [2 paragraphs]
-  
-  ## Infrastructure & Technology
-  [Assessment of key infrastructure]
-  [2 paragraphs]
-  
-  ## Investment Climate
-  Ease of doing business: [rank/assessment]
-  Key investment opportunities: [list]
-  Key risks: [list]
-  [2-3 paragraphs]
-  
-  ## ER Country Rating
-  Economic Score: [0-100]/100
-  Political Risk: [Low/Medium/High]
-  Investment Rating: [AAA to CCC]
-  Overall Assessment: [2-3 paragraphs]
-  
-  ## 12-Month Outlook
-  [Detailed 3-4 paragraph forecast]
-  
-  Write at least 800-1000 words.
-  Be specific with data and analysis.
-  Professional tone like The Economist.
-  Never mention Gemini or AI provider.
-  `, 3000);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate a COMPREHENSIVE and DETAILED 
+      country intelligence report for: ${countryName}
+      
+      Write a LONG, DETAILED report covering:
+      
+      ## Executive Summary
+      [3-4 paragraphs overview]
+      
+      ## Economic Overview
+      GDP: [estimate with year]
+      GDP Growth Rate: [%]
+      GDP Per Capita: [estimate]
+      Inflation Rate: [%]
+      Unemployment: [%]
+      Currency: [name and recent performance]
+      
+      [3-4 paragraphs of economic analysis]
+      
+      ## Political Landscape
+      Government type: [type]
+      Current leadership: [leader, party]
+      Political stability: [assessment]
+      [2-3 paragraphs]
+      
+      ## Trade & Investment
+      Major exports: [list top 5]
+      Major imports: [list top 5]
+      Top trading partners: [list top 5]
+      FDI inflows: [estimate]
+      [2-3 paragraphs]
+      
+      ## Key Industries & Sectors
+      [Top 5 industries with detailed analysis]
+      [3-4 paragraphs]
+      
+      ## Demographics & Social
+      Population: [number]
+      Legal age: [age]
+      Urbanization: [%]
+      Literacy rate: [%]
+      [2 paragraphs]
+      
+      ## Infrastructure & Technology
+      [Assessment of key infrastructure]
+      [2 paragraphs]
+      
+      ## Investment Climate
+      Ease of doing business: [rank/assessment]
+      Key investment opportunities: [list]
+      Key risks: [list]
+      [2-3 paragraphs]
+      
+      ## ER Country Rating
+      Economic Score: [0-100]/100
+      Political Risk: [Low/Medium/High]
+      Investment Rating: [AAA to CCC]
+      Overall Assessment: [2-3 paragraphs]
+      
+      ## 12-Month Outlook
+      [Detailed 3-4 paragraph forecast]
+      
+      Write at least 800-1000 words.
+      Be specific with data and analysis.
+      Professional tone like The Economist.
+      Never mention Gemini or AI provider.
+      `, 3000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
 
-    if (result) {
-      setReportText(result);
-      // Auto-save to Research Memory
-      try {
-        await addDoc(collection(db, 'er_research_reports'), {
-          userId: 'guest',
-          query: `${countryName} Country Report`,
-          title: `${countryName} Sovereignty Briefing`,
-          report: result,
-          createdAt: new Date().toISOString(),
-          isFavorite: false,
-          tags: ['country', 'sovereign']
-        });
-      } catch (fsErr) {
-        console.error('Failed to auto-save to research library:', fsErr);
+      if (result) {
+        setReportText(result);
+        // Auto-save to Research Memory
+        try {
+          await addDoc(collection(db, 'er_research_reports'), {
+            userId: 'guest',
+            query: `${countryName} Country Report`,
+            title: `${countryName} Sovereignty Briefing`,
+            report: result,
+            createdAt: new Date().toISOString(),
+            isFavorite: false,
+            tags: ['country', 'sovereign']
+          });
+        } catch (fsErr) {
+          console.error('Failed to auto-save to research library:', fsErr);
+        }
+      } else {
+        setReportText('Service busy. Please try again in 2 minutes.');
       }
-    } else {
-      setReportText('Sovereignty data retrieval failed. Live data temporarily unavailable.');
+    } catch (e) {
+      console.error(e);
+      setReportText('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {

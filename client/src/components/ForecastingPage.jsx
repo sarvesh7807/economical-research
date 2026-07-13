@@ -92,30 +92,40 @@ export default function ForecastingPage({ setView }) {
     `;
 
     try {
-      const response = await callGemini(prompt, 2000);
-      setForecastText(response);
+      const response = await Promise.race([
+        callGemini(prompt, 2000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
       
-      // Attempt to parse JSON block
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          const parsed = JSON.parse(jsonMatch[1].trim());
-          setParsedForecast(parsed);
-        } catch (e) {
-          console.error("Failed to parse forecast JSON block:", e);
+      if (response) {
+        setForecastText(response);
+        
+        // Attempt to parse JSON block
+        const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const parsed = JSON.parse(jsonMatch[1].trim());
+            setParsedForecast(parsed);
+          } catch (e) {
+            console.error("Failed to parse forecast JSON block:", e);
+          }
         }
-      }
 
-      if (user) {
-        try {
-          await trackUserResearch(user.uid, `${selectedCountry} ${selectedIndicator.name}`);
-        } catch (err) {
-          console.error('Failed to track forecast research:', err);
+        if (user) {
+          try {
+            await trackUserResearch(user.uid, `${selectedCountry} ${selectedIndicator.name}`);
+          } catch (err) {
+            console.error('Failed to track forecast research:', err);
+          }
         }
+      } else {
+        setForecastText('Service busy. Please try again in 2 minutes.');
       }
     } catch (err) {
       console.error(err);
-      setForecastText('Failed to generate forecast. Please try again.');
+      setForecastText('Error occurred. Please try again.');
     } finally {
       setForecastLoading(false);
     }
@@ -157,20 +167,31 @@ export default function ForecastingPage({ setView }) {
     `;
 
     try {
-      const response = await callGemini(prompt, 2500);
-      setRecessionRaw(response);
+      const response = await Promise.race([
+        callGemini(prompt, 2500),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      if (response) {
+        setRecessionRaw(response);
 
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          const parsed = JSON.parse(jsonMatch[1].trim());
-          setRecessionData(parsed);
-        } catch (e) {
-          console.error("Failed to parse recession JSON block:", e);
+        const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const parsed = JSON.parse(jsonMatch[1].trim());
+            setRecessionData(parsed);
+          } catch (e) {
+            console.error("Failed to parse recession JSON block:", e);
+          }
         }
+      } else {
+        setRecessionRaw('Service busy. Please try again in 2 minutes.');
       }
     } catch (err) {
       console.error(err);
+      setRecessionRaw('Error occurred. Please try again.');
     } finally {
       setRecessionLoading(false);
     }

@@ -26,81 +26,92 @@ export default function ESGIntelligence({ theme }) {
     setEsgReport('');
     setScores(null);
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE ESG Intelligence 
-  Report for: ${company}
-  
-  ## ESG Executive Summary
-  [3-4 paragraphs overview]
-  
-  ## Environmental Performance (Score: X/100)
-  Carbon emissions: [detailed assessment]
-  Renewable energy: [detailed]
-  Waste management: [detailed]
-  Water usage: [detailed]
-  Climate strategy: [detailed]
-  [3-4 paragraphs]
-  
-  ## Social Performance (Score: X/100)  
-  Employee welfare: [detailed]
-  Diversity & inclusion: [detailed]
-  Community impact: [detailed]
-  Supply chain ethics: [detailed]
-  Customer satisfaction: [detailed]
-  [3-4 paragraphs]
-  
-  ## Governance Performance (Score: X/100)
-  Board structure: [detailed]
-  Executive compensation: [detailed]
-  Shareholder rights: [detailed]
-  Transparency: [detailed]
-  Anti-corruption: [detailed]
-  [3-4 paragraphs]
-  
-  ## ESG Risks & Controversies
-  [Detailed assessment of ESG risks]
-  [2-3 paragraphs]
-  
-  ## ESG Improvement Roadmap
-  [Specific recommendations]
-  [2-3 paragraphs]
-  
-  ## ER ESG Verdict
-  Overall Score: [0-100]/100
-  Rating: [AAA/AA/A/BBB/BB/B/CCC]
-  Grade: [Excellent/Good/Average/Poor]
-  
-  [2-3 paragraphs final assessment]
-  
-  Also include at the END this JSON block:
-  ===SCORES===
-  {"environmental": 75, "social": 80, 
-   "governance": 70, "overall": 75, 
-   "rating": "A"}
-  ===END===
-  
-  Write 800-1000 words minimum.
-  Never mention Gemini.
-  `, 3000);
-    
-    if (result) {
-      const scoreMatch = result.match(
-        /===SCORES===([\s\S]*?)===END===/
-      );
-      if (scoreMatch) {
-        try {
-          const scoreData = JSON.parse(scoreMatch[1].trim());
-          setScores(scoreData);
-        } catch(e) {
-          console.error('Score parse error:', e);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE ESG Intelligence 
+      Report for: ${company}
+      
+      ## ESG Executive Summary
+      [3-4 paragraphs overview]
+      
+      ## Environmental Performance (Score: X/100)
+      Carbon emissions: [detailed assessment]
+      Renewable energy: [detailed]
+      Waste management: [detailed]
+      Water usage: [detailed]
+      Climate strategy: [detailed]
+      [3-4 paragraphs]
+      
+      ## Social Performance (Score: X/100)  
+      Employee welfare: [detailed]
+      Diversity & inclusion: [detailed]
+      Community impact: [detailed]
+      Supply chain ethics: [detailed]
+      Customer satisfaction: [detailed]
+      [3-4 paragraphs]
+      
+      ## Governance Performance (Score: X/100)
+      Board structure: [detailed]
+      Executive compensation: [detailed]
+      Shareholder rights: [detailed]
+      Transparency: [detailed]
+      Anti-corruption: [detailed]
+      [3-4 paragraphs]
+      
+      ## ESG Risks & Controversies
+      [Detailed assessment of ESG risks]
+      [2-3 paragraphs]
+      
+      ## ESG Improvement Roadmap
+      [Specific recommendations]
+      [2-3 paragraphs]
+      
+      ## ER ESG Verdict
+      Overall Score: [0-100]/100
+      Rating: [AAA/AA/A/BBB/BB/B/CCC]
+      Grade: [Excellent/Good/Average/Poor]
+      
+      [2-3 paragraphs final assessment]
+      
+      Also include at the END this JSON block:
+      ===SCORES===
+      {"environmental": 75, "social": 80, 
+       "governance": 70, "overall": 75, 
+       "rating": "A"}
+      ===END===
+      
+      Write 800-1000 words minimum.
+      Never mention Gemini.
+      `, 3000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      if (result) {
+        const scoreMatch = result.match(
+          /===SCORES===([\s\S]*?)===END===/
+        );
+        if (scoreMatch) {
+          try {
+            const scoreData = JSON.parse(scoreMatch[1].trim());
+            setScores(scoreData);
+          } catch(e) {
+            console.error('Score parse error:', e);
+          }
         }
+        setEsgReport(result.replace(/===SCORES===[\s\S]*?===END===/g, '').trim());
+      } else {
+        setEsgReport('Service busy. Please try again in 2 minutes.');
       }
-      setEsgReport(result.replace(/===SCORES===[\s\S]*?===END===/g, '').trim());
-    } else {
-      setEsgReport('Report generation failed. Please try again.');
+    } catch (e) {
+      console.error(e);
+      setEsgReport('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
 

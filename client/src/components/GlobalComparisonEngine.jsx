@@ -37,7 +37,9 @@ export default function GlobalComparisonEngine() {
     setResult('');
     setArbitrage('');
     
-    const resultText = await callGemini(`
+    try {
+      const resultText = await Promise.race([
+        callGemini(`
     You are Economical Research AI.
     Create comprehensive comparison report:
     
@@ -74,19 +76,30 @@ export default function GlobalComparisonEngine() {
     
     Write 600-800 words minimum.
     Never mention Gemini.
-    `, 3000);
-    
-    if (resultText) {
-      setResult(resultText);
-      generateArbitrage(resultText);
-    } else {
-      setResult('Comparison failed. Please try again.');
+    `, 3000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      if (resultText) {
+        setResult(resultText);
+        generateArbitrage(resultText);
+      } else {
+        setResult('Service busy. Please try again in 2 minutes.');
+      }
+    } catch (e) {
+      console.error(e);
+      setResult('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const generateArbitrage = async (compResult) => {
-    const arb = await callGemini(`
+    try {
+      const arb = await Promise.race([
+        callGemini(`
     Based on comparison of ${item1} vs ${item2}:
     ${compResult?.slice(0, 500)}
     
@@ -106,9 +119,16 @@ export default function GlobalComparisonEngine() {
     Choose ${item2} if: [specific conditions]
     
     Max 200 words. Never mention Gemini.
-    `, 500);
-    
-    if (arb) setArbitrage(arb);
+    `, 500),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      if (arb) setArbitrage(arb);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const quickCompares = [

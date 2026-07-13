@@ -18,10 +18,10 @@ export async function callGemini(prompt, tokens = 2000) {
     idx++
     
     for (const model of [
+      'gemini-2.0-flash-exp',
       'gemini-2.0-flash',
-      'gemini-1.5-flash-latest', 
-      'gemini-2.5-flash',
-      'gemini-2.0-flash-lite'
+      'gemini-1.5-flash-latest',
+      'gemini-2.5-flash'
     ]) {
       try {
         const r = await fetch(

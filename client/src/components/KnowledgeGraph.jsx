@@ -27,18 +27,29 @@ export default function KnowledgeGraph() {
     setGraphData(null)
     setError('')
     
-    const text = await callGemini(
-      'Create knowledge graph for: "' + topic + '"\n\nReturn ONLY this JSON:\n{"center":"' + topic + '","nodes":[{"id":"1","label":"Example","type":"country","description":"Brief description","connection":"How it relates to ' + topic + '"}]}\n\nCreate 10 nodes. Types: country/company/person/event/policy/market/indicator\nReturn ONLY valid JSON.',
-      800
-    )
-    
-    const parsed = parseGeminiJSON(text)
-    if (parsed?.nodes?.length) {
-      setGraphData(parsed)
-    } else {
-      setError('Try again with a different topic')
+    try {
+      const text = await Promise.race([
+        callGemini(
+          'Create knowledge graph for: "' + topic + '"\n\nReturn ONLY this JSON:\n{"center":"' + topic + '","nodes":[{"id":"1","label":"Example","type":"country","description":"Brief description","connection":"How it relates to ' + topic + '"}]}\n\nCreate 10 nodes. Types: country/company/person/event/policy/market/indicator\nReturn ONLY valid JSON.',
+          800
+        ),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      const parsed = parseGeminiJSON(text)
+      if (parsed?.nodes?.length) {
+        setGraphData(parsed)
+      } else {
+        setError('Try again with a different topic')
+      }
+    } catch (e) {
+      console.error(e)
+      setError('Error occurred. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const suggestions = [

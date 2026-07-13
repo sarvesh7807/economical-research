@@ -37,54 +37,63 @@ export default function ForexIntelligence() {
   const generateForexAnalysis = async () => {
     setAnalysisLoading(true);
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE forex analysis 
-  for: ${baseCurrency}
-  
-  ## Currency Overview
-  [Detailed history and characteristics]
-  [3 paragraphs]
-  
-  ## Economic Fundamentals
-  [Interest rates, inflation, GDP of 
-   issuing country]
-  [3-4 paragraphs]
-  
-  ## Technical Analysis
-  [Recent trend analysis and key levels]
-  [2-3 paragraphs]
-  
-  ## Major Pairs Deep Dive
-  ${baseCurrency}/USD: [detailed analysis]
-  ${baseCurrency}/EUR: [detailed analysis]
-  ${baseCurrency}/GBP: [detailed analysis]
-  ${baseCurrency}/JPY: [detailed analysis]
-  [4-5 paragraphs]
-  
-  ## Central Bank Policy
-  [Current monetary policy and outlook]
-  [2-3 paragraphs]
-  
-  ## Geopolitical Factors
-  [How global events affect this currency]
-  [2 paragraphs]
-  
-  ## ER Forex Outlook
-  1-3 Month: [detailed prediction]
-  3-6 Month: [detailed prediction]
-  6-12 Month: [detailed prediction]
-  
-  Key risk factors: [detailed list]
-  [3-4 paragraphs]
-  
-  Write 700-900 words minimum.
-  Never mention Gemini.
-  `, 3000);
-    
-    if (result) setAnalysis(result);
-    else setAnalysis('Analysis temporarily unavailable. Please try again in 30 seconds.');
-    setAnalysisLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE forex analysis 
+      for: ${baseCurrency}
+      
+      ## Currency Overview
+      [Detailed history and characteristics]
+      [3 paragraphs]
+      
+      ## Economic Fundamentals
+      [Interest rates, inflation, GDP of 
+       issuing country]
+      [3-4 paragraphs]
+      
+      ## Technical Analysis
+      [Recent trend analysis and key levels]
+      [2-3 paragraphs]
+      
+      ## Major Pairs Deep Dive
+      ${baseCurrency}/USD: [detailed analysis]
+      ${baseCurrency}/EUR: [detailed analysis]
+      ${baseCurrency}/GBP: [detailed analysis]
+      ${baseCurrency}/JPY: [detailed analysis]
+      [4-5 paragraphs]
+      
+      ## Central Bank Policy
+      [Current monetary policy and outlook]
+      [2-3 paragraphs]
+      
+      ## Geopolitical Factors
+      [How global events affect this currency]
+      [2 paragraphs]
+      
+      ## ER Forex Outlook
+      1-3 Month: [detailed prediction]
+      3-6 Month: [detailed prediction]
+      6-12 Month: [detailed prediction]
+      
+      Key risk factors: [detailed list]
+      [3-4 paragraphs]
+      
+      Write 700-900 words minimum.
+      Never mention Gemini.
+      `, 3000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setAnalysis(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setAnalysis('Error occurred. Please try again.');
+    } finally {
+      setAnalysisLoading(false);
+    }
   };
 
 

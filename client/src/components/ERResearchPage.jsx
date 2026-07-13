@@ -334,9 +334,20 @@ export default function ERResearchPage() {
     Never mention Gemini or any AI provider.
     `;
 
-    const answer = await callGemini(contextPrompt, 1000);
-    setFollowUpAnswer(answer || 'Sorry, I encountered an issue retrieving the response.');
-    setFollowUpLoading(false);
+    try {
+      const answer = await Promise.race([
+        callGemini(contextPrompt, 1000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setFollowUpAnswer(answer || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setFollowUpAnswer('Error occurred. Please try again.');
+    } finally {
+      setFollowUpLoading(false);
+    }
   };
 
   return (

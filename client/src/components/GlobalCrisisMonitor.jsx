@@ -22,7 +22,9 @@ export default function GlobalCrisisMonitor({ theme }) {
   const loadCurrentCrises = async () => {
     setLoadingList(true);
     
-    const result = await callGemini(`
+    try {
+      const result = await Promise.race([
+        callGemini(`
       List current global economic and geopolitical crises as of 2025-2026.
       
       Return ONLY JSON:
@@ -39,13 +41,21 @@ export default function GlobalCrisisMonitor({ theme }) {
       
       Include 8-10 current crises.
       Only JSON, no text outside.
-      `, 800);
-    
-    const parsed = parseGeminiJSON(result);
-    if (parsed && Array.isArray(parsed)) {
-      setCrises(parsed);
+      `, 800),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      const parsed = parseGeminiJSON(result);
+      if (parsed && Array.isArray(parsed)) {
+        setCrises(parsed);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingList(false);
     }
-    setLoadingList(false);
   };
 
   useEffect(() => {
@@ -57,62 +67,72 @@ export default function GlobalCrisisMonitor({ theme }) {
     setAnalysis('');
     setLoading(true);
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE crisis analysis for:
-  Crisis: ${crisis.name}
-  Region: ${crisis.region}
-  Type: ${crisis.type}
-  Severity: ${crisis.severity}
-  
-  ## Crisis Background & Timeline
-  [Detailed history and how crisis developed]
-  [3-4 paragraphs]
-  
-  ## Current Situation (2025-2026)
-  [Current state of the crisis]
-  [3 paragraphs]
-  
-  ## Economic Impact Analysis
-  [Detailed economic consequences]
-  [3-4 paragraphs]
-  
-  ## Market & Investment Implications
-  [Stock markets, bonds, currencies, commodities]
-  [3 paragraphs]
-  
-  ## Affected Countries & Regions
-  [Detailed analysis of who is most impacted]
-  [2-3 paragraphs]
-  
-  ## International Response
-  [What world leaders, UN, IMF are doing]
-  [2 paragraphs]
-  
-  ## Humanitarian Impact
-  [Human cost and social consequences]
-  [2 paragraphs]
-  
-  ## Resolution Scenarios
-  Best case: [detailed]
-  Most likely: [detailed]
-  Worst case: [detailed]
-  Timeline: [assessment]
-  [3-4 paragraphs]
-  
-  ## ER Crisis Assessment
-  Severity: ${crisis.severity}
-  Economic Impact Score: [0-100]
-  Resolution Probability (12mo): [0-100]%
-  [3-4 paragraph comprehensive verdict]
-  
-  Write 900-1100 words minimum.
-  Never mention Gemini.
-  `, 3500);
-    
-    if (result) setAnalysis(result);
-    else setAnalysis('Analysis failed. Please try again.');
-    setLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE crisis analysis for:
+      Crisis: ${crisis.name}
+      Region: ${crisis.region}
+      Type: ${crisis.type}
+      Severity: ${crisis.severity}
+      
+      ## Crisis Background & Timeline
+      [Detailed history and how crisis developed]
+      [3-4 paragraphs]
+      
+      ## Current Situation (2025-2026)
+      [Current state of the crisis]
+      [3 paragraphs]
+      
+      ## Economic Impact Analysis
+      [Detailed economic consequences]
+      [3-4 paragraphs]
+      
+      ## Market & Investment Implications
+      [Stock markets, bonds, currencies, commodities]
+      [3 paragraphs]
+      
+      ## Affected Countries & Regions
+      [Detailed analysis of who is most impacted]
+      [2-3 paragraphs]
+      
+      ## International Response
+      [What world leaders, UN, IMF are doing]
+      [2 paragraphs]
+      
+      ## Humanitarian Impact
+      [Human cost and social consequences]
+      [2 paragraphs]
+      
+      ## Resolution Scenarios
+      Best case: [detailed]
+      Most likely: [detailed]
+      Worst case: [detailed]
+      Timeline: [assessment]
+      [3-4 paragraphs]
+      
+      ## ER Crisis Assessment
+      Severity: ${crisis.severity}
+      Economic Impact Score: [0-100]
+      Resolution Probability (12mo): [0-100]%
+      [3-4 paragraph comprehensive verdict]
+      
+      Write 900-1100 words minimum.
+      Never mention Gemini.
+      `, 3500),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      setAnalysis(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setAnalysis('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
 

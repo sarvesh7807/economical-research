@@ -402,19 +402,30 @@ ${citations.map((c, i) => `[${i+1}] ${c.text}`).join('\n')}
     setShowKeyFindings(true);
     setKeyFindings('');
     setKeyFindingsLoading(true);
-    const result = await callGemini(`
-    Extract exactly 7 key findings from:
-    ${reportText.slice(0, 2000)}
-    
-    Format as numbered list:
-    1. [Key finding with specific data]
-    2. [Key finding with specific data]
-    ... (7 total)
-    
-    Be specific and data-driven.
-    `, 600);
-    if (result) setKeyFindings(result);
-    setKeyFindingsLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+        Extract exactly 7 key findings from:
+        ${reportText.slice(0, 2000)}
+        
+        Format as numbered list:
+        1. [Key finding with specific data]
+        2. [Key finding with specific data]
+        ... (7 total)
+        
+        Be specific and data-driven.
+        `, 600),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setKeyFindings(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setKeyFindings('Error occurred. Please try again.');
+    } finally {
+      setKeyFindingsLoading(false);
+    }
   };
 
   // FIX 5 - Save button (active)

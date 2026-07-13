@@ -46,11 +46,16 @@ export default function AIPodcast() {
       Never mention Gemini or Google AI.
       `;
 
-      const result = await callGemini(prompt, 2000);
-      setScript(result);
+      const result = await Promise.race([
+        callGemini(prompt, 2000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setScript(result || 'Service busy. Please try again in 2 minutes.');
     } catch (e) {
       console.error('Podcast error:', e);
-      setScript('Error generating podcast briefing. Please try again.');
+      setScript('Error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

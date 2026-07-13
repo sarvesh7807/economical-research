@@ -68,21 +68,30 @@ export default function DebatePage({ setView }) {
     `;
 
     try {
-      const response = await callGemini(prompt, 2000);
-      setDebateText(response);
-
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
-      if (jsonMatch && jsonMatch[1]) {
-        try {
-          const parsed = JSON.parse(jsonMatch[1].trim());
-          setParsedConsensus(parsed);
-        } catch (e) {
-          console.error("Failed to parse debate JSON block:", e);
+      const response = await Promise.race([
+        callGemini(prompt, 2000),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      
+      if (response) {
+        setDebateText(response);
+        const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          try {
+            const parsed = JSON.parse(jsonMatch[1].trim());
+            setParsedConsensus(parsed);
+          } catch (e) {
+            console.error("Failed to parse debate JSON block:", e);
+          }
         }
+      } else {
+        setDebateText('Service busy. Please try again in 2 minutes.');
       }
     } catch (err) {
       console.error(err);
-      setDebateText('Failed to generate debate. Please try again.');
+      setDebateText('Error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

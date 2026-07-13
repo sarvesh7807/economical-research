@@ -19,13 +19,23 @@ export default function CompanyIntelligence() {
     setLoading(true)
     setReport('')
     
-    const result = await callGemini(
-      'Write comprehensive company intelligence report for: ' + target + '\n\nInclude: Overview, Financials, Business Model, Competition, SWOT, Risks, ER Rating, Outlook.\nWrite minimum 500 words. Never mention Gemini.',
-      2500
-    )
-    
-    setReport(result || 'Report generation failed. Please try again.')
-    setLoading(false)
+    try {
+      const result = await Promise.race([
+        callGemini(
+          'Write comprehensive company intelligence report for: ' + target + '\n\nInclude: Overview, Financials, Business Model, Competition, SWOT, Risks, ER Rating, Outlook.\nWrite minimum 500 words. Never mention Gemini.',
+          2500
+        ),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setReport(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setReport('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

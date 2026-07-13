@@ -36,61 +36,70 @@ export default function SupplyChainIntelligence({ theme }) {
     setLoading(true);
     setReport('');
     
-    const result = await callGemini(`
-  You are Economical Research AI.
-  Generate COMPREHENSIVE supply chain 
-  intelligence for: ${target} industry
-  
-  ## Supply Chain Overview
-  [Detailed global supply chain structure]
-  [3-4 paragraphs]
-  
-  ## Key Players & Stakeholders
-  [Major companies in this supply chain]
-  [3 paragraphs]
-  
-  ## Geographic Analysis
-  Production hubs: [detailed]
-  Concentration risks: [detailed]
-  [3 paragraphs]
-  
-  ## Current Disruptions (2025-2026)
-  [Active supply chain issues and causes]
-  [3-4 paragraphs]
-  
-  ## Vulnerability Assessment
-  Critical vulnerabilities: [detailed list]
-  Single points of failure: [detailed]
-  [3 paragraphs]
-  
-  ## Technology & Innovation Impact
-  [How tech is changing this supply chain]
-  [2-3 paragraphs]
-  
-  ## Sustainability & ESG Factors
-  [Environmental and social supply chain issues]
-  [2 paragraphs]
-  
-  ## Risk Mitigation Strategies
-  [Detailed recommendations for companies]
-  [3 paragraphs]
-  
-  ## ER Supply Chain Resilience Score
-  Resilience Score: [0-100]/100
-  Risk Level: [Low/Medium/High/Critical]
-  [3-4 paragraph comprehensive verdict]
-  
-  ## 12-Month Outlook
-  [Detailed supply chain forecast]
-  [3 paragraphs]
-  
-  Write 900-1100 words minimum.
-  Never mention Gemini.
-  `, 3500);
-    
-    if (result) setReport(result);
-    else setReport('Report failed. Please try again.');
-    setLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Generate COMPREHENSIVE supply chain 
+      intelligence for: ${target} industry
+      
+      ## Supply Chain Overview
+      [Detailed global supply chain structure]
+      [3-4 paragraphs]
+      
+      ## Key Players & Stakeholders
+      [Major companies in this supply chain]
+      [3 paragraphs]
+      
+      ## Geographic Analysis
+      Production hubs: [detailed]
+      Concentration risks: [detailed]
+      [3 paragraphs]
+      
+      ## Current Disruptions (2025-2026)
+      [Active supply chain issues and causes]
+      [3-4 paragraphs]
+      
+      ## Vulnerability Assessment
+      Critical vulnerabilities: [detailed list]
+      Single points of failure: [detailed]
+      [3 paragraphs]
+      
+      ## Technology & Innovation Impact
+      [How tech is changing this supply chain]
+      [2-3 paragraphs]
+      
+      ## Sustainability & ESG Factors
+      [Environmental and social supply chain issues]
+      [2 paragraphs]
+      
+      ## Risk Mitigation Strategies
+      [Detailed recommendations for companies]
+      [3 paragraphs]
+      
+      ## ER Supply Chain Resilience Score
+      Resilience Score: [0-100]/100
+      Risk Level: [Low/Medium/High/Critical]
+      [3-4 paragraph comprehensive verdict]
+      
+      ## 12-Month Outlook
+      [Detailed supply chain forecast]
+      [3 paragraphs]
+      
+      Write 900-1100 words minimum.
+      Never mention Gemini.
+      `, 3500),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setReport(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setReport('Error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
 

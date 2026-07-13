@@ -42,36 +42,46 @@ export default function EconomicCalendar() {
     setImpactLoading(true);
     setImpactAnalysis('');
     
-    const result = await callGemini(`
-    You are Economical Research AI.
-    Analyze economic calendar event impact:
-    
-    Event: ${event.title || event.event}
-    Date: ${event.date}
-    Country: ${event.country}
-    
-    ## What Is This Event?
-    [Explain what this economic event means]
-    
-    ## Expected Market Impact
-    Stocks: [impact assessment]
-    Bonds: [impact assessment]
-    Currency: [impact assessment]
-    Commodities: [impact assessment]
-    
-    ## Historical Context
-    [How this event has moved markets historically]
-    
-    ## ER Event Intelligence
-    Impact Level: [HIGH/MEDIUM/LOW]
-    Direction bias: [Bullish/Bearish/Neutral]
-    [2-3 paragraph comprehensive analysis]
-    
-    Write 300-400 words. Never mention Gemini.
-    `, 800);
-    
-    if (result) setImpactAnalysis(result);
-    setImpactLoading(false);
+    try {
+      const result = await Promise.race([
+        callGemini(`
+      You are Economical Research AI.
+      Analyze economic calendar event impact:
+      
+      Event: ${event.title || event.event}
+      Date: ${event.date}
+      Country: ${event.country}
+      
+      ## What Is This Event?
+      [Explain what this economic event means]
+      
+      ## Expected Market Impact
+      Stocks: [impact assessment]
+      Bonds: [impact assessment]
+      Currency: [impact assessment]
+      Commodities: [impact assessment]
+      
+      ## Historical Context
+      [How this event has moved markets historically]
+      
+      ## ER Event Intelligence
+      Impact Level: [HIGH/MEDIUM/LOW]
+      Direction bias: [Bullish/Bearish/Neutral]
+      [2-3 paragraph comprehensive analysis]
+      
+      Write 300-400 words. Never mention Gemini.
+      `, 800),
+        new Promise(resolve => 
+          setTimeout(() => resolve(null), 45000)
+        )
+      ]);
+      setImpactAnalysis(result || 'Service busy. Please try again in 2 minutes.');
+    } catch (e) {
+      console.error(e);
+      setImpactAnalysis('Error occurred. Please try again.');
+    } finally {
+      setImpactLoading(false);
+    }
   };
 
   const getImpactBadgeColor = (impact) => {
