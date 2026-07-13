@@ -17,7 +17,12 @@ export async function callGemini(prompt, tokens = 2000) {
     const key = KEYS[idx % KEYS.length]
     idx++
     
-    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
+    for (const model of [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash-latest', 
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-lite'
+    ]) {
       try {
         const r = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
@@ -53,7 +58,7 @@ export async function callGemini(prompt, tokens = 2000) {
       }
     }
     
-    await new Promise(res => setTimeout(res, 2000))
+    await new Promise(res => setTimeout(res, 8000))
   }
   
   console.error('All Gemini attempts failed')
